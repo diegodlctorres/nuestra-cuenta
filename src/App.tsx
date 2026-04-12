@@ -42,22 +42,22 @@ export default function App() {
       {/* Header */}
       <header className="bg-white border-b border-slate-200 sticky top-0 z-10 px-6 py-4">
         <div className="max-w-md mx-auto flex justify-between items-center">
-          <h1 className="text-xl font-bold tracking-tight text-indigo-600 flex items-center gap-2">
+          <h1 className="text-xl font-bold tracking-tight text-primary-600 flex items-center gap-2">
             <ArrowRightLeft className="w-6 h-6" />
             Nuestra Cuenta
           </h1>
           <div className="flex gap-2">
             {coupleSettings.partner1.photoUrl ? (
-              <img src={coupleSettings.partner1.photoUrl} alt="P1" className="w-8 h-8 rounded-full object-cover border-2 border-indigo-100" />
+              <img src={coupleSettings.partner1.photoUrl} alt="P1" className="w-8 h-8 rounded-full object-cover border-2 border-primary-100" />
             ) : (
-              <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold text-xs uppercase">
+              <div className="w-8 h-8 rounded-full bg-primary-100 flex items-center justify-center text-primary-600 font-bold text-xs uppercase">
                 {(coupleSettings.partner1.nickname || coupleSettings.partner1.name || 'P').charAt(0)}
               </div>
             )}
             {coupleSettings.partner2.photoUrl ? (
-              <img src={coupleSettings.partner2.photoUrl} alt="P2" className="w-8 h-8 rounded-full object-cover border-2 border-rose-100" />
+              <img src={coupleSettings.partner2.photoUrl} alt="P2" className="w-8 h-8 rounded-full object-cover border-2 border-secondary-100" />
             ) : (
-              <div className="w-8 h-8 rounded-full bg-rose-100 flex items-center justify-center text-rose-600 font-bold text-xs uppercase">
+              <div className="w-8 h-8 rounded-full bg-secondary-100 flex items-center justify-center text-secondary-600 font-bold text-xs uppercase">
                 {(coupleSettings.partner2.nickname || coupleSettings.partner2.name || 'P').charAt(0)}
               </div>
             )}

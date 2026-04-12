@@ -33,7 +33,7 @@ export function PetsView({
       className="space-y-6"
     >
       <div className="flex items-center gap-3">
-        <div className="p-3 bg-rose-500 rounded-2xl">
+        <div className="p-3 bg-secondary-500 rounded-2xl">
           <PawPrint className="w-6 h-6 text-white" />
         </div>
         <h2 className="text-2xl font-bold">Mascotas</h2>
@@ -59,7 +59,7 @@ export function PetsView({
                     {pet.photoUrl ? (
                       <img src={pet.photoUrl} alt={pet.name} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
                     ) : (
-                      <PawPrint className="w-6 h-6 text-rose-500" />
+                      <PawPrint className="w-6 h-6 text-secondary-500" />
                     )}
                   </div>
                   <div>
@@ -115,7 +115,7 @@ export function PetsView({
                     {historyForPet.length > 3 && (
                       <button
                         onClick={() => setHistoryPet(pet)}
-                        className="text-[10px] font-bold text-indigo-600 uppercase tracking-wider"
+                        className="text-[10px] font-bold text-primary-600 uppercase tracking-wider"
                       >
                         Ver todo
                       </button>
@@ -166,13 +166,13 @@ export function PetsView({
               className="relative w-full max-w-sm bg-white rounded-3xl p-6 shadow-2xl"
             >
               <div className="flex justify-between items-start mb-6">
-                <div className="p-3 bg-rose-50 rounded-2xl">
-                  <PawPrint className="w-6 h-6 text-rose-500" />
+                <div className="p-3 bg-secondary-50 rounded-2xl">
+                  <PawPrint className="w-6 h-6 text-secondary-500" />
                 </div>
                 <button onClick={() => {
                   setPetTasks(petTasks.filter(t => t.id !== selectedTask.id));
                   setSelectedTask(null);
-                }} className="p-2 text-slate-400 hover:text-rose-600 transition-colors">
+                }} className="p-2 text-slate-400 hover:text-secondary-600 transition-colors">
                   <Trash2 className="w-5 h-5" />
                 </button>
               </div>
@@ -235,8 +235,8 @@ export function PetsView({
             >
               <div className="flex justify-between items-center mb-6">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-rose-50 flex items-center justify-center">
-                    <History className="w-5 h-5 text-rose-500" />
+                  <div className="w-10 h-10 rounded-xl bg-secondary-50 flex items-center justify-center">
+                    <History className="w-5 h-5 text-secondary-500" />
                   </div>
                   <div>
                     <h3 className="text-lg font-bold text-slate-800">Historial Completo</h3>

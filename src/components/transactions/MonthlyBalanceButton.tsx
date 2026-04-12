@@ -57,7 +57,7 @@ export function MonthlyBalanceButton({ transactions, account }: { transactions: 
             <div className="space-y-1">
               <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Mes</label>
               <select
-                className="w-full p-3 bg-slate-50 rounded-xl border-none text-sm focus:ring-2 focus:ring-indigo-500"
+                className="w-full p-3 bg-slate-50 rounded-xl border-none text-sm focus:ring-2 focus:ring-primary-500"
                 value={selectedMonth}
                 onChange={e => setSelectedMonth(parseInt(e.target.value))}
               >
@@ -69,7 +69,7 @@ export function MonthlyBalanceButton({ transactions, account }: { transactions: 
             <div className="space-y-1">
               <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Año</label>
               <select
-                className="w-full p-3 bg-slate-50 rounded-xl border-none text-sm focus:ring-2 focus:ring-indigo-500"
+                className="w-full p-3 bg-slate-50 rounded-xl border-none text-sm focus:ring-2 focus:ring-primary-500"
                 value={selectedYear}
                 onChange={e => setSelectedYear(parseInt(e.target.value))}
               >
@@ -85,9 +85,9 @@ export function MonthlyBalanceButton({ transactions, account }: { transactions: 
               <div className="text-emerald-600 text-[10px] font-bold uppercase tracking-wider mb-1">Ingresos</div>
               <div className="text-lg font-bold text-emerald-700">{formatCurrency(totalIncomes)}</div>
             </div>
-            <div className="bg-rose-50 rounded-3xl p-4 border border-rose-100 text-center">
-              <div className="text-rose-600 text-[10px] font-bold uppercase tracking-wider mb-1">Egresos</div>
-              <div className="text-lg font-bold text-rose-700">{formatCurrency(totalExpenses)}</div>
+            <div className="bg-secondary-50 rounded-3xl p-4 border border-secondary-100 text-center">
+              <div className="text-secondary-600 text-[10px] font-bold uppercase tracking-wider mb-1">Egresos</div>
+              <div className="text-lg font-bold text-secondary-700">{formatCurrency(totalExpenses)}</div>
             </div>
           </div>
 
@@ -95,7 +95,7 @@ export function MonthlyBalanceButton({ transactions, account }: { transactions: 
             <div className="text-slate-400 text-xs font-bold uppercase tracking-wider mb-1">Balance Neto</div>
             <div className={cn(
               "text-3xl font-bold",
-              (totalIncomes - totalExpenses) >= 0 ? "text-emerald-400" : "text-rose-400"
+              (totalIncomes - totalExpenses) >= 0 ? "text-emerald-400" : "text-secondary-400"
             )}>
               {formatCurrency(totalIncomes - totalExpenses)}
             </div>
@@ -113,7 +113,7 @@ export function MonthlyBalanceButton({ transactions, account }: { transactions: 
                         {totalExpenses > 0 ? ((amount / totalExpenses) * 100).toFixed(1) : 0}% del total
                       </span>
                     </div>
-                    <span className="font-bold text-rose-600">{formatCurrency(amount)}</span>
+                    <span className="font-bold text-secondary-600">{formatCurrency(amount)}</span>
                   </div>
                 ))}
               </div>

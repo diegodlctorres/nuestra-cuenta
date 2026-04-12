@@ -33,7 +33,7 @@ export function EditPetModal({ pet, onUpdate }: { pet: Pet, onUpdate: (pet: Pet)
 
   return (
     <>
-      <button onClick={() => setIsOpen(true)} className="p-2 text-slate-400 hover:text-indigo-500 transition-colors rounded-lg hover:bg-slate-100 border border-transparent">
+      <button onClick={() => setIsOpen(true)} className="p-2 text-slate-400 hover:text-primary-500 transition-colors rounded-lg hover:bg-slate-100 border border-transparent">
         <Pencil className="w-4 h-4" />
       </button>
 
@@ -41,11 +41,11 @@ export function EditPetModal({ pet, onUpdate }: { pet: Pet, onUpdate: (pet: Pet)
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-1">
             <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Nombre</label>
-            <input type="text" placeholder="Nombre" className="w-full p-3 bg-slate-50 rounded-xl border-none text-sm focus:ring-2 focus:ring-indigo-500" value={name} onChange={e => setName(e.target.value)} />
+            <input type="text" placeholder="Nombre" className="w-full p-3 bg-slate-50 rounded-xl border-none text-sm focus:ring-2 focus:ring-primary-500" value={name} onChange={e => setName(e.target.value)} />
           </div>
           <div className="space-y-1">
             <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Especie</label>
-            <select className="w-full p-3 bg-slate-50 rounded-xl border-none text-sm focus:ring-2 focus:ring-indigo-500" value={species} onChange={e => setSpecies(e.target.value)}>
+            <select className="w-full p-3 bg-slate-50 rounded-xl border-none text-sm focus:ring-2 focus:ring-primary-500" value={species} onChange={e => setSpecies(e.target.value)}>
               <option>Perro</option>
               <option>Gato</option>
               <option>Otro</option>
@@ -53,11 +53,11 @@ export function EditPetModal({ pet, onUpdate }: { pet: Pet, onUpdate: (pet: Pet)
           </div>
           <div className="space-y-1">
             <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Raza</label>
-            <input type="text" placeholder="Raza (opcional)" className="w-full p-3 bg-slate-50 rounded-xl border-none text-sm focus:ring-2 focus:ring-indigo-500" value={breed} onChange={e => setBreed(e.target.value)} />
+            <input type="text" placeholder="Raza (opcional)" className="w-full p-3 bg-slate-50 rounded-xl border-none text-sm focus:ring-2 focus:ring-primary-500" value={breed} onChange={e => setBreed(e.target.value)} />
           </div>
           <div className="space-y-1">
             <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Cumpleaños</label>
-            <input type="date" className="w-full p-3 bg-slate-50 rounded-xl border-none text-sm focus:ring-2 focus:ring-indigo-500" value={birthDate} onChange={e => setBirthDate(e.target.value)} />
+            <input type="date" className="w-full p-3 bg-slate-50 rounded-xl border-none text-sm focus:ring-2 focus:ring-primary-500" value={birthDate} onChange={e => setBirthDate(e.target.value)} />
           </div>
           <div className="space-y-1">
             <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Foto (Opcional)</label>
@@ -69,7 +69,7 @@ export function EditPetModal({ pet, onUpdate }: { pet: Pet, onUpdate: (pet: Pet)
               {photoUrl && <img src={photoUrl} alt="Vista previa" className="w-12 h-12 object-cover rounded-full shadow-sm flex-shrink-0" />}
             </div>
           </div>
-          <button type="submit" className="w-full py-4 bg-indigo-600 text-white rounded-2xl font-bold text-sm shadow-lg shadow-indigo-100 mt-4">Guardar Cambios</button>
+          <button type="submit" className="w-full py-4 bg-primary-600 text-white rounded-2xl font-bold text-sm shadow-lg shadow-primary-100 mt-4">Guardar Cambios</button>
         </form>
       </Modal>
     </>

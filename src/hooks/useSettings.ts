@@ -16,12 +16,16 @@ export function useSettings() {
     }
     return {
       partner1: { name: 'Ariana' },
-      partner2: { name: 'Luis' }
+      partner2: { name: 'Luis' },
+      theme: 'default'
     };
   });
 
   useEffect(() => {
     localStorage.setItem('nc_couple_settings', JSON.stringify(coupleSettings));
+    if (coupleSettings.theme) {
+      document.documentElement.setAttribute('data-theme', coupleSettings.theme);
+    }
   }, [coupleSettings]);
 
   const [categories, setCategories] = useState<Category[]>(() => {

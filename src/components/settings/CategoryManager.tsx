@@ -23,7 +23,7 @@ export function CategoryManager({ title, type, categories, onAdd, onDelete }: {
         {hasMore && (
           <button
             onClick={() => setIsModalOpen(true)}
-            className="text-[10px] font-bold text-indigo-600 uppercase tracking-wider"
+            className="text-[10px] font-bold text-primary-600 uppercase tracking-wider"
           >
             Ver más ({categories.length})
           </button>
@@ -33,7 +33,7 @@ export function CategoryManager({ title, type, categories, onAdd, onDelete }: {
         <input
           type="text"
           placeholder="Nueva categoría"
-          className="flex-1 p-3 bg-slate-50 rounded-xl border-none text-sm focus:ring-2 focus:ring-indigo-500"
+          className="flex-1 p-3 bg-slate-50 rounded-xl border-none text-sm focus:ring-2 focus:ring-primary-500"
           value={newName}
           onChange={e => setNewName(e.target.value)}
         />
@@ -44,7 +44,7 @@ export function CategoryManager({ title, type, categories, onAdd, onDelete }: {
               setNewName('');
             }
           }}
-          className="p-3 bg-indigo-600 text-white rounded-xl"
+          className="p-3 bg-primary-600 text-white rounded-xl"
         >
           <Plus className="w-5 h-5" />
         </button>
@@ -53,7 +53,7 @@ export function CategoryManager({ title, type, categories, onAdd, onDelete }: {
         {displayCategories.map(c => (
           <div key={c.id} className="flex items-center gap-2 bg-slate-50 px-3 py-2 rounded-xl border border-slate-100">
             <span className="text-sm font-medium text-slate-600">{c.name}</span>
-            <button onClick={() => onDelete(c.id)} className="text-slate-400 hover:text-rose-500">
+            <button onClick={() => onDelete(c.id)} className="text-slate-400 hover:text-secondary-500">
               <Trash2 className="w-3 h-3" />
             </button>
           </div>
@@ -66,7 +66,7 @@ export function CategoryManager({ title, type, categories, onAdd, onDelete }: {
             <input
               type="text"
               placeholder="Nueva categoría"
-              className="flex-1 p-3 bg-slate-50 rounded-xl border-none text-sm focus:ring-2 focus:ring-indigo-500"
+              className="flex-1 p-3 bg-slate-50 rounded-xl border-none text-sm focus:ring-2 focus:ring-primary-500"
               value={newName}
               onChange={e => setNewName(e.target.value)}
             />
@@ -77,7 +77,7 @@ export function CategoryManager({ title, type, categories, onAdd, onDelete }: {
                   setNewName('');
                 }
               }}
-              className="p-3 bg-indigo-600 text-white rounded-xl"
+              className="p-3 bg-primary-600 text-white rounded-xl"
             >
               <Plus className="w-5 h-5" />
             </button>
@@ -86,7 +86,7 @@ export function CategoryManager({ title, type, categories, onAdd, onDelete }: {
             {categories.map(c => (
               <div key={c.id} className="flex items-center gap-2 bg-slate-50 px-3 py-2 rounded-xl border border-slate-100">
                 <span className="text-sm font-medium text-slate-600">{c.name}</span>
-                <button onClick={() => onDelete(c.id)} className="text-slate-400 hover:text-rose-500">
+                <button onClick={() => onDelete(c.id)} className="text-slate-400 hover:text-secondary-500">
                   <Trash2 className="w-3 h-3" />
                 </button>
               </div>

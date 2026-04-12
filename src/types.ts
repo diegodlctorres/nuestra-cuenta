@@ -1,6 +1,7 @@
 export type AccountType = 'savings' | 'expenses';
 export type RecurrenceType = 'fixed' | 'variable';
 export type TransactionType = 'income' | 'expense';
+export type ThemeType = 'default' | 'oceanic' | 'nature' | 'sunset';
 
 export interface Transaction {
   id: string;
@@ -26,6 +27,7 @@ export interface Partner {
 export interface CoupleSettings {
   partner1: Partner;
   partner2: Partner;
+  theme?: ThemeType;
 }
 
 export interface Category {

@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Settings, PawPrint, Trash2 } from 'lucide-react';
+import { Settings, PawPrint, Trash2, Palette } from 'lucide-react';
 import { CoupleSettingsModal } from '../components/settings/CoupleSettingsModal';
 import { CategoryManager } from '../components/settings/CategoryManager';
 import { EditPetModal } from '../components/pets/EditPetModal';
@@ -28,6 +28,13 @@ export function SettingsView({
   categories,
   setCategories
 }: SettingsViewProps) {
+  const THEMES = [
+    { id: 'default', name: 'Original', color1: '#6366f1', color2: '#f43f5e' },
+    { id: 'oceanic', name: 'Oceánico', color1: '#14b8a6', color2: '#f97316' },
+    { id: 'nature', name: 'Naturaleza', color1: '#10b981', color2: '#f59e0b' },
+    { id: 'sunset', name: 'Atardecer', color1: '#c026d3', color2: '#f97316' },
+  ] as const;
+
   return (
     <motion.div
       key="settings"
@@ -44,6 +51,39 @@ export function SettingsView({
       </div>
 
       <div className="space-y-6">
+        <div className="bg-white rounded-3xl border border-slate-200 p-6 shadow-sm space-y-4">
+          <div className="flex items-center justify-between">
+            <h3 className="font-bold text-slate-800 flex items-center gap-2">
+              <Palette className="w-5 h-5 text-primary-500" />
+              Tema Visual
+            </h3>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            {THEMES.map(theme => {
+              const isActive = (coupleSettings.theme || 'default') === theme.id;
+              return (
+                <button
+                  key={theme.id}
+                  onClick={() => setCoupleSettings({ ...coupleSettings, theme: theme.id as any })}
+                  className={`flex items-center gap-3 p-3 rounded-xl border transition-all ${
+                    isActive 
+                      ? 'bg-white border-primary-500 shadow-sm ring-1 ring-primary-500' 
+                      : 'bg-white border-slate-200 hover:border-slate-300'
+                  }`}
+                >
+                  <div className="flex -space-x-1.5">
+                    <div className="w-5 h-5 rounded-full border-2 border-white shadow-sm z-10" style={{ backgroundColor: theme.color1 }} />
+                    <div className="w-5 h-5 rounded-full border-2 border-white shadow-sm" style={{ backgroundColor: theme.color2 }} />
+                  </div>
+                  <span className={`text-xs font-bold ${isActive ? 'text-primary-700' : 'text-slate-600'}`}>
+                    {theme.name}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
         <CoupleSettingsModal coupleSettings={coupleSettings} setCoupleSettings={setCoupleSettings} />
 
         <div className="bg-white rounded-3xl border border-slate-200 p-6 shadow-sm space-y-4">
@@ -58,8 +98,8 @@ export function SettingsView({
                     {pet.photoUrl ? (
                       <img src={pet.photoUrl} alt={pet.name} className="w-10 h-10 rounded-full object-cover shadow-sm" />
                     ) : (
-                      <div className="w-10 h-10 rounded-full bg-rose-100 flex items-center justify-center">
-                        <PawPrint className="w-5 h-5 text-rose-500" />
+                      <div className="w-10 h-10 rounded-full bg-secondary-100 flex items-center justify-center">
+                        <PawPrint className="w-5 h-5 text-secondary-500" />
                       </div>
                     )}
                     <div>
@@ -69,7 +109,7 @@ export function SettingsView({
                   </div>
                   <div className="flex gap-1">
                     <EditPetModal pet={pet} onUpdate={updatePet} />
-                    <button onClick={() => deletePet(pet.id)} className="p-2 text-slate-400 hover:text-rose-500 transition-colors rounded-lg hover:bg-rose-50 border border-transparent">
+                    <button onClick={() => deletePet(pet.id)} className="p-2 text-slate-400 hover:text-secondary-500 transition-colors rounded-lg hover:bg-secondary-50 border border-transparent">
                       <Trash2 className="w-4 h-4" />
                     </button>
                   </div>

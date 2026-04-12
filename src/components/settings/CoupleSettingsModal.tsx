@@ -7,11 +7,12 @@ import { Modal } from '../ui/Modal';
 export function CoupleSettingsModal({ coupleSettings, setCoupleSettings }: { coupleSettings: CoupleSettings, setCoupleSettings: (s: CoupleSettings) => void }) {
   const [isOpen, setIsOpen] = useState(false);
 
+
   return (
     <>
       <button onClick={() => setIsOpen(true)} className="w-full p-6 bg-white rounded-3xl border border-slate-200 flex justify-between items-center font-bold text-slate-700 shadow-sm hover:bg-slate-50 transition-colors">
         <span className="flex items-center gap-3">
-          <div className="p-2 bg-indigo-50 rounded-xl"><UserPlus className="w-6 h-6 text-indigo-600" /></div>
+          <div className="p-2 bg-primary-50 rounded-xl"><UserPlus className="w-6 h-6 text-primary-600" /></div>
           Detalles de la Pareja
         </span>
         <ChevronRight className="w-5 h-5 text-slate-400" />
@@ -29,7 +30,9 @@ export function CoupleSettingsModal({ coupleSettings, setCoupleSettings }: { cou
             partner={coupleSettings.partner2}
             onChange={(p) => setCoupleSettings({ ...coupleSettings, partner2: p })}
           />
-          <button onClick={() => setIsOpen(false)} className="w-full py-4 bg-indigo-600 text-white rounded-2xl font-bold text-sm shadow-lg shadow-indigo-100 mt-4">Guardar Cambios</button>
+          
+
+          <button onClick={() => setIsOpen(false)} className="w-full py-4 bg-primary-600 text-white rounded-2xl font-bold text-sm shadow-lg shadow-primary-100 mt-4">Guardar Cambios</button>
         </div>
       </Modal>
     </>

@@ -46,7 +46,7 @@ export function DashboardView({
             setActiveTab('detail');
             setDetailSubTab('savings');
           }}
-          className="bg-indigo-600 rounded-3xl p-6 text-white shadow-xl shadow-indigo-100 cursor-pointer active:scale-[0.98] transition-transform"
+          className="bg-primary-600 rounded-3xl p-6 text-white shadow-xl shadow-primary-100 cursor-pointer active:scale-[0.98] transition-transform"
         >
           <div className="flex justify-between items-start mb-4">
             <div className="p-2 bg-white/20 rounded-xl">
@@ -55,7 +55,7 @@ export function DashboardView({
             <span className="text-xs font-medium bg-white/20 px-2 py-1 rounded-full">Ahorros / Futuro</span>
           </div>
           <div className="text-3xl font-bold mb-1">{formatCurrency(savingsBalance)}</div>
-          <div className="text-indigo-100 text-sm">Uso recreativo y metas</div>
+          <div className="text-primary-100 text-sm">Uso recreativo y metas</div>
         </div>
 
         <div
@@ -76,24 +76,24 @@ export function DashboardView({
         </div>
       </div>
 
-      <div className="bg-rose-50 rounded-3xl p-6 border border-rose-100">
+      <div className="bg-secondary-50 rounded-3xl p-6 border border-secondary-100">
         <div className="flex items-center gap-3 mb-4">
-          <div className="p-2 bg-rose-500 rounded-xl">
+          <div className="p-2 bg-secondary-500 rounded-xl">
             <PawPrint className="w-5 h-5 text-white" />
           </div>
           <div>
-            <h3 className="font-bold text-rose-900">Mascotas</h3>
-            <p className="text-xs text-rose-700">Tareas pendientes</p>
+            <h3 className="font-bold text-secondary-900">Mascotas</h3>
+            <p className="text-xs text-secondary-700">Tareas pendientes</p>
           </div>
         </div>
-        <div className="text-2xl font-bold text-rose-900">{pendingPetTasksCount} tareas</div>
+        <div className="text-2xl font-bold text-secondary-900">{pendingPetTasksCount} tareas</div>
       </div>
 
       {/* Recent Activity */}
       <div>
         <div className="flex justify-between items-center mb-4">
           <h3 className="font-bold text-slate-800">Actividad Reciente</h3>
-          <button onClick={() => setActiveTab('detail')} className="text-indigo-600 text-sm font-medium">Ver todo</button>
+          <button onClick={() => setActiveTab('detail')} className="text-primary-600 text-sm font-medium">Ver todo</button>
         </div>
         <div className="space-y-3">
           {transactions.slice(0, 3).map(t => (

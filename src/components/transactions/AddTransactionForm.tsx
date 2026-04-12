@@ -47,8 +47,8 @@ export function AddTransactionForm({ onAdd, categories, coupleSettings }: { onAd
         className="w-full p-6 bg-white rounded-3xl border border-slate-200 flex justify-between items-center font-bold text-slate-700 shadow-sm hover:bg-slate-50 transition-colors"
       >
         <span className="flex items-center gap-3">
-          <div className="p-2 bg-indigo-50 rounded-xl">
-            <Plus className="w-6 h-6 text-indigo-600" />
+          <div className="p-2 bg-primary-50 rounded-xl">
+            <Plus className="w-6 h-6 text-primary-600" />
           </div>
           Nueva Transacción
         </span>
@@ -75,7 +75,7 @@ export function AddTransactionForm({ onAdd, categories, coupleSettings }: { onAd
                 onClick={() => setAccount('savings')}
                 className={cn(
                   "py-2 rounded-xl text-xs font-bold border transition-all",
-                  account === 'savings' ? "bg-indigo-600 text-white border-indigo-600" : "bg-white text-slate-500 border-slate-200"
+                  account === 'savings' ? "bg-primary-600 text-white border-primary-600" : "bg-white text-slate-500 border-slate-200"
                 )}
               >
                 Ahorros
@@ -101,7 +101,7 @@ export function AddTransactionForm({ onAdd, categories, coupleSettings }: { onAd
                 onClick={() => setType('expense')}
                 className={cn(
                   "py-2 rounded-xl text-xs font-bold border transition-all",
-                  type === 'expense' ? "bg-rose-600 text-white border-rose-600" : "bg-white text-slate-500 border-slate-200"
+                  type === 'expense' ? "bg-secondary-600 text-white border-secondary-600" : "bg-white text-slate-500 border-slate-200"
                 )}
               >
                 Egreso
@@ -118,7 +118,7 @@ export function AddTransactionForm({ onAdd, categories, coupleSettings }: { onAd
                   onClick={() => setCreatedBy(coupleSettings.partner1.name)}
                   className={cn(
                     "py-2 rounded-xl text-xs font-bold border transition-all truncate px-2",
-                    createdBy === coupleSettings.partner1.name ? "bg-indigo-600 text-white border-indigo-600" : "bg-white text-slate-500 border-slate-200"
+                    createdBy === coupleSettings.partner1.name ? "bg-primary-600 text-white border-primary-600" : "bg-white text-slate-500 border-slate-200"
                   )}
                 >
                   {coupleSettings.partner1.name}
@@ -128,7 +128,7 @@ export function AddTransactionForm({ onAdd, categories, coupleSettings }: { onAd
                   onClick={() => setCreatedBy(coupleSettings.partner2.name)}
                   className={cn(
                     "py-2 rounded-xl text-xs font-bold border transition-all truncate px-2",
-                    createdBy === coupleSettings.partner2.name ? "bg-rose-600 text-white border-rose-600" : "bg-white text-slate-500 border-slate-200"
+                    createdBy === coupleSettings.partner2.name ? "bg-secondary-600 text-white border-secondary-600" : "bg-white text-slate-500 border-slate-200"
                   )}
                 >
                   {coupleSettings.partner2.name}
@@ -170,7 +170,7 @@ export function AddTransactionForm({ onAdd, categories, coupleSettings }: { onAd
             <input
               type="number"
               placeholder="Monto (ej: -50 o 100)"
-              className="w-full p-3 bg-slate-50 rounded-xl border-none text-sm focus:ring-2 focus:ring-indigo-500"
+              className="w-full p-3 bg-slate-50 rounded-xl border-none text-sm focus:ring-2 focus:ring-primary-500"
               value={amount}
               onChange={e => setAmount(e.target.value)}
             />
@@ -181,7 +181,7 @@ export function AddTransactionForm({ onAdd, categories, coupleSettings }: { onAd
             <input
               type="text"
               placeholder="¿En qué se usó?"
-              className="w-full p-3 bg-slate-50 rounded-xl border-none text-sm focus:ring-2 focus:ring-indigo-500"
+              className="w-full p-3 bg-slate-50 rounded-xl border-none text-sm focus:ring-2 focus:ring-primary-500"
               value={description}
               onChange={e => setDescription(e.target.value)}
             />
@@ -190,7 +190,7 @@ export function AddTransactionForm({ onAdd, categories, coupleSettings }: { onAd
           <div className="space-y-1">
             <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Categoría</label>
             <select
-              className="w-full p-3 bg-slate-50 rounded-xl border-none text-sm focus:ring-2 focus:ring-indigo-500"
+              className="w-full p-3 bg-slate-50 rounded-xl border-none text-sm focus:ring-2 focus:ring-primary-500"
               value={category}
               onChange={e => setCategory(e.target.value)}
             >
@@ -200,7 +200,7 @@ export function AddTransactionForm({ onAdd, categories, coupleSettings }: { onAd
             </select>
           </div>
 
-          <button type="submit" className="w-full py-4 bg-indigo-600 text-white rounded-2xl font-bold text-sm shadow-lg shadow-indigo-100 mt-4">
+          <button type="submit" className="w-full py-4 bg-primary-600 text-white rounded-2xl font-bold text-sm shadow-lg shadow-primary-100 mt-4">
             Guardar Transacción
           </button>
         </form>

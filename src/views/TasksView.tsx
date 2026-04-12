@@ -41,14 +41,14 @@ export function TasksView({
               className={cn(
                 "bg-white p-4 rounded-2xl border transition-all flex items-center gap-4",
                 task.completed ? "opacity-60 border-slate-100" : "border-slate-200 shadow-sm",
-                isOverdue && !task.completed ? "border-rose-200 bg-rose-50/30" : ""
+                isOverdue && !task.completed ? "border-secondary-200 bg-secondary-50/30" : ""
               )}
             >
               <button
                 onClick={() => toggleTask(task.id)}
                 className={cn(
                   "transition-colors",
-                  task.completed ? "text-indigo-600" : "text-slate-300 hover:text-indigo-400"
+                  task.completed ? "text-primary-600" : "text-slate-300 hover:text-primary-400"
                 )}
               >
                 {task.completed ? <CheckCircle2 className="w-6 h-6" /> : <Circle className="w-6 h-6" />}
@@ -62,7 +62,7 @@ export function TasksView({
                 </div>
                 <div className={cn(
                   "text-xs flex items-center gap-1 mt-1",
-                  isOverdue && !task.completed && "text-rose-600 font-medium",
+                  isOverdue && !task.completed && "text-secondary-600 font-medium",
                   !isOverdue || task.completed ? "text-slate-400" : ""
                 )}>
                   <Calendar className="w-3 h-3" />
@@ -79,7 +79,7 @@ export function TasksView({
                 {!task.completed && (
                   <button
                     onClick={() => downloadICS(task)}
-                    className="p-2 bg-slate-50 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors border border-slate-100"
+                    className="p-2 bg-slate-50 text-slate-400 hover:text-primary-600 hover:bg-primary-50 rounded-lg transition-colors border border-slate-100"
                     title="Añadir al Calendario"
                   >
                     <CalendarPlus className="w-4 h-4" />

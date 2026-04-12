@@ -20,21 +20,21 @@ export function PartnerForm({ title, partner, onChange }: { title: string, partn
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-1">
           <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Nombre</label>
-          <input type="text" className="w-full p-2.5 bg-white rounded-xl border border-slate-200 text-sm focus:ring-2 focus:ring-indigo-500" value={partner.name} onChange={e => onChange({ ...partner, name: e.target.value })} />
+          <input type="text" className="w-full p-2.5 bg-white rounded-xl border border-slate-200 text-sm focus:ring-2 focus:ring-primary-500" value={partner.name} onChange={e => onChange({ ...partner, name: e.target.value })} />
         </div>
         <div className="space-y-1">
           <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Apodo</label>
-          <input type="text" className="w-full p-2.5 bg-white rounded-xl border border-slate-200 text-sm focus:ring-2 focus:ring-indigo-500" value={partner.nickname || ''} onChange={e => onChange({ ...partner, nickname: e.target.value })} />
+          <input type="text" className="w-full p-2.5 bg-white rounded-xl border border-slate-200 text-sm focus:ring-2 focus:ring-primary-500" value={partner.nickname || ''} onChange={e => onChange({ ...partner, nickname: e.target.value })} />
         </div>
       </div>
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-1">
           <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Cumpleaños</label>
-          <input type="date" className="w-full p-2.5 bg-white rounded-xl border border-slate-200 text-sm focus:ring-2 focus:ring-indigo-500" value={partner.birthDate || ''} onChange={e => onChange({ ...partner, birthDate: e.target.value })} />
+          <input type="date" className="w-full p-2.5 bg-white rounded-xl border border-slate-200 text-sm focus:ring-2 focus:ring-primary-500" value={partner.birthDate || ''} onChange={e => onChange({ ...partner, birthDate: e.target.value })} />
         </div>
         <div className="space-y-1">
           <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Género</label>
-          <select className="w-full p-2.5 bg-white rounded-xl border border-slate-200 text-sm focus:ring-2 focus:ring-indigo-500" value={partner.gender || ''} onChange={e => onChange({ ...partner, gender: e.target.value })}>
+          <select className="w-full p-2.5 bg-white rounded-xl border border-slate-200 text-sm focus:ring-2 focus:ring-primary-500" value={partner.gender || ''} onChange={e => onChange({ ...partner, gender: e.target.value })}>
             <option value="">Seleccionar</option>
             <option value="Femenino">Femenino</option>
             <option value="Masculino">Masculino</option>

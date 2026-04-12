@@ -39,7 +39,7 @@ export function AddPetForm({ onAdd }: { onAdd: (pet: Omit<Pet, 'id'>) => void })
         className="w-full p-4 flex justify-between items-center font-bold text-slate-700 hover:bg-slate-50 transition-colors rounded-2xl"
       >
         <span className="flex items-center gap-2">
-          <UserPlus className="w-5 h-5 text-rose-500" />
+          <UserPlus className="w-5 h-5 text-secondary-500" />
           Registrar Mascota
         </span>
         <ChevronRight className="w-5 h-5 text-slate-400" />
@@ -49,21 +49,21 @@ export function AddPetForm({ onAdd }: { onAdd: (pet: Omit<Pet, 'id'>) => void })
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-1">
             <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Nombre</label>
-            <input type="text" placeholder="Nombre de la mascota" className="w-full p-3 bg-slate-50 rounded-xl border-none text-sm focus:ring-2 focus:ring-rose-500" value={name} onChange={e => setName(e.target.value)} />
+            <input type="text" placeholder="Nombre de la mascota" className="w-full p-3 bg-slate-50 rounded-xl border-none text-sm focus:ring-2 focus:ring-secondary-500" value={name} onChange={e => setName(e.target.value)} />
           </div>
           <div className="space-y-1">
             <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Especie</label>
-            <select className="w-full p-3 bg-slate-50 rounded-xl border-none text-sm focus:ring-2 focus:ring-rose-500" value={species} onChange={e => setSpecies(e.target.value)}>
+            <select className="w-full p-3 bg-slate-50 rounded-xl border-none text-sm focus:ring-2 focus:ring-secondary-500" value={species} onChange={e => setSpecies(e.target.value)}>
               <option>Perro</option><option>Gato</option><option>Otro</option>
             </select>
           </div>
           <div className="space-y-1">
             <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Raza</label>
-            <input type="text" placeholder="Raza (opcional)" className="w-full p-3 bg-slate-50 rounded-xl border-none text-sm focus:ring-2 focus:ring-rose-500" value={breed} onChange={e => setBreed(e.target.value)} />
+            <input type="text" placeholder="Raza (opcional)" className="w-full p-3 bg-slate-50 rounded-xl border-none text-sm focus:ring-2 focus:ring-secondary-500" value={breed} onChange={e => setBreed(e.target.value)} />
           </div>
           <div className="space-y-1">
             <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Cumpleaños</label>
-            <input type="date" className="w-full p-3 bg-slate-50 rounded-xl border-none text-sm focus:ring-2 focus:ring-rose-500" value={birthDate} onChange={e => setBirthDate(e.target.value)} />
+            <input type="date" className="w-full p-3 bg-slate-50 rounded-xl border-none text-sm focus:ring-2 focus:ring-secondary-500" value={birthDate} onChange={e => setBirthDate(e.target.value)} />
           </div>
           <div className="space-y-1">
             <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Foto (Opcional)</label>
@@ -75,7 +75,7 @@ export function AddPetForm({ onAdd }: { onAdd: (pet: Omit<Pet, 'id'>) => void })
               {photoUrl && <img src={photoUrl} alt="Vista previa" className="w-12 h-12 object-cover rounded-full shadow-sm flex-shrink-0" />}
             </div>
           </div>
-          <button type="submit" className="w-full py-4 bg-rose-500 text-white rounded-2xl font-bold text-sm shadow-lg shadow-rose-100 mt-4">Registrar Mascota</button>
+          <button type="submit" className="w-full py-4 bg-secondary-500 text-white rounded-2xl font-bold text-sm shadow-lg shadow-secondary-100 mt-4">Registrar Mascota</button>
         </form>
       </Modal>
     </>

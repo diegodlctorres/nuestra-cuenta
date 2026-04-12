@@ -111,7 +111,7 @@ export function DetailView({
             />
             <TransactionGroup
               title="Ahorros Fijos"
-              icon={<Clock className="w-4 h-4 text-indigo-500" />}
+              icon={<Clock className="w-4 h-4 text-primary-500" />}
               transactions={groupedTransactions.savings.fixed}
               coupleSettings={coupleSettings}
             />

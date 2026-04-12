@@ -7,12 +7,12 @@ export function NavButton({ active, onClick, icon, label }: { active: boolean, o
       onClick={onClick}
       className={cn(
         "flex flex-col items-center gap-1 transition-colors",
-        active ? "text-indigo-600" : "text-slate-400"
+        active ? "text-primary-600" : "text-slate-400"
       )}
     >
       <div className={cn(
         "p-2 rounded-xl transition-colors",
-        active ? "bg-indigo-50" : "bg-transparent"
+        active ? "bg-primary-50" : "bg-transparent"
       )}>
         {icon}
       </div>

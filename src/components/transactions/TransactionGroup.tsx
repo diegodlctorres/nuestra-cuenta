@@ -21,7 +21,7 @@ export function TransactionGroup({ title, icon, transactions, coupleSettings }: 
         {hasMore && (
           <button
             onClick={() => setIsModalOpen(true)}
-            className="text-[10px] font-bold text-indigo-600 uppercase tracking-wider"
+            className="text-[10px] font-bold text-primary-600 uppercase tracking-wider"
           >
             Ver más ({transactions.length})
           </button>

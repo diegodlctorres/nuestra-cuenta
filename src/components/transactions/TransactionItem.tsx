@@ -13,7 +13,7 @@ export const TransactionItem: React.FC<{ t: Transaction, coupleSettings: CoupleS
       <div className="flex items-center gap-3">
         <div className={cn(
           "p-2 rounded-xl",
-          isIncome ? "bg-emerald-50 text-emerald-600" : "bg-rose-50 text-rose-600"
+          isIncome ? "bg-emerald-50 text-emerald-600" : "bg-secondary-50 text-secondary-600"
         )}>
           {isIncome ? <TrendingUp className="w-4 h-4" /> : <TrendingDown className="w-4 h-4" />}
         </div>
@@ -31,7 +31,7 @@ export const TransactionItem: React.FC<{ t: Transaction, coupleSettings: CoupleS
             {isIncome && t.createdBy && coupleSettings.partner1 && coupleSettings.partner2 && (
                <span className={cn(
                  "text-[8px] px-1.5 py-0.5 rounded-full font-bold uppercase",
-                 t.createdBy === coupleSettings.partner1.name ? "bg-indigo-100 text-indigo-700" : "bg-rose-100 text-rose-700"
+                 t.createdBy === coupleSettings.partner1.name ? "bg-primary-100 text-primary-700" : "bg-secondary-100 text-secondary-700"
                )}>
                  {t.createdBy}
                </span>
@@ -42,7 +42,7 @@ export const TransactionItem: React.FC<{ t: Transaction, coupleSettings: CoupleS
           </div>
         </div>
       </div>
-      <div className={cn("font-bold", isIncome ? "text-emerald-600" : "text-rose-600")}>
+      <div className={cn("font-bold", isIncome ? "text-emerald-600" : "text-secondary-600")}>
         {isIncome ? '+' : '-'}{formatCurrency(t.amount)}
       </div>
     </div>
