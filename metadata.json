@@ -1,0 +1,5 @@
+{
+  "name": "Nuestra Cuenta",
+  "description": "Aplicación compartida para gestionar gastos de pareja, ahorros, gastos de mascotas y recordatorios pendientes.",
+  "requestFramePermissions": []
+}

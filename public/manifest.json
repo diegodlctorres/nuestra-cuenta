@@ -1,0 +1,21 @@
+{
+  "short_name": "NuestraCuenta",
+  "name": "Nuestra Cuenta - Gastos en Pareja",
+  "icons": [
+    {
+      "src": "https://picsum.photos/seed/money/192/192",
+      "type": "image/png",
+      "sizes": "192x192"
+    },
+    {
+      "src": "https://picsum.photos/seed/money/512/512",
+      "type": "image/png",
+      "sizes": "512x512"
+    }
+  ],
+  "start_url": "/",
+  "background_color": "#ffffff",
+  "display": "standalone",
+  "theme_color": "#4f46e5",
+  "description": "Gestiona gastos, ahorros y tareas en pareja."
+}
