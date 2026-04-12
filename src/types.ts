@@ -15,9 +15,17 @@ export interface Transaction {
   createdBy?: string;
 }
 
+export interface Partner {
+  name: string;
+  nickname?: string;
+  birthDate?: string;
+  gender?: string;
+  photoUrl?: string;
+}
+
 export interface CoupleSettings {
-  partner1: string;
-  partner2: string;
+  partner1: Partner;
+  partner2: Partner;
 }
 
 export interface Category {

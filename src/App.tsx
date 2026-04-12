@@ -4,15 +4,16 @@
  */
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { 
-  Wallet, 
-  PiggyBank, 
-  PawPrint, 
-  CheckSquare, 
-  Plus, 
-  TrendingUp, 
-  TrendingDown, 
+import {
+  Wallet,
+  PiggyBank,
+  PawPrint,
+  CheckSquare,
+  Plus,
+  TrendingUp,
+  TrendingDown,
   Calendar,
+  CalendarPlus,
   Trash2,
   CheckCircle2,
   Circle,
@@ -34,10 +35,23 @@ import { Transaction, Task, Pet, PetTask, AccountType, Category, RecurrenceType,
 export default function App() {
   const [activeTab, setActiveTab] = useState<'dashboard' | 'detail' | 'pets' | 'tasks' | 'settings'>('dashboard');
   const [detailSubTab, setDetailSubTab] = useState<'expenses' | 'savings'>('expenses');
-  
+
   const [coupleSettings, setCoupleSettings] = useState<CoupleSettings>(() => {
     const saved = localStorage.getItem('nc_couple_settings');
-    return saved ? JSON.parse(saved) : { partner1: 'Ariana', partner2: 'Luis' };
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      if (typeof parsed.partner1 === 'string') {
+        return {
+          partner1: { name: parsed.partner1 },
+          partner2: { name: parsed.partner2 }
+        };
+      }
+      return parsed;
+    }
+    return {
+      partner1: { name: 'Ariana' },
+      partner2: { name: 'Luis' }
+    };
   });
 
   useEffect(() => {
@@ -125,17 +139,17 @@ export default function App() {
   }, [categories]);
 
   // Calculations
-  const savingsBalance = useMemo(() => 
+  const savingsBalance = useMemo(() =>
     transactions.filter(t => t.account === 'savings').reduce((acc, t) => acc + (t.type === 'income' ? t.amount : -t.amount), 0)
-  , [transactions]);
+    , [transactions]);
 
-  const expensesBalance = useMemo(() => 
+  const expensesBalance = useMemo(() =>
     transactions.filter(t => t.account === 'expenses').reduce((acc, t) => acc + (t.type === 'income' ? t.amount : -t.amount), 0)
-  , [transactions]);
+    , [transactions]);
 
   const groupedTransactions = useMemo(() => {
     const filterByAccount = (acc: AccountType) => transactions.filter(t => t.account === acc);
-    
+
     return {
       expenses: {
         incomes: filterByAccount('expenses').filter(t => t.type === 'income'),
@@ -150,9 +164,9 @@ export default function App() {
     };
   }, [transactions]);
 
-  const pendingPetTasksCount = useMemo(() => 
+  const pendingPetTasksCount = useMemo(() =>
     petTasks.filter(t => !t.completed).length
-  , [petTasks]);
+    , [petTasks]);
 
   // Handlers
   const addTransaction = (t: Omit<Transaction, 'id'>) => {
@@ -163,6 +177,32 @@ export default function App() {
   const addTask = (task: Omit<Task, 'id' | 'completed'>) => {
     const newTask = { ...task, id: crypto.randomUUID(), completed: false };
     setTasks([newTask, ...tasks]);
+  };
+
+  const downloadICS = (task: Task) => {
+    const dateIso = task.deadline.replace(/-/g, '');
+    const icsData = [
+      'BEGIN:VCALENDAR',
+      'VERSION:2.0',
+      'PRODID:-//Nuestra Cuenta//Recordatorios//ES',
+      'BEGIN:VEVENT',
+      `UID:${task.id}@nuestracuenta.app`,
+      `DTSTAMP:${new Date().toISOString().replace(/[-:]/g, '').split('.')[0]}Z`,
+      `DTSTART;VALUE=DATE:${dateIso}`,
+      `DTEND;VALUE=DATE:${dateIso}`,
+      `SUMMARY:${task.title}`,
+      `DESCRIPTION:Recordatorio de Nuestra Cuenta\\nGenerado de forma automática.`,
+      'END:VEVENT',
+      'END:VCALENDAR'
+    ].join('\r\n');
+
+    const blob = new Blob([icsData], { type: 'text/calendar;charset=utf-8' });
+    const link = document.createElement('a');
+    link.href = window.URL.createObjectURL(blob);
+    link.download = `${task.title.replace(/\s+/g, '_')}.ics`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   const toggleTask = (id: string) => {
@@ -197,7 +237,7 @@ export default function App() {
   };
 
   const completePetTask = (id: string) => {
-    setPetTasks(petTasks.map(t => 
+    setPetTasks(petTasks.map(t =>
       t.id === id ? { ...t, completed: true, completedDate: new Date().toISOString() } : t
     ));
   };
@@ -215,8 +255,20 @@ export default function App() {
             Nuestra Cuenta
           </h1>
           <div className="flex gap-2">
-            <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold text-xs">A</div>
-            <div className="w-8 h-8 rounded-full bg-rose-100 flex items-center justify-center text-rose-600 font-bold text-xs">L</div>
+            {coupleSettings.partner1.photoUrl ? (
+              <img src={coupleSettings.partner1.photoUrl} alt="P1" className="w-8 h-8 rounded-full object-cover border-2 border-indigo-100" />
+            ) : (
+              <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold text-xs uppercase">
+                {(coupleSettings.partner1.nickname || coupleSettings.partner1.name || 'P').charAt(0)}
+              </div>
+            )}
+            {coupleSettings.partner2.photoUrl ? (
+              <img src={coupleSettings.partner2.photoUrl} alt="P2" className="w-8 h-8 rounded-full object-cover border-2 border-rose-100" />
+            ) : (
+              <div className="w-8 h-8 rounded-full bg-rose-100 flex items-center justify-center text-rose-600 font-bold text-xs uppercase">
+                {(coupleSettings.partner2.nickname || coupleSettings.partner2.name || 'P').charAt(0)}
+              </div>
+            )}
           </div>
         </div>
       </header>
@@ -224,7 +276,7 @@ export default function App() {
       <main className="max-w-md mx-auto px-6 py-8">
         <AnimatePresence mode="wait">
           {activeTab === 'dashboard' && (
-            <motion.div 
+            <motion.div
               key="dashboard"
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
@@ -235,7 +287,7 @@ export default function App() {
 
               {/* Account Cards */}
               <div className="grid grid-cols-1 gap-4">
-                <div 
+                <div
                   onClick={() => {
                     setActiveTab('detail');
                     setDetailSubTab('savings');
@@ -252,7 +304,7 @@ export default function App() {
                   <div className="text-indigo-100 text-sm">Uso recreativo y metas</div>
                 </div>
 
-                <div 
+                <div
                   onClick={() => {
                     setActiveTab('detail');
                     setDetailSubTab('expenses');
@@ -270,7 +322,6 @@ export default function App() {
                 </div>
               </div>
 
-              <AddTransactionForm onAdd={addTransaction} categories={categories} coupleSettings={coupleSettings} />
               <div className="bg-rose-50 rounded-3xl p-6 border border-rose-100">
                 <div className="flex items-center gap-3 mb-4">
                   <div className="p-2 bg-rose-500 rounded-xl">
@@ -300,7 +351,7 @@ export default function App() {
           )}
 
           {activeTab === 'detail' && (
-            <motion.div 
+            <motion.div
               key="detail"
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
@@ -316,9 +367,9 @@ export default function App() {
                 </div>
                 <MonthlyBalanceButton transactions={transactions} account={detailSubTab} />
               </div>
-              
+
               <div className="flex bg-slate-100 p-1 rounded-2xl">
-                <button 
+                <button
                   onClick={() => setDetailSubTab('expenses')}
                   className={cn(
                     "flex-1 py-2 text-sm font-bold rounded-xl transition-all",
@@ -327,7 +378,7 @@ export default function App() {
                 >
                   Gastos
                 </button>
-                <button 
+                <button
                   onClick={() => setDetailSubTab('savings')}
                   className={cn(
                     "flex-1 py-2 text-sm font-bold rounded-xl transition-all",
@@ -341,23 +392,23 @@ export default function App() {
               <div className="space-y-8">
                 {detailSubTab === 'expenses' ? (
                   <>
-                    <TransactionGroup 
-                      title="Ingresos" 
-                      icon={<TrendingUp className="w-4 h-4 text-emerald-500" />} 
-                      transactions={groupedTransactions.expenses.incomes} 
-                      coupleSettings={coupleSettings} 
+                    <TransactionGroup
+                      title="Ingresos"
+                      icon={<TrendingUp className="w-4 h-4 text-emerald-500" />}
+                      transactions={groupedTransactions.expenses.incomes}
+                      coupleSettings={coupleSettings}
                     />
-                    <TransactionGroup 
-                      title="Gastos Fijos" 
-                      icon={<Clock className="w-4 h-4 text-amber-500" />} 
-                      transactions={groupedTransactions.expenses.fixed} 
-                      coupleSettings={coupleSettings} 
+                    <TransactionGroup
+                      title="Gastos Fijos"
+                      icon={<Clock className="w-4 h-4 text-amber-500" />}
+                      transactions={groupedTransactions.expenses.fixed}
+                      coupleSettings={coupleSettings}
                     />
-                    <TransactionGroup 
-                      title="Gastos Variables" 
-                      icon={<TrendingDown className="w-4 h-4 text-blue-500" />} 
-                      transactions={groupedTransactions.expenses.variable} 
-                      coupleSettings={coupleSettings} 
+                    <TransactionGroup
+                      title="Gastos Variables"
+                      icon={<TrendingDown className="w-4 h-4 text-blue-500" />}
+                      transactions={groupedTransactions.expenses.variable}
+                      coupleSettings={coupleSettings}
                     />
 
                     {groupedTransactions.expenses.incomes.length === 0 && groupedTransactions.expenses.fixed.length === 0 && groupedTransactions.expenses.variable.length === 0 && (
@@ -368,23 +419,23 @@ export default function App() {
                   </>
                 ) : (
                   <>
-                    <TransactionGroup 
-                      title="Ingresos" 
-                      icon={<TrendingUp className="w-4 h-4 text-emerald-500" />} 
-                      transactions={groupedTransactions.savings.incomes} 
-                      coupleSettings={coupleSettings} 
+                    <TransactionGroup
+                      title="Ingresos"
+                      icon={<TrendingUp className="w-4 h-4 text-emerald-500" />}
+                      transactions={groupedTransactions.savings.incomes}
+                      coupleSettings={coupleSettings}
                     />
-                    <TransactionGroup 
-                      title="Ahorros Fijos" 
-                      icon={<Clock className="w-4 h-4 text-indigo-500" />} 
-                      transactions={groupedTransactions.savings.fixed} 
-                      coupleSettings={coupleSettings} 
+                    <TransactionGroup
+                      title="Ahorros Fijos"
+                      icon={<Clock className="w-4 h-4 text-indigo-500" />}
+                      transactions={groupedTransactions.savings.fixed}
+                      coupleSettings={coupleSettings}
                     />
-                    <TransactionGroup 
-                      title="Ahorros Variables" 
-                      icon={<TrendingDown className="w-4 h-4 text-blue-500" />} 
-                      transactions={groupedTransactions.savings.variable} 
-                      coupleSettings={coupleSettings} 
+                    <TransactionGroup
+                      title="Ahorros Variables"
+                      icon={<TrendingDown className="w-4 h-4 text-blue-500" />}
+                      transactions={groupedTransactions.savings.variable}
+                      coupleSettings={coupleSettings}
                     />
 
                     {groupedTransactions.savings.incomes.length === 0 && groupedTransactions.savings.fixed.length === 0 && groupedTransactions.savings.variable.length === 0 && (
@@ -399,7 +450,7 @@ export default function App() {
           )}
 
           {activeTab === 'pets' && (
-            <motion.div 
+            <motion.div
               key="pets"
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
@@ -445,7 +496,7 @@ export default function App() {
                           </div>
                         </div>
                       </div>
-                      
+
                       <div className="p-5 space-y-4">
                         {/* Pending Tasks */}
                         <div>
@@ -455,7 +506,7 @@ export default function App() {
                           <div className="space-y-2">
                             {tasksForPet.map(task => (
                               <div key={task.id} className="bg-slate-50 p-3 rounded-xl flex justify-between items-center">
-                                <button 
+                                <button
                                   onClick={() => setSelectedTask(task)}
                                   className="flex-1 text-left"
                                 >
@@ -466,7 +517,7 @@ export default function App() {
                                     {task.scheduledTime && ` • ${task.scheduledTime}`}
                                   </div>
                                 </button>
-                                <button 
+                                <button
                                   onClick={() => completePetTask(task.id)}
                                   className="p-2 bg-emerald-500 text-white rounded-lg shadow-sm ml-2"
                                 >
@@ -487,7 +538,7 @@ export default function App() {
                               <History className="w-3 h-3" /> Historial
                             </h4>
                             {historyForPet.length > 3 && (
-                              <button 
+                              <button
                                 onClick={() => setHistoryPet(pet)}
                                 className="text-[10px] font-bold text-indigo-600 uppercase tracking-wider"
                               >
@@ -497,8 +548,8 @@ export default function App() {
                           </div>
                           <div className="space-y-2">
                             {displayHistory.map(task => (
-                              <button 
-                                key={task.id} 
+                              <button
+                                key={task.id}
                                 onClick={() => setSelectedTask(task)}
                                 className="w-full bg-white border border-slate-100 p-3 rounded-xl flex justify-between items-center opacity-75 text-left"
                               >
@@ -526,14 +577,14 @@ export default function App() {
               <AnimatePresence>
                 {selectedTask && (
                   <div className="fixed inset-0 z-50 flex items-center justify-center px-6">
-                    <motion.div 
+                    <motion.div
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
                       exit={{ opacity: 0 }}
                       onClick={() => setSelectedTask(null)}
                       className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
                     />
-                    <motion.div 
+                    <motion.div
                       initial={{ opacity: 0, scale: 0.9, y: 20 }}
                       animate={{ opacity: 1, scale: 1, y: 0 }}
                       exit={{ opacity: 0, scale: 0.9, y: 20 }}
@@ -544,21 +595,21 @@ export default function App() {
                           <PawPrint className="w-6 h-6 text-rose-500" />
                         </div>
                         <button onClick={() => {
-                            setPetTasks(petTasks.filter(t => t.id !== selectedTask.id));
-                            setSelectedTask(null);
-                          }} className="p-2 text-slate-400 hover:text-rose-600 transition-colors">
+                          setPetTasks(petTasks.filter(t => t.id !== selectedTask.id));
+                          setSelectedTask(null);
+                        }} className="p-2 text-slate-400 hover:text-rose-600 transition-colors">
                           <Trash2 className="w-5 h-5" />
                         </button>
                       </div>
 
                       <h3 className="text-xl font-bold text-slate-800 mb-2">{selectedTask.title}</h3>
-                      
+
                       <div className="space-y-4 mb-6">
                         <div className="flex items-center gap-3 text-sm text-slate-600">
                           <Calendar className="w-4 h-4 text-slate-400" />
                           <span>Programado: {format(parseISO(selectedTask.scheduledDate), 'dd MMMM yyyy', { locale: es })} {selectedTask.scheduledTime}</span>
                         </div>
-                        
+
                         {selectedTask.completed && (
                           <div className="flex items-center gap-3 text-sm text-emerald-600 font-medium">
                             <CheckCircle2 className="w-4 h-4" />
@@ -579,7 +630,7 @@ export default function App() {
                         )}
                       </div>
 
-                      <button 
+                      <button
                         onClick={() => setSelectedTask(null)}
                         className="w-full py-3 bg-slate-900 text-white rounded-xl font-bold text-sm"
                       >
@@ -594,14 +645,14 @@ export default function App() {
               <AnimatePresence>
                 {historyPet && (
                   <div className="fixed inset-0 z-50 flex items-center justify-center px-6">
-                    <motion.div 
+                    <motion.div
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
                       exit={{ opacity: 0 }}
                       onClick={() => setHistoryPet(null)}
                       className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
                     />
-                    <motion.div 
+                    <motion.div
                       initial={{ opacity: 0, scale: 0.9, y: 20 }}
                       animate={{ opacity: 1, scale: 1, y: 0 }}
                       exit={{ opacity: 0, scale: 0.9, y: 20 }}
@@ -627,8 +678,8 @@ export default function App() {
                           .filter(t => t.petId === historyPet.id && t.completed)
                           .sort((a, b) => b.completedDate!.localeCompare(a.completedDate!))
                           .map(task => (
-                            <button 
-                              key={task.id} 
+                            <button
+                              key={task.id}
                               onClick={() => {
                                 setSelectedTask(task);
                                 setHistoryPet(null);
@@ -646,7 +697,7 @@ export default function App() {
                           ))}
                       </div>
 
-                      <button 
+                      <button
                         onClick={() => setHistoryPet(null)}
                         className="w-full py-3 bg-slate-900 text-white rounded-xl font-bold text-sm mt-6"
                       >
@@ -660,7 +711,7 @@ export default function App() {
           )}
 
           {activeTab === 'tasks' && (
-            <motion.div 
+            <motion.div
               key="tasks"
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
@@ -668,22 +719,22 @@ export default function App() {
               className="space-y-6"
             >
               <h2 className="text-2xl font-bold">Recordatorios</h2>
-              
+
               <AddTaskForm onAdd={addTask} />
 
               <div className="space-y-3">
                 {tasks.sort((a, b) => Number(a.completed) - Number(b.completed)).map(task => {
                   const isOverdue = !task.completed && isAfter(new Date(), parseISO(task.deadline));
                   return (
-                    <div 
-                      key={task.id} 
+                    <div
+                      key={task.id}
                       className={cn(
                         "bg-white p-4 rounded-2xl border transition-all flex items-center gap-4",
                         task.completed ? "opacity-60 border-slate-100" : "border-slate-200 shadow-sm",
                         isOverdue && !task.completed ? "border-rose-200 bg-rose-50/30" : ""
                       )}
                     >
-                      <button 
+                      <button
                         onClick={() => toggleTask(task.id)}
                         className={cn(
                           "transition-colors",
@@ -708,11 +759,22 @@ export default function App() {
                           {isOverdue && !task.completed && " (Vencido)"}
                         </div>
                       </div>
-                      {task.isDebt && (
-                        <div className="px-2 py-1 bg-amber-100 text-amber-700 text-[10px] font-bold rounded-md uppercase">
-                          Deuda
-                        </div>
-                      )}
+                      <div className="flex items-center gap-2">
+                        {task.isDebt && (
+                          <div className="px-2 py-1 bg-amber-100 text-amber-700 text-[10px] font-bold rounded-md uppercase">
+                            Deuda
+                          </div>
+                        )}
+                        {!task.completed && (
+                          <button
+                            onClick={() => downloadICS(task)}
+                            className="p-2 bg-slate-50 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors border border-slate-100"
+                            title="Añadir al Calendario"
+                          >
+                            <CalendarPlus className="w-4 h-4" />
+                          </button>
+                        )}
+                      </div>
                     </div>
                   );
                 })}
@@ -721,7 +783,7 @@ export default function App() {
           )}
 
           {activeTab === 'settings' && (
-            <motion.div 
+            <motion.div
               key="settings"
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
@@ -737,7 +799,7 @@ export default function App() {
 
               <div className="space-y-6">
                 <CoupleSettingsModal coupleSettings={coupleSettings} setCoupleSettings={setCoupleSettings} />
-                
+
                 <div className="bg-white rounded-3xl border border-slate-200 p-6 shadow-sm space-y-4">
                   <div className="flex items-center justify-between">
                     <h3 className="font-bold text-slate-800">Gestión de Mascotas</h3>
@@ -745,44 +807,44 @@ export default function App() {
                   {pets.length > 0 && (
                     <div className="space-y-3 mb-4">
                       {pets.map(pet => (
-                         <div key={pet.id} className="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-100">
-                            <div className="flex items-center gap-3">
-                              {pet.photoUrl ? (
-                                <img src={pet.photoUrl} alt={pet.name} className="w-10 h-10 rounded-full object-cover shadow-sm" />
-                              ) : (
-                                <div className="w-10 h-10 rounded-full bg-rose-100 flex items-center justify-center">
-                                  <PawPrint className="w-5 h-5 text-rose-500" />
-                                </div>
-                              )}
-                              <div>
-                                <p className="font-bold text-slate-700 text-sm">{pet.name}</p>
-                                <p className="text-[10px] uppercase font-bold text-slate-400">{pet.species}</p>
+                        <div key={pet.id} className="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-100">
+                          <div className="flex items-center gap-3">
+                            {pet.photoUrl ? (
+                              <img src={pet.photoUrl} alt={pet.name} className="w-10 h-10 rounded-full object-cover shadow-sm" />
+                            ) : (
+                              <div className="w-10 h-10 rounded-full bg-rose-100 flex items-center justify-center">
+                                <PawPrint className="w-5 h-5 text-rose-500" />
                               </div>
+                            )}
+                            <div>
+                              <p className="font-bold text-slate-700 text-sm">{pet.name}</p>
+                              <p className="text-[10px] uppercase font-bold text-slate-400">{pet.species}</p>
                             </div>
-                            <div className="flex gap-1">
-                               <EditPetModal pet={pet} onUpdate={updatePet} />
-                               <button onClick={() => deletePet(pet.id)} className="p-2 text-slate-400 hover:text-rose-500 transition-colors rounded-lg hover:bg-rose-50 border border-transparent">
-                                 <Trash2 className="w-4 h-4" />
-                               </button>
-                            </div>
-                         </div>
+                          </div>
+                          <div className="flex gap-1">
+                            <EditPetModal pet={pet} onUpdate={updatePet} />
+                            <button onClick={() => deletePet(pet.id)} className="p-2 text-slate-400 hover:text-rose-500 transition-colors rounded-lg hover:bg-rose-50 border border-transparent">
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </div>
                       ))}
                     </div>
                   )}
                   <AddPetForm onAdd={addPet} />
                 </div>
 
-                <CategoryManager 
-                  title="Categorías de Gastos" 
-                  type="expenses" 
+                <CategoryManager
+                  title="Categorías de Gastos"
+                  type="expenses"
                   categories={categories.filter(c => c.type === 'expenses')}
                   onAdd={(name) => setCategories([...categories, { id: crypto.randomUUID(), name, type: 'expenses' }])}
                   onDelete={(id) => setCategories(categories.filter(c => c.id !== id))}
                 />
 
-                <CategoryManager 
-                  title="Categorías de Ahorros" 
-                  type="savings" 
+                <CategoryManager
+                  title="Categorías de Ahorros"
+                  type="savings"
                   categories={categories.filter(c => c.type === 'savings')}
                   onAdd={(name) => setCategories([...categories, { id: crypto.randomUUID(), name, type: 'savings' }])}
                   onDelete={(id) => setCategories(categories.filter(c => c.id !== id))}
@@ -796,35 +858,35 @@ export default function App() {
       {/* Navigation Bar */}
       <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 px-6 py-3 pb-8 z-20">
         <div className="max-w-md mx-auto flex justify-between items-center">
-          <NavButton 
-            active={activeTab === 'dashboard'} 
-            onClick={() => setActiveTab('dashboard')} 
-            icon={<Wallet className="w-5 h-5" />} 
-            label="Inicio" 
+          <NavButton
+            active={activeTab === 'dashboard'}
+            onClick={() => setActiveTab('dashboard')}
+            icon={<Wallet className="w-5 h-5" />}
+            label="Inicio"
           />
-          <NavButton 
-            active={activeTab === 'detail'} 
-            onClick={() => setActiveTab('detail')} 
-            icon={<TrendingDown className="w-5 h-5" />} 
-            label="Detalle" 
+          <NavButton
+            active={activeTab === 'detail'}
+            onClick={() => setActiveTab('detail')}
+            icon={<TrendingDown className="w-5 h-5" />}
+            label="Detalle"
           />
-          <NavButton 
-            active={activeTab === 'pets'} 
-            onClick={() => setActiveTab('pets')} 
-            icon={<PawPrint className="w-5 h-5" />} 
-            label="Mascotas" 
+          <NavButton
+            active={activeTab === 'pets'}
+            onClick={() => setActiveTab('pets')}
+            icon={<PawPrint className="w-5 h-5" />}
+            label="Mascotas"
           />
-          <NavButton 
-            active={activeTab === 'tasks'} 
-            onClick={() => setActiveTab('tasks')} 
-            icon={<CheckSquare className="w-5 h-5" />} 
-            label="Tareas" 
+          <NavButton
+            active={activeTab === 'tasks'}
+            onClick={() => setActiveTab('tasks')}
+            icon={<CheckSquare className="w-5 h-5" />}
+            label="Tareas"
           />
-          <NavButton 
-            active={activeTab === 'settings'} 
-            onClick={() => setActiveTab('settings')} 
-            icon={<Settings className="w-5 h-5" />} 
-            label="Config" 
+          <NavButton
+            active={activeTab === 'settings'}
+            onClick={() => setActiveTab('settings')}
+            icon={<Settings className="w-5 h-5" />}
+            label="Config"
           />
         </div>
       </nav>
@@ -834,7 +896,7 @@ export default function App() {
 
 function TransactionGroup({ title, icon, transactions, coupleSettings }: { title: string, icon: React.ReactNode, transactions: Transaction[], coupleSettings: CoupleSettings }) {
   const [isModalOpen, setIsModalOpen] = useState(false);
-  
+
   if (transactions.length === 0) return null;
 
   const displayTransactions = transactions.slice(0, 3);
@@ -848,7 +910,7 @@ function TransactionGroup({ title, icon, transactions, coupleSettings }: { title
           <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider">{title}</h3>
         </div>
         {hasMore && (
-          <button 
+          <button
             onClick={() => setIsModalOpen(true)}
             className="text-[10px] font-bold text-indigo-600 uppercase tracking-wider"
           >
@@ -875,7 +937,7 @@ function TransactionGroup({ title, icon, transactions, coupleSettings }: { title
 
 function TransactionItem({ t, coupleSettings, showRecurrence = true }: { t: Transaction, coupleSettings: CoupleSettings, showRecurrence?: boolean, key?: string }) {
   const isIncome = t.type === 'income';
-  
+
   return (
     <div className="bg-white p-4 rounded-2xl border border-slate-100 flex justify-between items-center shadow-sm">
       <div className="flex items-center gap-3">
@@ -899,7 +961,7 @@ function TransactionItem({ t, coupleSettings, showRecurrence = true }: { t: Tran
             {isIncome && t.createdBy && (
               <span className={cn(
                 "text-[8px] px-1.5 py-0.5 rounded-full font-bold uppercase",
-                t.createdBy === coupleSettings.partner1 ? "bg-indigo-100 text-indigo-700" : "bg-rose-100 text-rose-700"
+                t.createdBy === coupleSettings.partner1.name ? "bg-indigo-100 text-indigo-700" : "bg-rose-100 text-rose-700"
               )}>
                 {t.createdBy}
               </span>
@@ -922,14 +984,14 @@ function Modal({ isOpen, onClose, title, children }: { isOpen: boolean, onClose:
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <motion.div 
+      <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
         onClick={onClose}
         className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
       />
-      <motion.div 
+      <motion.div
         initial={{ opacity: 0, scale: 0.95, y: 20 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.95, y: 20 }}
@@ -963,9 +1025,9 @@ function MonthlyBalanceButton({ transactions, account }: { transactions: Transac
 
   const filteredTransactions = transactions.filter(t => {
     const date = parseISO(t.date);
-    return t.account === account && 
-           date.getMonth() === selectedMonth && 
-           date.getFullYear() === selectedYear;
+    return t.account === account &&
+      date.getMonth() === selectedMonth &&
+      date.getFullYear() === selectedYear;
   });
 
   const totalIncomes = filteredTransactions
@@ -987,7 +1049,7 @@ function MonthlyBalanceButton({ transactions, account }: { transactions: Transac
 
   return (
     <>
-      <button 
+      <button
         onClick={() => setIsOpen(true)}
         className="p-2 bg-slate-100 rounded-xl text-slate-600 hover:bg-slate-200 transition-colors"
         title="Balance Mensual"
@@ -1000,7 +1062,7 @@ function MonthlyBalanceButton({ transactions, account }: { transactions: Transac
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1">
               <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Mes</label>
-              <select 
+              <select
                 className="w-full p-3 bg-slate-50 rounded-xl border-none text-sm focus:ring-2 focus:ring-indigo-500"
                 value={selectedMonth}
                 onChange={e => setSelectedMonth(parseInt(e.target.value))}
@@ -1012,7 +1074,7 @@ function MonthlyBalanceButton({ transactions, account }: { transactions: Transac
             </div>
             <div className="space-y-1">
               <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Año</label>
-              <select 
+              <select
                 className="w-full p-3 bg-slate-50 rounded-xl border-none text-sm focus:ring-2 focus:ring-indigo-500"
                 value={selectedYear}
                 onChange={e => setSelectedYear(parseInt(e.target.value))}
@@ -1075,7 +1137,7 @@ function MonthlyBalanceButton({ transactions, account }: { transactions: Transac
 
 function NavButton({ active, onClick, icon, label }: { active: boolean, onClick: () => void, icon: React.ReactNode, label: string }) {
   return (
-    <button 
+    <button
       onClick={onClick}
       className={cn(
         "flex flex-col items-center gap-1 transition-colors",
@@ -1101,7 +1163,7 @@ function AddTransactionForm({ onAdd, categories, coupleSettings }: { onAdd: (t: 
   const [type, setType] = useState<TransactionType>('expense');
   const [category, setCategory] = useState('');
   const [recurrence, setRecurrence] = useState<RecurrenceType>('variable');
-  const [createdBy, setCreatedBy] = useState<string>(coupleSettings.partner1);
+  const [createdBy, setCreatedBy] = useState<string>(coupleSettings.partner1.name);
 
   const filteredCategories = categories.filter(c => c.type === account);
 
@@ -1131,7 +1193,7 @@ function AddTransactionForm({ onAdd, categories, coupleSettings }: { onAdd: (t: 
 
   return (
     <>
-      <button 
+      <button
         onClick={() => setIsOpen(true)}
         className="w-full p-6 bg-white rounded-3xl border border-slate-200 flex justify-between items-center font-bold text-slate-700 shadow-sm hover:bg-slate-50 transition-colors"
       >
@@ -1143,13 +1205,13 @@ function AddTransactionForm({ onAdd, categories, coupleSettings }: { onAdd: (t: 
         </span>
         <ChevronRight className="w-5 h-5 text-slate-400" />
       </button>
-      
+
       <Modal isOpen={isOpen} onClose={() => setIsOpen(false)} title="Nueva Transacción">
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-1">
             <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Cuenta</label>
             <div className="grid grid-cols-2 gap-2">
-              <button 
+              <button
                 type="button"
                 onClick={() => setAccount('expenses')}
                 className={cn(
@@ -1159,7 +1221,7 @@ function AddTransactionForm({ onAdd, categories, coupleSettings }: { onAdd: (t: 
               >
                 Gastos
               </button>
-              <button 
+              <button
                 type="button"
                 onClick={() => setAccount('savings')}
                 className={cn(
@@ -1175,7 +1237,7 @@ function AddTransactionForm({ onAdd, categories, coupleSettings }: { onAdd: (t: 
           <div className="space-y-1">
             <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Tipo de Movimiento</label>
             <div className="grid grid-cols-2 gap-2">
-              <button 
+              <button
                 type="button"
                 onClick={() => setType('income')}
                 className={cn(
@@ -1185,7 +1247,7 @@ function AddTransactionForm({ onAdd, categories, coupleSettings }: { onAdd: (t: 
               >
                 Ingreso
               </button>
-              <button 
+              <button
                 type="button"
                 onClick={() => setType('expense')}
                 className={cn(
@@ -1202,25 +1264,25 @@ function AddTransactionForm({ onAdd, categories, coupleSettings }: { onAdd: (t: 
             <div className="space-y-1">
               <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">¿Quién lo hizo?</label>
               <div className="grid grid-cols-2 gap-2">
-                <button 
+                <button
                   type="button"
-                  onClick={() => setCreatedBy(coupleSettings.partner1)}
+                  onClick={() => setCreatedBy(coupleSettings.partner1.name)}
                   className={cn(
                     "py-2 rounded-xl text-xs font-bold border transition-all truncate px-2",
-                    createdBy === coupleSettings.partner1 ? "bg-indigo-600 text-white border-indigo-600" : "bg-white text-slate-500 border-slate-200"
+                    createdBy === coupleSettings.partner1.name ? "bg-indigo-600 text-white border-indigo-600" : "bg-white text-slate-500 border-slate-200"
                   )}
                 >
-                  {coupleSettings.partner1}
+                  {coupleSettings.partner1.name}
                 </button>
-                <button 
+                <button
                   type="button"
-                  onClick={() => setCreatedBy(coupleSettings.partner2)}
+                  onClick={() => setCreatedBy(coupleSettings.partner2.name)}
                   className={cn(
                     "py-2 rounded-xl text-xs font-bold border transition-all truncate px-2",
-                    createdBy === coupleSettings.partner2 ? "bg-rose-600 text-white border-rose-600" : "bg-white text-slate-500 border-slate-200"
+                    createdBy === coupleSettings.partner2.name ? "bg-rose-600 text-white border-rose-600" : "bg-white text-slate-500 border-slate-200"
                   )}
                 >
-                  {coupleSettings.partner2}
+                  {coupleSettings.partner2.name}
                 </button>
               </div>
             </div>
@@ -1230,7 +1292,7 @@ function AddTransactionForm({ onAdd, categories, coupleSettings }: { onAdd: (t: 
             <div className="space-y-1">
               <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Periodicidad</label>
               <div className="grid grid-cols-2 gap-2">
-                <button 
+                <button
                   type="button"
                   onClick={() => setRecurrence('variable')}
                   className={cn(
@@ -1240,7 +1302,7 @@ function AddTransactionForm({ onAdd, categories, coupleSettings }: { onAdd: (t: 
                 >
                   Variable
                 </button>
-                <button 
+                <button
                   type="button"
                   onClick={() => setRecurrence('fixed')}
                   className={cn(
@@ -1256,9 +1318,9 @@ function AddTransactionForm({ onAdd, categories, coupleSettings }: { onAdd: (t: 
 
           <div className="space-y-1">
             <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Monto</label>
-            <input 
-              type="number" 
-              placeholder="Monto (ej: -50 o 100)" 
+            <input
+              type="number"
+              placeholder="Monto (ej: -50 o 100)"
               className="w-full p-3 bg-slate-50 rounded-xl border-none text-sm focus:ring-2 focus:ring-indigo-500"
               value={amount}
               onChange={e => setAmount(e.target.value)}
@@ -1267,9 +1329,9 @@ function AddTransactionForm({ onAdd, categories, coupleSettings }: { onAdd: (t: 
 
           <div className="space-y-1">
             <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Descripción</label>
-            <input 
-              type="text" 
-              placeholder="¿En qué se usó?" 
+            <input
+              type="text"
+              placeholder="¿En qué se usó?"
               className="w-full p-3 bg-slate-50 rounded-xl border-none text-sm focus:ring-2 focus:ring-indigo-500"
               value={description}
               onChange={e => setDescription(e.target.value)}
@@ -1278,7 +1340,7 @@ function AddTransactionForm({ onAdd, categories, coupleSettings }: { onAdd: (t: 
 
           <div className="space-y-1">
             <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Categoría</label>
-            <select 
+            <select
               className="w-full p-3 bg-slate-50 rounded-xl border-none text-sm focus:ring-2 focus:ring-indigo-500"
               value={category}
               onChange={e => setCategory(e.target.value)}
@@ -1298,12 +1360,12 @@ function AddTransactionForm({ onAdd, categories, coupleSettings }: { onAdd: (t: 
   );
 }
 
-function CategoryManager({ title, type, categories, onAdd, onDelete }: { 
-  title: string, 
-  type: AccountType, 
-  categories: Category[], 
-  onAdd: (name: string) => void, 
-  onDelete: (id: string) => void 
+function CategoryManager({ title, type, categories, onAdd, onDelete }: {
+  title: string,
+  type: AccountType,
+  categories: Category[],
+  onAdd: (name: string) => void,
+  onDelete: (id: string) => void
 }) {
   const [newName, setNewName] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -1316,7 +1378,7 @@ function CategoryManager({ title, type, categories, onAdd, onDelete }: {
       <div className="flex justify-between items-center mb-4">
         <h3 className="font-bold text-slate-800">{title}</h3>
         {hasMore && (
-          <button 
+          <button
             onClick={() => setIsModalOpen(true)}
             className="text-[10px] font-bold text-indigo-600 uppercase tracking-wider"
           >
@@ -1325,14 +1387,14 @@ function CategoryManager({ title, type, categories, onAdd, onDelete }: {
         )}
       </div>
       <div className="flex gap-2 mb-4">
-        <input 
-          type="text" 
-          placeholder="Nueva categoría" 
+        <input
+          type="text"
+          placeholder="Nueva categoría"
           className="flex-1 p-3 bg-slate-50 rounded-xl border-none text-sm focus:ring-2 focus:ring-indigo-500"
           value={newName}
           onChange={e => setNewName(e.target.value)}
         />
-        <button 
+        <button
           onClick={() => {
             if (newName) {
               onAdd(newName);
@@ -1358,14 +1420,14 @@ function CategoryManager({ title, type, categories, onAdd, onDelete }: {
       <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title={title}>
         <div className="space-y-4">
           <div className="flex gap-2">
-            <input 
-              type="text" 
-              placeholder="Nueva categoría" 
+            <input
+              type="text"
+              placeholder="Nueva categoría"
               className="flex-1 p-3 bg-slate-50 rounded-xl border-none text-sm focus:ring-2 focus:ring-indigo-500"
               value={newName}
               onChange={e => setNewName(e.target.value)}
             />
-            <button 
+            <button
               onClick={() => {
                 if (newName) {
                   onAdd(newName);
@@ -1393,52 +1455,99 @@ function CategoryManager({ title, type, categories, onAdd, onDelete }: {
   );
 }
 
+function PartnerForm({ title, partner, onChange }: { title: string, partner: Partner, onChange: (p: Partner) => void }) {
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          const MAX_WIDTH = 400; const MAX_HEIGHT = 400;
+          let width = img.width; let height = img.height;
+          if (width > height) { if (width > MAX_WIDTH) { height *= MAX_WIDTH / width; width = MAX_WIDTH; } }
+          else { if (height > MAX_HEIGHT) { width *= MAX_HEIGHT / height; height = MAX_HEIGHT; } }
+          canvas.width = width; canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx?.drawImage(img, 0, 0, width, height);
+          onChange({ ...partner, photoUrl: canvas.toDataURL('image/jpeg', 0.8) });
+        };
+        img.src = event.target?.result as string;
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  return (
+    <div className="space-y-4 p-4 bg-slate-50 rounded-2xl border border-slate-100">
+      <h4 className="font-bold text-slate-700 text-sm">{title}</h4>
+      <div className="grid grid-cols-2 gap-3">
+        <div className="space-y-1">
+          <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Nombre</label>
+          <input type="text" className="w-full p-2.5 bg-white rounded-xl border border-slate-200 text-sm focus:ring-2 focus:ring-indigo-500" value={partner.name} onChange={e => onChange({ ...partner, name: e.target.value })} />
+        </div>
+        <div className="space-y-1">
+          <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Apodo</label>
+          <input type="text" className="w-full p-2.5 bg-white rounded-xl border border-slate-200 text-sm focus:ring-2 focus:ring-indigo-500" value={partner.nickname || ''} onChange={e => onChange({ ...partner, nickname: e.target.value })} />
+        </div>
+      </div>
+      <div className="grid grid-cols-2 gap-3">
+        <div className="space-y-1">
+          <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Cumpleaños</label>
+          <input type="date" className="w-full p-2.5 bg-white rounded-xl border border-slate-200 text-sm focus:ring-2 focus:ring-indigo-500" value={partner.birthDate || ''} onChange={e => onChange({ ...partner, birthDate: e.target.value })} />
+        </div>
+        <div className="space-y-1">
+          <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Género</label>
+          <select className="w-full p-2.5 bg-white rounded-xl border border-slate-200 text-sm focus:ring-2 focus:ring-indigo-500" value={partner.gender || ''} onChange={e => onChange({ ...partner, gender: e.target.value })}>
+            <option value="">Seleccionar</option>
+            <option value="Femenino">Femenino</option>
+            <option value="Masculino">Masculino</option>
+            <option value="Otro">Otro</option>
+            <option value="Prefiero no decirlo">Prefiero no decirlo</option>
+          </select>
+        </div>
+      </div>
+      <div className="space-y-1">
+        <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Foto</label>
+        <div className="flex items-center gap-3">
+          <label className="flex items-center justify-center flex-1 p-2 bg-white border border-dashed border-slate-300 rounded-xl cursor-pointer hover:bg-slate-50 transition-colors text-xs text-slate-500">
+            <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload} />
+            {partner.photoUrl ? "Cambiar foto" : "Subir foto"}
+          </label>
+          {partner.photoUrl && <img src={partner.photoUrl} alt="Vista previa" className="w-10 h-10 object-cover rounded-full shadow-sm flex-shrink-0" />}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function CoupleSettingsModal({ coupleSettings, setCoupleSettings }: { coupleSettings: CoupleSettings, setCoupleSettings: (s: CoupleSettings) => void }) {
   const [isOpen, setIsOpen] = useState(false);
 
   return (
     <>
-      <button 
-        onClick={() => setIsOpen(true)}
-        className="w-full p-6 bg-white rounded-3xl border border-slate-200 flex justify-between items-center font-bold text-slate-700 shadow-sm hover:bg-slate-50 transition-colors"
-      >
+      <button onClick={() => setIsOpen(true)} className="w-full p-6 bg-white rounded-3xl border border-slate-200 flex justify-between items-center font-bold text-slate-700 shadow-sm hover:bg-slate-50 transition-colors">
         <span className="flex items-center gap-3">
-          <div className="p-2 bg-indigo-50 rounded-xl">
-            <UserPlus className="w-6 h-6 text-indigo-600" />
-          </div>
-          Nombres de la Pareja
+          <div className="p-2 bg-indigo-50 rounded-xl"><UserPlus className="w-6 h-6 text-indigo-600" /></div>
+          Detalles de la Pareja
         </span>
         <ChevronRight className="w-5 h-5 text-slate-400" />
       </button>
 
-      <Modal isOpen={isOpen} onClose={() => setIsOpen(false)} title="Nombres de la Pareja">
-        <div className="space-y-4">
-          <div className="space-y-1">
-            <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Mujer</label>
-            <input 
-              type="text" 
-              className="w-full p-3 bg-slate-50 rounded-xl border-none text-sm focus:ring-2 focus:ring-indigo-500"
-              value={coupleSettings.partner1}
-              onChange={e => setCoupleSettings({ ...coupleSettings, partner1: e.target.value })}
-              placeholder="Nombre de ella"
-            />
-          </div>
-          <div className="space-y-1">
-            <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Hombre</label>
-            <input 
-              type="text" 
-              className="w-full p-3 bg-slate-50 rounded-xl border-none text-sm focus:ring-2 focus:ring-indigo-500"
-              value={coupleSettings.partner2}
-              onChange={e => setCoupleSettings({ ...coupleSettings, partner2: e.target.value })}
-              placeholder="Nombre de él"
-            />
-          </div>
-          <button 
-            onClick={() => setIsOpen(false)}
-            className="w-full py-4 bg-indigo-600 text-white rounded-2xl font-bold text-sm shadow-lg shadow-indigo-100 mt-4"
-          >
-            Guardar Cambios
-          </button>
+      <Modal isOpen={isOpen} onClose={() => setIsOpen(false)} title="Detalles de la Pareja">
+        <div className="space-y-6 max-h-[70vh] overflow-y-auto pr-2">
+          <PartnerForm
+            title="Pareja 1"
+            partner={coupleSettings.partner1}
+            onChange={(p) => setCoupleSettings({ ...coupleSettings, partner1: p })}
+          />
+          <PartnerForm
+            title="Pareja 2"
+            partner={coupleSettings.partner2}
+            onChange={(p) => setCoupleSettings({ ...coupleSettings, partner2: p })}
+          />
+          <button onClick={() => setIsOpen(false)} className="w-full py-4 bg-indigo-600 text-white rounded-2xl font-bold text-sm shadow-lg shadow-indigo-100 mt-4">Guardar Cambios</button>
         </div>
       </Modal>
     </>
@@ -1592,7 +1701,7 @@ function AddPetForm({ onAdd }: { onAdd: (pet: Omit<Pet, 'id'>) => void }) {
 
   return (
     <>
-      <button 
+      <button
         onClick={() => setIsOpen(true)}
         className="w-full p-4 flex justify-between items-center font-bold text-slate-700 hover:bg-slate-50 transition-colors rounded-2xl"
       >
@@ -1607,9 +1716,9 @@ function AddPetForm({ onAdd }: { onAdd: (pet: Omit<Pet, 'id'>) => void }) {
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-1">
             <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Nombre</label>
-            <input 
-              type="text" 
-              placeholder="Nombre de la mascota" 
+            <input
+              type="text"
+              placeholder="Nombre de la mascota"
               className="w-full p-3 bg-slate-50 rounded-xl border-none text-sm focus:ring-2 focus:ring-rose-500"
               value={name}
               onChange={e => setName(e.target.value)}
@@ -1617,7 +1726,7 @@ function AddPetForm({ onAdd }: { onAdd: (pet: Omit<Pet, 'id'>) => void }) {
           </div>
           <div className="space-y-1">
             <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Especie</label>
-            <select 
+            <select
               className="w-full p-3 bg-slate-50 rounded-xl border-none text-sm focus:ring-2 focus:ring-rose-500"
               value={species}
               onChange={e => setSpecies(e.target.value)}
@@ -1629,9 +1738,9 @@ function AddPetForm({ onAdd }: { onAdd: (pet: Omit<Pet, 'id'>) => void }) {
           </div>
           <div className="space-y-1">
             <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Raza</label>
-            <input 
-              type="text" 
-              placeholder="Raza (opcional)" 
+            <input
+              type="text"
+              placeholder="Raza (opcional)"
               className="w-full p-3 bg-slate-50 rounded-xl border-none text-sm focus:ring-2 focus:ring-rose-500"
               value={breed}
               onChange={e => setBreed(e.target.value)}
@@ -1639,8 +1748,8 @@ function AddPetForm({ onAdd }: { onAdd: (pet: Omit<Pet, 'id'>) => void }) {
           </div>
           <div className="space-y-1">
             <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Cumpleaños</label>
-            <input 
-              type="date" 
+            <input
+              type="date"
               className="w-full p-3 bg-slate-50 rounded-xl border-none text-sm focus:ring-2 focus:ring-rose-500"
               value={birthDate}
               onChange={e => setBirthDate(e.target.value)}
@@ -1650,8 +1759,8 @@ function AddPetForm({ onAdd }: { onAdd: (pet: Omit<Pet, 'id'>) => void }) {
             <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Foto (Opcional)</label>
             <div className="flex items-center gap-4">
               <label className="flex items-center justify-center w-full p-3 bg-slate-50 border-2 border-dashed border-slate-200 rounded-xl cursor-pointer hover:bg-slate-100 transition-colors text-sm text-slate-500">
-                <input 
-                  type="file" 
+                <input
+                  type="file"
                   accept="image/*"
                   className="hidden"
                   onChange={handleImageUpload}
@@ -1681,7 +1790,7 @@ function AddPetTaskForm({ pets, onAdd }: { pets: Pet[], onAdd: (t: any) => void 
   const [notes, setNotes] = useState('');
 
   const togglePet = (id: string) => {
-    setSelectedPetIds(prev => 
+    setSelectedPetIds(prev =>
       prev.includes(id) ? prev.filter(p => p !== id) : [...prev, id]
     );
   };
@@ -1706,7 +1815,7 @@ function AddPetTaskForm({ pets, onAdd }: { pets: Pet[], onAdd: (t: any) => void 
 
   return (
     <>
-      <button 
+      <button
         onClick={() => setIsOpen(true)}
         className="w-full p-6 bg-white rounded-3xl border border-slate-200 flex justify-between items-center font-bold text-slate-700 shadow-sm hover:bg-slate-50 transition-colors"
       >
@@ -1749,20 +1858,20 @@ function AddPetTaskForm({ pets, onAdd }: { pets: Pet[], onAdd: (t: any) => void 
 
           <div className="space-y-1">
             <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">¿Qué necesita?</label>
-            <input 
-              type="text" 
-              placeholder="Vacuna, Baño, etc." 
+            <input
+              type="text"
+              placeholder="Vacuna, Baño, etc."
               className="w-full p-3 bg-slate-50 rounded-xl border-none text-sm focus:ring-2 focus:ring-rose-500"
               value={title}
               onChange={e => setTitle(e.target.value)}
             />
           </div>
-          
+
           <div className="grid grid-cols-2 gap-2">
             <div className="space-y-1">
               <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Fecha</label>
-              <input 
-                type="date" 
+              <input
+                type="date"
                 required
                 className="w-full p-3 bg-slate-50 rounded-xl border-none text-sm focus:ring-2 focus:ring-rose-500"
                 value={date}
@@ -1771,8 +1880,8 @@ function AddPetTaskForm({ pets, onAdd }: { pets: Pet[], onAdd: (t: any) => void 
             </div>
             <div className="space-y-1">
               <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Hora</label>
-              <input 
-                type="time" 
+              <input
+                type="time"
                 className="w-full p-3 bg-slate-50 rounded-xl border-none text-sm focus:ring-2 focus:ring-rose-500"
                 value={time}
                 onChange={e => setTime(e.target.value)}
@@ -1782,8 +1891,8 @@ function AddPetTaskForm({ pets, onAdd }: { pets: Pet[], onAdd: (t: any) => void 
 
           <div className="space-y-1">
             <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Notas</label>
-            <textarea 
-              placeholder="Notas adicionales..." 
+            <textarea
+              placeholder="Notas adicionales..."
               className="w-full p-3 bg-slate-50 rounded-xl border-none text-sm focus:ring-2 focus:ring-rose-500 min-h-[80px]"
               value={notes}
               onChange={e => setNotes(e.target.value)}
@@ -1821,7 +1930,7 @@ function AddTaskForm({ onAdd }: { onAdd: (t: Omit<Task, 'id' | 'completed'>) => 
 
   return (
     <>
-      <button 
+      <button
         onClick={() => setIsOpen(true)}
         className="w-full p-6 bg-white rounded-3xl border border-slate-200 flex justify-between items-center font-bold text-slate-700 shadow-sm hover:bg-slate-50 transition-colors"
       >
@@ -1838,9 +1947,9 @@ function AddTaskForm({ onAdd }: { onAdd: (t: Omit<Task, 'id' | 'completed'>) => 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-1">
             <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">¿Qué hay que recordar?</label>
-            <input 
-              type="text" 
-              placeholder="Ej: Pagar internet, Cumpleaños..." 
+            <input
+              type="text"
+              placeholder="Ej: Pagar internet, Cumpleaños..."
               className="w-full p-3 bg-slate-50 rounded-xl border-none text-sm focus:ring-2 focus:ring-indigo-500"
               value={title}
               onChange={e => setTitle(e.target.value)}
@@ -1848,16 +1957,16 @@ function AddTaskForm({ onAdd }: { onAdd: (t: Omit<Task, 'id' | 'completed'>) => 
           </div>
           <div className="space-y-1">
             <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Fecha Límite</label>
-            <input 
-              type="date" 
+            <input
+              type="date"
               className="w-full p-3 bg-slate-50 rounded-xl border-none text-sm focus:ring-2 focus:ring-indigo-500"
               value={deadline}
               onChange={e => setDeadline(e.target.value)}
             />
           </div>
           <label className="flex items-center gap-3 p-4 bg-slate-50 rounded-2xl cursor-pointer">
-            <input 
-              type="checkbox" 
+            <input
+              type="checkbox"
               className="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500"
               checked={isDebt}
               onChange={e => setIsDebt(e.target.checked)}
