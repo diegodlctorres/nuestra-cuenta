@@ -5,7 +5,7 @@ import { es } from 'date-fns/locale';
 import { cn, formatCurrency } from '../../lib/utils';
 import { Transaction, CoupleSettings } from '../../types';
 
-export function TransactionItem({ t, coupleSettings, showRecurrence = true }: { t: Transaction, coupleSettings: CoupleSettings, showRecurrence?: boolean }) {
+export const TransactionItem: React.FC<{ t: Transaction, coupleSettings: CoupleSettings, showRecurrence?: boolean }> = ({ t, coupleSettings, showRecurrence = true }) => {
   const isIncome = t.type === 'income';
 
   return (

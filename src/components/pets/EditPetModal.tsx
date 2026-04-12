@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Pencil } from 'lucide-react';
 import { Pet } from '../../types';
 import { Modal } from '../ui/Modal';
+import { processImageUpload } from '../../lib/utils';
 
 export function EditPetModal({ pet, onUpdate }: { pet: Pet, onUpdate: (pet: Pet) => void }) {
   const [isOpen, setIsOpen] = useState(false);
@@ -11,33 +12,15 @@ export function EditPetModal({ pet, onUpdate }: { pet: Pet, onUpdate: (pet: Pet)
   const [birthDate, setBirthDate] = useState(pet.birthDate || '');
   const [photoUrl, setPhotoUrl] = useState(pet.photoUrl || '');
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        const img = new Image();
-        img.onload = () => {
-          const canvas = document.createElement('canvas');
-          const MAX_WIDTH = 400;
-          const MAX_HEIGHT = 400;
-          let width = img.width;
-          let height = img.height;
-
-          if (width > height) {
-            if (width > MAX_WIDTH) { height *= MAX_WIDTH / width; width = MAX_WIDTH; }
-          } else {
-            if (height > MAX_HEIGHT) { width *= MAX_HEIGHT / height; height = MAX_HEIGHT; }
-          }
-          canvas.width = width;
-          canvas.height = height;
-          const ctx = canvas.getContext('2d');
-          ctx?.drawImage(img, 0, 0, width, height);
-          setPhotoUrl(canvas.toDataURL('image/jpeg', 0.8));
-        };
-        img.src = event.target?.result as string;
-      };
-      reader.readAsDataURL(file);
+      try {
+        const url = await processImageUpload(file);
+        setPhotoUrl(url);
+      } catch (err) {
+        console.error("Error al procesar la imagen", err);
+      }
     }
   };
 
