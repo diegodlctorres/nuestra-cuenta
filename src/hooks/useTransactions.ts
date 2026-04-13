@@ -40,8 +40,20 @@ export function useTransactions() {
         await supabase.from('accounts').insert(defaultAccounts);
         
         const defaultCategories = [
+          // Categorías de Gastos
           { household_id: householdId, name: 'General', kind: 'expense' },
-          { household_id: householdId, name: 'Sueldo/Ingreso', kind: 'income' }
+          { household_id: householdId, name: 'Comida', kind: 'expense' },
+          { household_id: householdId, name: 'Transporte', kind: 'expense' },
+          { household_id: householdId, name: 'Hogar', kind: 'expense' },
+          { household_id: householdId, name: 'Salud', kind: 'expense' },
+          { household_id: householdId, name: 'Entretenimiento', kind: 'expense' },
+          { household_id: householdId, name: 'Compras', kind: 'expense' },
+          { household_id: householdId, name: 'Mascotas', kind: 'expense' },
+          // Categorías de Ingresos / Ahorros
+          { household_id: householdId, name: 'Sueldo', kind: 'income' },
+          { household_id: householdId, name: 'Inversión', kind: 'income' },
+          { household_id: householdId, name: 'Freelance', kind: 'income' },
+          { household_id: householdId, name: 'Regalo', kind: 'income' }
         ];
         await supabase.from('categories').insert(defaultCategories);
 
