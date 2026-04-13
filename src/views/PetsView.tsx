@@ -45,10 +45,10 @@ export function PetsView({
 
       <div className="space-y-8">
         {pets.map(pet => {
-          const tasksForPet = petTasks.filter(t => t.petId === pet.id && !t.completed);
-          const historyForPet = petTasks.filter(t => t.petId === pet.id && t.completed);
+          const tasksForPet = petTasks.filter(t => t.pet_id === pet.id && !t.completed);
+          const historyForPet = petTasks.filter(t => t.pet_id === pet.id && t.completed);
           const displayHistory = historyForPet
-            .sort((a, b) => b.completedDate!.localeCompare(a.completedDate!))
+            .sort((a, b) => b.completed_date!.localeCompare(a.completed_date!))
             .slice(0, 3);
 
           return (
@@ -56,8 +56,8 @@ export function PetsView({
               <div className="p-5 bg-slate-50 border-b border-slate-100 flex justify-between items-center">
                 <div className="flex items-center gap-3">
                   <div className="w-12 h-12 rounded-2xl bg-white border border-slate-200 overflow-hidden flex items-center justify-center shadow-sm">
-                    {pet.photoUrl ? (
-                      <img src={pet.photoUrl} alt={pet.name} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                    {pet.photo_url ? (
+                      <img src={pet.photo_url} alt={pet.name} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
                     ) : (
                       <PawPrint className="w-6 h-6 text-secondary-500" />
                     )}
@@ -66,7 +66,7 @@ export function PetsView({
                     <h3 className="text-lg font-bold text-slate-800">{pet.name}</h3>
                     <p className="text-xs text-slate-500">
                       {pet.species} {pet.breed ? `• ${pet.breed}` : ''}
-                      {pet.birthDate && ` • 🎂 ${format(parseISO(pet.birthDate), 'dd MMM', { locale: es })}`}
+                      {pet.birth_date && ` • 🎂 ${format(parseISO(pet.birth_date), 'dd MMM', { locale: es })}`}
                     </p>
                   </div>
                 </div>
@@ -88,8 +88,8 @@ export function PetsView({
                           <div className="text-sm font-bold text-slate-700">{task.title}</div>
                           <div className="text-[10px] text-slate-500 flex items-center gap-1">
                             <Calendar className="w-3 h-3" />
-                            {format(parseISO(task.scheduledDate), 'dd MMM yyyy', { locale: es })}
-                            {task.scheduledTime && ` • ${task.scheduledTime}`}
+                            {format(parseISO(task.scheduled_date), 'dd MMM yyyy', { locale: es })}
+                            {task.scheduled_time && ` • ${task.scheduled_time}`}
                           </div>
                         </button>
                         <button
@@ -131,7 +131,7 @@ export function PetsView({
                         <div>
                           <div className="text-sm font-medium text-slate-600">{task.title}</div>
                           <div className="text-[10px] text-slate-400">
-                            Realizado el {format(parseISO(task.completedDate!), 'dd MMM yyyy', { locale: es })}
+                            Realizado el {format(parseISO(task.completed_date!), 'dd MMM yyyy', { locale: es })}
                           </div>
                         </div>
                         <CheckCircle2 className="w-4 h-4 text-emerald-500" />
@@ -182,19 +182,19 @@ export function PetsView({
               <div className="space-y-4 mb-6">
                 <div className="flex items-center gap-3 text-sm text-slate-600">
                   <Calendar className="w-4 h-4 text-slate-400" />
-                  <span>Programado: {format(parseISO(selectedTask.scheduledDate), 'dd MMMM yyyy', { locale: es })} {selectedTask.scheduledTime}</span>
+                  <span>Programado: {format(parseISO(selectedTask.scheduled_date), 'dd MMMM yyyy', { locale: es })} {selectedTask.scheduled_time}</span>
                 </div>
 
                 {selectedTask.completed && (
                   <div className="flex items-center gap-3 text-sm text-emerald-600 font-medium">
                     <CheckCircle2 className="w-4 h-4" />
-                    <span>Completado el: {format(parseISO(selectedTask.completedDate!), 'dd MMMM yyyy, HH:mm', { locale: es })}</span>
+                    <span>Completado el: {format(parseISO(selectedTask.completed_date!), 'dd MMMM yyyy, HH:mm', { locale: es })}</span>
                   </div>
                 )}
 
                 <div className="flex items-center gap-3 text-sm text-slate-600">
                   <PawPrint className="w-4 h-4 text-slate-400" />
-                  <span>Mascota: {pets.find(p => p.id === selectedTask.petId)?.name || 'Sin asignar'}</span>
+                  <span>Mascota: {pets.find(p => p.id === selectedTask.pet_id)?.name || 'Sin asignar'}</span>
                 </div>
 
                 {selectedTask.notes && (
@@ -250,8 +250,8 @@ export function PetsView({
 
               <div className="flex-1 overflow-y-auto space-y-3 pr-2">
                 {petTasks
-                  .filter(t => t.petId === historyPet.id && t.completed)
-                  .sort((a, b) => b.completedDate!.localeCompare(a.completedDate!))
+                  .filter(t => t.pet_id === historyPet.id && t.completed)
+                  .sort((a, b) => b.completed_date!.localeCompare(a.completed_date!))
                   .map(task => (
                     <button
                       key={task.id}
@@ -264,7 +264,7 @@ export function PetsView({
                       <div>
                         <div className="text-sm font-bold text-slate-700">{task.title}</div>
                         <div className="text-[10px] text-slate-500">
-                          Realizado el {format(parseISO(task.completedDate!), 'dd MMMM yyyy', { locale: es })}
+                          Realizado el {format(parseISO(task.completed_date!), 'dd MMMM yyyy', { locale: es })}
                         </div>
                       </div>
                       <CheckCircle2 className="w-5 h-5 text-emerald-500" />

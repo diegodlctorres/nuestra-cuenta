@@ -80,6 +80,14 @@ export function useTransactions() {
 
   useEffect(() => {
     loadData();
+
+    // Sincronización al volver a la App (Focus)
+    const handleFocus = () => loadData();
+    window.addEventListener('focus', handleFocus);
+
+    return () => {
+      window.removeEventListener('focus', handleFocus);
+    };
   }, [loadData]);
 
 

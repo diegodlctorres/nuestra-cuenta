@@ -22,8 +22,8 @@ export function AddPetTaskForm({ pets, onAdd }: { pets: Pet[], onAdd: (t: any) =
     onAdd({
       petIds: selectedPetIds,
       title,
-      scheduledDate: date,
-      scheduledTime: time || undefined,
+      scheduled_date: date,
+      scheduled_time: time || undefined,
       notes: notes || undefined
     });
     setTitle(''); setDate(''); setTime(''); setNotes(''); setSelectedPetIds([]);

@@ -13,9 +13,9 @@ interface SettingsViewProps {
   coupleSettings: CoupleSettings;
   setCoupleSettings: (s: CoupleSettings) => void;
   pets: Pet[];
-  updatePet: (pet: Pet) => void;
+  updatePet: (pet: Pet, file?: File) => void;
   deletePet: (id: string) => void;
-  addPet: (pet: Omit<Pet, 'id'>) => void;
+  addPet: (pet: Omit<Pet, 'id' | 'household_id'>, file?: File) => void;
   categories: Category[];
   setCategories: (categories: Category[]) => void;
 }
@@ -100,8 +100,8 @@ export function SettingsView({
               {pets.map(pet => (
                 <div key={pet.id} className="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-100">
                   <div className="flex items-center gap-3">
-                    {pet.photoUrl ? (
-                      <img src={pet.photoUrl} alt={pet.name} className="w-10 h-10 rounded-full object-cover shadow-sm" />
+                    {pet.photo_url ? (
+                      <img src={pet.photo_url} alt={pet.name} className="w-10 h-10 rounded-full object-cover shadow-sm" />
                     ) : (
                       <div className="w-10 h-10 rounded-full bg-secondary-100 flex items-center justify-center">
                         <PawPrint className="w-5 h-5 text-secondary-500" />
