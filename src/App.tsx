@@ -33,8 +33,8 @@ export default function App() {
   const [activeTab, setActiveTab] = useState<'dashboard' | 'detail' | 'pets' | 'tasks' | 'settings'>('dashboard');
   const [detailSubTab, setDetailSubTab] = useState<'expenses' | 'savings'>('expenses');
 
-  const { coupleSettings, setCoupleSettings, categories, setCategories } = useSettings();
-  const { transactions, savingsBalance, expensesBalance, groupedTransactions, addTransaction } = useTransactions();
+  const { coupleSettings, setCoupleSettings } = useSettings();
+  const { transactions, accounts, categories, savingsBalance, expensesBalance, groupedTransactions, addTransaction } = useTransactions();
   const { pets, petTasks, setPetTasks, pendingPetTasksCount, addPet, updatePet, deletePet, addPetTask, completePetTask } = usePets();
   const { tasks, addTask, toggleTask, downloadICS } = useTasks();
 
@@ -93,6 +93,7 @@ export default function App() {
               transactions={transactions}
               coupleSettings={coupleSettings}
               categories={categories}
+              accounts={accounts}
               addTransaction={addTransaction}
               setActiveTab={setActiveTab}
               setDetailSubTab={setDetailSubTab}
@@ -133,7 +134,7 @@ export default function App() {
               deletePet={deletePet}
               addPet={addPet}
               categories={categories}
-              setCategories={setCategories}
+              setCategories={() => { alert("Temporalmente deshabilitado: La gestión de categorías ahora opera en backend.") }}
             />
           )}
         </AnimatePresence>

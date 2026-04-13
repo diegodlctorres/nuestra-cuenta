@@ -1,10 +1,11 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Settings, PawPrint, Trash2, Palette } from 'lucide-react';
 import { CoupleSettingsModal } from '../components/settings/CoupleSettingsModal';
 import { CategoryManager } from '../components/settings/CategoryManager';
 import { EditPetModal } from '../components/pets/EditPetModal';
 import { AddPetForm } from '../components/pets/AddPetForm';
+import { InvitePartnerModal } from '../components/settings/InvitePartnerModal';
 import { useAuth } from '../contexts/AuthContext';
 import { CoupleSettings, Pet, Category } from '../types';
 
@@ -37,6 +38,7 @@ export function SettingsView({
   ] as const;
 
   const { signOut, householdId } = useAuth();
+  const [isInviteOpen, setIsInviteOpen] = useState(false);
 
   return (
     <motion.div
@@ -150,7 +152,7 @@ export function SettingsView({
           
           <div className="space-y-3">
             <button 
-              onClick={() => alert(`En la Fase 3, este botón generará un link para unirse al grupo: ${householdId}`)}
+              onClick={() => setIsInviteOpen(true)}
               className="w-full flex items-center justify-center p-3 rounded-xl border-2 border-primary-100 bg-primary-50 text-primary-700 font-bold hover:bg-primary-100 transition-colors"
             >
               Invitar a mi Pareja
@@ -165,6 +167,8 @@ export function SettingsView({
         </div>
 
       </div>
+      
+      <InvitePartnerModal isOpen={isInviteOpen} onClose={() => setIsInviteOpen(false)} />
     </motion.div>
   );
 }

@@ -19,7 +19,10 @@ export function MonthlyBalanceButton({ transactions, account }: { transactions: 
 
   const filteredTransactions = transactions.filter(t => {
     const date = parseISO(t.date);
-    return t.account === account &&
+    const dbAccountType = t.account?.type;
+    const targetAccountType = account === 'expenses' ? 'checking' : 'savings';
+    
+    return dbAccountType === targetAccountType &&
       date.getMonth() === selectedMonth &&
       date.getFullYear() === selectedYear;
   });
@@ -35,7 +38,8 @@ export function MonthlyBalanceButton({ transactions, account }: { transactions: 
   const expenseCategoryTotals = filteredTransactions
     .filter(t => t.type === 'expense')
     .reduce((acc, t) => {
-      acc[t.category] = (acc[t.category] || 0) + t.amount;
+      const catName = t.category?.name || 'General';
+      acc[catName] = (acc[catName] || 0) + t.amount;
       return acc;
     }, {} as Record<string, number>);
 

@@ -28,17 +28,17 @@ export const TransactionItem: React.FC<{ t: Transaction, coupleSettings: CoupleS
                 {t.recurrence === 'fixed' ? 'Fijo' : 'Variable'}
               </span>
             )}
-            {isIncome && t.createdBy && coupleSettings.partner1 && coupleSettings.partner2 && (
+            {isIncome && t.creator && (
                <span className={cn(
                  "text-[8px] px-1.5 py-0.5 rounded-full font-bold uppercase",
-                 t.createdBy === coupleSettings.partner1.name ? "bg-primary-100 text-primary-700" : "bg-secondary-100 text-secondary-700"
+                 "bg-primary-100 text-primary-700"
                )}>
-                 {t.createdBy}
+                 {t.creator.name}
                </span>
             )}
           </div>
           <div className="text-xs text-slate-400">
-            {format(parseISO(t.date), showRecurrence ? 'dd MMMM yyyy' : 'dd MMM', { locale: es })} {showRecurrence && `• ${t.category}`} • {t.account === 'savings' ? 'Ahorros' : 'Gastos'}
+            {format(parseISO(t.date), showRecurrence ? 'dd MMMM yyyy' : 'dd MMM', { locale: es })} {showRecurrence && `• ${t.category?.name}`} • {t.account?.name}
           </div>
         </div>
       </div>

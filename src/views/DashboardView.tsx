@@ -13,7 +13,8 @@ interface DashboardViewProps {
   transactions: Transaction[];
   coupleSettings: CoupleSettings;
   categories: Category[];
-  addTransaction: (t: Omit<Transaction, 'id'>) => void;
+  accounts: Account[];
+  addTransaction: (t: Omit<Transaction, 'id' | 'household_id' | 'created_by'>) => void;
   setActiveTab: (tab: 'dashboard' | 'detail' | 'pets' | 'tasks' | 'settings') => void;
   setDetailSubTab: (tab: 'expenses' | 'savings') => void;
 }
@@ -25,6 +26,7 @@ export function DashboardView({
   transactions,
   coupleSettings,
   categories,
+  accounts,
   addTransaction,
   setActiveTab,
   setDetailSubTab
@@ -37,7 +39,7 @@ export function DashboardView({
       exit={{ opacity: 0, y: -10 }}
       className="space-y-6"
     >
-      <AddTransactionForm onAdd={addTransaction} categories={categories} coupleSettings={coupleSettings} />
+      <AddTransactionForm onAdd={addTransaction} categories={categories} accounts={accounts} />
 
       {/* Account Cards */}
       <div className="grid grid-cols-1 gap-4">

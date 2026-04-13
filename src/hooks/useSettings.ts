@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { CoupleSettings, Category } from '../types';
+import { CoupleSettings } from '../types';
 
 export function useSettings() {
   const [coupleSettings, setCoupleSettings] = useState<CoupleSettings>(() => {
@@ -28,23 +28,5 @@ export function useSettings() {
     }
   }, [coupleSettings]);
 
-  const [categories, setCategories] = useState<Category[]>(() => {
-    const saved = localStorage.getItem('nc_categories');
-    if (saved) return JSON.parse(saved);
-    return [
-      { id: '1', name: 'General', type: 'expenses' },
-      { id: '2', name: 'Comida', type: 'expenses' },
-      { id: '3', name: 'Salidas', type: 'expenses' },
-      { id: '4', name: 'Viajes', type: 'expenses' },
-      { id: '5', name: 'Mascotas', type: 'expenses' },
-      { id: '6', name: 'Sueldo/Ingreso', type: 'savings' },
-      { id: '7', name: 'Inversión', type: 'savings' },
-    ];
-  });
-
-  useEffect(() => {
-    localStorage.setItem('nc_categories', JSON.stringify(categories));
-  }, [categories]);
-
-  return { coupleSettings, setCoupleSettings, categories, setCategories };
+  return { coupleSettings, setCoupleSettings };
 }

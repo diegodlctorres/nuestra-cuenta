@@ -6,6 +6,9 @@ import { Home, Users, Loader2, LogOut } from 'lucide-react';
 export function OnboardingView() {
   const { profile, signOut, refreshProfile } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
+  const [isJoining, setIsJoining] = useState(false);
+  const [inviteCode, setInviteCode] = useState('');
+  const [showInviteInput, setShowInviteInput] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   
   const handleCreateHousehold = async () => {
@@ -25,6 +28,26 @@ export function OnboardingView() {
       setErrorMsg(err.message || 'Error al crear el hogar.');
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleJoinHousehold = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!inviteCode.trim()) return;
+    
+    setIsJoining(true);
+    setErrorMsg('');
+    try {
+      const { error } = await supabase.rpc('accept_invitation', {
+        p_token: inviteCode.trim().toUpperCase()
+      });
+      if (error) throw error;
+      
+      await refreshProfile();
+    } catch (err: any) {
+      setErrorMsg(err.message || 'Código de invitación inválido o caducado.');
+    } finally {
+      setIsJoining(false);
     }
   };
 
@@ -72,12 +95,46 @@ export function OnboardingView() {
             <div className="flex-grow border-t border-slate-200"></div>
           </div>
           
-          <button 
-            disabled
-            className="w-full py-4 bg-white text-slate-400 rounded-2xl font-bold text-sm border-2 border-dashed border-slate-200 cursor-not-allowed"
-          >
-            Tengo un código de invitación
-          </button>
+          {!showInviteInput ? (
+            <button 
+              onClick={() => setShowInviteInput(true)}
+              disabled={isLoading || isJoining}
+              className="w-full py-4 bg-white text-slate-600 hover:text-slate-900 rounded-2xl font-bold text-sm border-2 border-slate-200 hover:border-slate-300 transition-colors"
+            >
+              Tengo un código de invitación
+            </button>
+          ) : (
+            <form onSubmit={handleJoinHousehold} className="animate-in fade-in slide-in-from-top-2">
+              <div className="flex flex-col gap-3">
+                <input
+                  type="text"
+                  required
+                  value={inviteCode}
+                  onChange={(e) => setInviteCode(e.target.value.toUpperCase())}
+                  placeholder="Introduce el código de 8 dígitos..."
+                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-primary-500 font-mono tracking-widest text-center uppercase"
+                  maxLength={8}
+                />
+                <div className="flex gap-2">
+                  <button 
+                    type="button"
+                    onClick={() => setShowInviteInput(false)}
+                    className="py-3 px-4 bg-slate-100 text-slate-500 hover:bg-slate-200 rounded-xl font-bold text-sm transition-colors"
+                  >
+                    Volver
+                  </button>
+                  <button 
+                    type="submit"
+                    disabled={isJoining || inviteCode.length < 5}
+                    className="flex-1 py-3 bg-slate-900 text-white rounded-xl font-bold text-sm hover:bg-slate-800 transition shadow-md disabled:opacity-50 flex items-center justify-center gap-2"
+                  >
+                    {isJoining && <Loader2 className="w-4 h-4 animate-spin" />}
+                    Unirme al Grupo
+                  </button>
+                </div>
+              </div>
+            </form>
+          )}
         </div>
       </div>
     </div>
