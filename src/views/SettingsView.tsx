@@ -5,6 +5,7 @@ import { CoupleSettingsModal } from '../components/settings/CoupleSettingsModal'
 import { CategoryManager } from '../components/settings/CategoryManager';
 import { EditPetModal } from '../components/pets/EditPetModal';
 import { AddPetForm } from '../components/pets/AddPetForm';
+import { useAuth } from '../contexts/AuthContext';
 import { CoupleSettings, Pet, Category } from '../types';
 
 interface SettingsViewProps {
@@ -34,6 +35,8 @@ export function SettingsView({
     { id: 'nature', name: 'Naturaleza', color1: '#10b981', color2: '#f59e0b' },
     { id: 'sunset', name: 'Atardecer', color1: '#c026d3', color2: '#f97316' },
   ] as const;
+
+  const { signOut, householdId } = useAuth();
 
   return (
     <motion.div
@@ -135,6 +138,32 @@ export function SettingsView({
           onAdd={(name) => setCategories([...categories, { id: crypto.randomUUID(), name, type: 'savings' }])}
           onDelete={(id) => setCategories(categories.filter(c => c.id !== id))}
         />
+
+        {/* Sección de Cuenta y Peligro */}
+        <div className="bg-white rounded-3xl border border-rose-200 p-6 shadow-sm space-y-4">
+          <div className="flex items-center justify-between">
+            <h3 className="font-bold text-rose-800 flex items-center gap-2">
+              <Settings className="w-5 h-5 text-rose-500" />
+              Cuenta y Acceso
+            </h3>
+          </div>
+          
+          <div className="space-y-3">
+            <button 
+              onClick={() => alert(`En la Fase 3, este botón generará un link para unirse al grupo: ${householdId}`)}
+              className="w-full flex items-center justify-center p-3 rounded-xl border-2 border-primary-100 bg-primary-50 text-primary-700 font-bold hover:bg-primary-100 transition-colors"
+            >
+              Invitar a mi Pareja
+            </button>
+            <button 
+              onClick={signOut}
+              className="w-full flex items-center justify-center p-3 rounded-xl bg-slate-900 text-white font-bold hover:bg-slate-800 transition-colors"
+            >
+              Cerrar Sesión
+            </button>
+          </div>
+        </div>
+
       </div>
     </motion.div>
   );
