@@ -23,19 +23,36 @@ import { useSettings } from './hooks/useSettings';
 import { useTransactions } from './hooks/useTransactions';
 import { usePets } from './hooks/usePets';
 import { useTasks } from './hooks/useTasks';
+import { useAuth } from './contexts/AuthContext';
+import { AuthView } from './views/AuthView';
+import { OnboardingView } from './views/OnboardingView';
 
 
 export default function App() {
+  const { session, householdId, isLoading } = useAuth();
   const [activeTab, setActiveTab] = useState<'dashboard' | 'detail' | 'pets' | 'tasks' | 'settings'>('dashboard');
   const [detailSubTab, setDetailSubTab] = useState<'expenses' | 'savings'>('expenses');
-
 
   const { coupleSettings, setCoupleSettings, categories, setCategories } = useSettings();
   const { transactions, savingsBalance, expensesBalance, groupedTransactions, addTransaction } = useTransactions();
   const { pets, petTasks, setPetTasks, pendingPetTasksCount, addPet, updatePet, deletePet, addPetTask, completePetTask } = usePets();
   const { tasks, addTask, toggleTask, downloadICS } = useTasks();
 
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-6 text-slate-900">
+        <div className="animate-spin text-primary-500"><ArrowRightLeft className="w-8 h-8" /></div>
+      </div>
+    );
+  }
 
+  if (!session) {
+    return <AuthView />;
+  }
+
+  if (!householdId) {
+    return <OnboardingView />;
+  }
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 font-sans pb-24">
