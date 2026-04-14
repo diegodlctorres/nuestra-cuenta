@@ -8,6 +8,7 @@ interface AuthContextType {
   user: User | null;
   profile: Profile | null;
   householdId: string | null;
+  memberId: string | null;
   isLoading: boolean;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
@@ -18,6 +19,7 @@ const AuthContext = createContext<AuthContextType>({
   user: null,
   profile: null,
   householdId: null,
+  memberId: null,
   isLoading: true,
   signOut: async () => {},
   refreshProfile: async () => {}
@@ -28,6 +30,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [householdId, setHouseholdId] = useState<string | null>(null);
+  const [memberId, setMemberId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   const fetchProfileAndHousehold = async (userId: string) => {
@@ -48,7 +51,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // 2. Obtener la membresía activa del household
       const { data: memberData, error: memberErr } = await supabase
         .from('household_members')
-        .select('household_id')
+        .select('id, household_id')
         .eq('profile_id', userId)
         .eq('status', 'active')
         .limit(1)
@@ -58,8 +61,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       if (memberData) {
         setHouseholdId(memberData.household_id);
+        setMemberId(memberData.id);
       } else {
         setHouseholdId(null);
+        setMemberId(null);
       }
     } catch (error) {
       console.error('Error fetching profile or household:', error);
@@ -88,6 +93,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       } else {
         setProfile(null);
         setHouseholdId(null);
+        setMemberId(null);
         setIsLoading(false);
       }
     });
@@ -100,7 +106,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ session, user, profile, householdId, isLoading, signOut, refreshProfile: async () => { if (user) await fetchProfileAndHousehold(user.id); } }}>
+    <AuthContext.Provider value={{ session, user, profile, householdId, memberId, isLoading, signOut, refreshProfile: async () => { if (user) await fetchProfileAndHousehold(user.id); } }}>
       {children}
     </AuthContext.Provider>
   );

@@ -17,7 +17,8 @@ interface SettingsViewProps {
   deletePet: (id: string) => void;
   addPet: (pet: Omit<Pet, 'id' | 'household_id'>, file?: File) => void;
   categories: Category[];
-  setCategories: (categories: Category[]) => void;
+  addCategory: (name: string, kind: 'income' | 'expense') => void;
+  deleteCategory: (id: string) => void;
 }
 
 export function SettingsView({
@@ -28,7 +29,8 @@ export function SettingsView({
   deletePet,
   addPet,
   categories,
-  setCategories
+  addCategory,
+  deleteCategory
 }: SettingsViewProps) {
   const THEMES = [
     { id: 'default', name: 'Original', color1: '#6366f1', color2: '#f43f5e' },
@@ -127,18 +129,18 @@ export function SettingsView({
 
         <CategoryManager
           title="Categorías de Gastos"
-          type="expenses"
-          categories={categories.filter(c => c.type === 'expenses')}
-          onAdd={(name) => setCategories([...categories, { id: crypto.randomUUID(), name, type: 'expenses' }])}
-          onDelete={(id) => setCategories(categories.filter(c => c.id !== id))}
+          type="checking"
+          categories={categories.filter(c => c.kind === 'expense')}
+          onAdd={(name) => addCategory(name, 'expense')}
+          onDelete={deleteCategory}
         />
 
         <CategoryManager
-          title="Categorías de Ahorros"
+          title="Categorías de Ingresos / Ahorros"
           type="savings"
-          categories={categories.filter(c => c.type === 'savings')}
-          onAdd={(name) => setCategories([...categories, { id: crypto.randomUUID(), name, type: 'savings' }])}
-          onDelete={(id) => setCategories(categories.filter(c => c.id !== id))}
+          categories={categories.filter(c => c.kind === 'income')}
+          onAdd={(name) => addCategory(name, 'income')}
+          onDelete={deleteCategory}
         />
 
         {/* Sección de Cuenta y Peligro */}

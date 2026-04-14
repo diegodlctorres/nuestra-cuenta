@@ -4,7 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { Transaction, Account, Category } from '../types';
 
 export function useTransactions() {
-  const { householdId, user } = useAuth();
+  const { householdId, memberId } = useAuth();
   
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [accounts, setAccounts] = useState<Account[]>([]);
@@ -17,71 +17,44 @@ export function useTransactions() {
     setIsLoading(true);
 
     try {
-      // Fetch Accounts
-      let { data: accountsData } = await supabase
-        .from('accounts')
-        .select('*')
-        .eq('household_id', householdId)
-        .order('created_at');
-        
-      // Fetch Categories
-      let { data: categoriesData } = await supabase
-        .from('categories')
-        .select('*')
-        .eq('household_id', householdId)
-        .order('created_at');
+      console.log(">> Debug: Asegurando integridad del hogar:", householdId);
+      
+      // 1. Ejecutar Bootstrap en el servidor (Crea cuentas/categorías si faltan)
+      const { error: rpcErr } = await supabase.rpc('bootstrap_household', { h_id: householdId });
+      if (rpcErr) console.error(">> Error en bootstrap_household:", rpcErr);
 
-      // Bootstrapping: If new household with 0 accounts/categories, create standard ones
-      if (!accountsData || accountsData.length === 0) {
-        const defaultAccounts = [
-          { household_id: householdId, name: 'Gasto Común', type: 'checking' },
-          { household_id: householdId, name: 'Ahorros Compartidos', type: 'savings' }
-        ];
-        await supabase.from('accounts').insert(defaultAccounts);
-        
-        const defaultCategories = [
-          // Categorías de Gastos
-          { household_id: householdId, name: 'General', kind: 'expense' },
-          { household_id: householdId, name: 'Comida', kind: 'expense' },
-          { household_id: householdId, name: 'Transporte', kind: 'expense' },
-          { household_id: householdId, name: 'Hogar', kind: 'expense' },
-          { household_id: householdId, name: 'Salud', kind: 'expense' },
-          { household_id: householdId, name: 'Entretenimiento', kind: 'expense' },
-          { household_id: householdId, name: 'Compras', kind: 'expense' },
-          { household_id: householdId, name: 'Mascotas', kind: 'expense' },
-          // Categorías de Ingresos / Ahorros
-          { household_id: householdId, name: 'Sueldo', kind: 'income' },
-          { household_id: householdId, name: 'Inversión', kind: 'income' },
-          { household_id: householdId, name: 'Freelance', kind: 'income' },
-          { household_id: householdId, name: 'Regalo', kind: 'income' }
-        ];
-        await supabase.from('categories').insert(defaultCategories);
+      // 2. Cargar Cuentas y Categorías
+      const [{ data: accs }, { data: cats }] = await Promise.all([
+        supabase.from('accounts').select('*').eq('household_id', householdId).order('name'),
+        supabase.from('categories').select('*').eq('household_id', householdId).order('name')
+      ]);
 
-        // Re-fetch
-        const [accRes, catRes] = await Promise.all([
-          supabase.from('accounts').select('*').eq('household_id', householdId).order('created_at'),
-          supabase.from('categories').select('*').eq('household_id', householdId).order('created_at')
-        ]);
-        accountsData = accRes.data;
-        categoriesData = catRes.data;
-      }
+      setAccounts(accs || []);
+      setCategories(cats || []);
 
-      setAccounts((accountsData as Account[]) || []);
-      setCategories((categoriesData as Category[]) || []);
-
-      // Fetch Transactions
-      const { data: transData } = await supabase
+      // 3. Cargar Transacciones con Join profundo
+      const { data: transData, error: transErr } = await supabase
         .from('transactions')
         .select(`
           *,
           account:accounts(*),
           category:categories(*),
-          creator:profiles(*)
+          creator_member:household_members(
+            profile:profiles(*)
+          )
         `)
         .eq('household_id', householdId)
         .order('date', { ascending: false });
 
-      setTransactions((transData as any[]) || []);
+      if (transErr) {
+        console.error(">> Error cargando transacciones:", transErr);
+      } else {
+        const mapped = (transData || []).map(t => ({
+          ...t,
+          creator: (t as any).creator_member?.profile
+        }));
+        setTransactions(mapped as Transaction[]);
+      }
 
     } catch (error) {
       console.error('Error fetching finance data', error);
@@ -93,10 +66,8 @@ export function useTransactions() {
   useEffect(() => {
     loadData();
 
-    // Sincronización al volver a la App (Focus)
     const handleFocus = () => loadData();
     window.addEventListener('focus', handleFocus);
-
     return () => {
       window.removeEventListener('focus', handleFocus);
     };
@@ -122,38 +93,49 @@ export function useTransactions() {
       expenses: {
         incomes: filterByAccount('checking').filter(t => t.type === 'income'),
         fixed: filterByAccount('checking').filter(t => t.type === 'expense' && t.recurrence === 'fixed'),
-        variable: filterByAccount('checking').filter(t => t.type === 'expense' && (t.recurrence === 'variable' || t.recurrence === 'none')),
+        variable: filterByAccount('checking').filter(t => t.type === 'expense' && t.recurrence !== 'fixed'),
       },
       savings: {
         incomes: filterByAccount('savings').filter(t => t.type === 'income'),
         fixed: filterByAccount('savings').filter(t => t.type === 'expense' && t.recurrence === 'fixed'),
-        variable: filterByAccount('savings').filter(t => t.type === 'expense' && (t.recurrence === 'variable' || t.recurrence === 'none')),
+        variable: filterByAccount('savings').filter(t => t.type === 'expense' && t.recurrence !== 'fixed'),
       }
     };
   }, [transactions]);
 
   const addTransaction = async (t: Omit<Transaction, 'id' | 'household_id' | 'created_by'>) => {
-    if (!householdId || !user) return;
+    if (!householdId || !memberId) {
+        console.error("No se puede agregar transacción sin householdId o memberId");
+        return;
+    }
     try {
-      const dbTx = {
-        ...t,
-        household_id: householdId,
-        created_by: user.id
-      };
-      
       const { data, error } = await supabase
         .from('transactions')
-        .insert(dbTx)
-        .select(`*, account:accounts(*), category:categories(*), creator:profiles(*)`)
+        .insert({
+          ...t,
+          household_id: householdId,
+          created_by: memberId
+        })
+        .select(`
+          *,
+          account:accounts(*),
+          category:categories(*),
+          creator_member:household_members(
+            profile:profiles(*)
+          )
+        `)
         .single();
-        
+
       if (error) throw error;
-      if (data) {
-        setTransactions([data as any, ...transactions]);
-      }
+      
+      const mapped = {
+        ...data,
+        creator: (data as any).creator_member?.profile
+      };
+
+      setTransactions([mapped as Transaction, ...transactions]);
     } catch (error) {
       console.error('Error adding transaction:', error);
-      throw error;
     }
   };
 
@@ -163,7 +145,32 @@ export function useTransactions() {
       if (error) throw error;
       setTransactions(transactions.filter(t => t.id !== id));
     } catch (error) {
-      console.error('Error deleting transaction', error);
+      console.error('Error deleting transaction:', error);
+    }
+  };
+
+  const addCategory = async (name: string, kind: 'income' | 'expense') => {
+    if (!householdId) return;
+    try {
+      const { data, error } = await supabase
+        .from('categories')
+        .insert({ name, kind, household_id: householdId })
+        .select()
+        .single();
+      if (error) throw error;
+      setCategories([...categories, data as Category]);
+    } catch (error) {
+      console.error('Error adding category:', error);
+    }
+  };
+
+  const deleteCategory = async (id: string) => {
+    try {
+      const { error } = await supabase.from('categories').delete().eq('id', id);
+      if (error) throw error;
+      setCategories(categories.filter(c => c.id !== id));
+    } catch (error) {
+      console.error('Error deleting category:', error);
     }
   };
 
@@ -176,6 +183,8 @@ export function useTransactions() {
     groupedTransactions, 
     addTransaction, 
     deleteTransaction,
+    addCategory,
+    deleteCategory,
     isLoading 
   };
 }
