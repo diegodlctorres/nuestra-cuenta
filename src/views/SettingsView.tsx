@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { Settings, PawPrint, Trash2, Palette } from 'lucide-react';
 import { CoupleSettingsModal } from '../components/settings/CoupleSettingsModal';
 import { CategoryManager } from '../components/settings/CategoryManager';
+import { AccountManager } from '../components/settings/AccountManager';
 import { EditPetModal } from '../components/pets/EditPetModal';
 import { AddPetForm } from '../components/pets/AddPetForm';
 import { InvitePartnerModal } from '../components/settings/InvitePartnerModal';
@@ -19,6 +20,10 @@ interface SettingsViewProps {
   categories: Category[];
   addCategory: (name: string, kind: 'income' | 'expense') => void;
   deleteCategory: (id: string) => void;
+  accounts: Account[];
+  addAccount: (name: string, type: AccountType) => void;
+  updateAccount: (id: string, updates: Partial<Account>) => void;
+  deleteAccount: (id: string) => void;
 }
 
 export function SettingsView({
@@ -28,9 +33,12 @@ export function SettingsView({
   updatePet,
   deletePet,
   addPet,
-  categories,
   addCategory,
-  deleteCategory
+  deleteCategory,
+  accounts,
+  addAccount,
+  updateAccount,
+  deleteAccount
 }: SettingsViewProps) {
   const THEMES = [
     { id: 'default', name: 'Original', color1: '#6366f1', color2: '#f43f5e' },
@@ -126,6 +134,13 @@ export function SettingsView({
           )}
           <AddPetForm onAdd={addPet} />
         </div>
+
+        <AccountManager 
+          accounts={accounts} 
+          onAdd={addAccount} 
+          onDelete={deleteAccount} 
+          onUpdate={updateAccount} 
+        />
 
         <CategoryManager
           title="Categorías de Gastos"

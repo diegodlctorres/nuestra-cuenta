@@ -74,6 +74,25 @@ export function useTransactions() {
   }, [loadData]);
 
 
+  const accountBalances = useMemo(() => {
+    const balances: Record<string, number> = {};
+    
+    // Inicializar balances en 0 para todas las cuentas conocidas
+    accounts.forEach(acc => {
+      balances[acc.id] = 0;
+    });
+
+    // Sumar/Restar según transacciones
+    transactions.forEach(t => {
+      if (t.account_id && balances[t.account_id] !== undefined) {
+        const amount = Number(t.amount);
+        balances[t.account_id] += (t.type === 'income' ? amount : -amount);
+      }
+    });
+
+    return balances;
+  }, [accounts, transactions]);
+
   const savingsBalance = useMemo(() =>
     transactions
       .filter(t => t.account?.type === 'savings')
@@ -174,17 +193,64 @@ export function useTransactions() {
     }
   };
 
+  const addAccount = async (name: string, type: AccountType) => {
+    if (!householdId) return;
+    try {
+      const { data, error } = await supabase
+        .from('accounts')
+        .insert({ name, type, household_id: householdId })
+        .select()
+        .single();
+      if (error) throw error;
+      setAccounts([...accounts, data as Account]);
+    } catch (error) {
+      console.error('Error adding account:', error);
+    }
+  };
+
+  const updateAccount = async (id: string, updates: Partial<Account>) => {
+    try {
+      const { data, error } = await supabase
+        .from('accounts')
+        .update(updates)
+        .eq('id', id)
+        .select()
+        .single();
+      if (error) throw error;
+      setAccounts(accounts.map(a => a.id === id ? data as Account : a));
+    } catch (error) {
+      console.error('Error updating account:', error);
+    }
+  };
+
+  const deleteAccount = async (id: string) => {
+    try {
+      // Nota: El backend borrará las transacciones en cascada si así está configurado el FK.
+      const { error } = await supabase.from('accounts').delete().eq('id', id);
+      if (error) throw error;
+      setAccounts(accounts.filter(a => a.id !== id));
+      // También filtramos las transacciones locales para consistencia inmediata
+      setTransactions(transactions.filter(t => t.account_id !== id));
+    } catch (error) {
+      console.error('Error deleting account:', error);
+    }
+  };
+
   return { 
     transactions, 
     accounts, 
     categories, 
     savingsBalance, 
     expensesBalance, 
+    accountBalances,
     groupedTransactions, 
     addTransaction, 
     deleteTransaction,
     addCategory,
     deleteCategory,
+    addAccount,
+    updateAccount,
+    deleteAccount,
     isLoading 
   };
 }

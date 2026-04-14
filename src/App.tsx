@@ -32,11 +32,13 @@ export default function App() {
   const { session, householdId, isLoading } = useAuth();
   const [activeTab, setActiveTab] = useState<'dashboard' | 'detail' | 'pets' | 'tasks' | 'settings'>('dashboard');
   const [detailSubTab, setDetailSubTab] = useState<'expenses' | 'savings'>('expenses');
+  const [selectedAccountId, setSelectedAccountId] = useState<string | null>(null);
 
   const { coupleSettings, setCoupleSettings } = useSettings();
   const { 
     transactions, accounts, categories, savingsBalance, expensesBalance, 
-    groupedTransactions, addTransaction, addCategory, deleteCategory 
+    accountBalances, groupedTransactions, addTransaction, addCategory, deleteCategory,
+    addAccount, updateAccount, deleteAccount 
   } = useTransactions();
   const { pets, petTasks, setPetTasks, pendingPetTasksCount, addPet, updatePet, deletePet, addPetTask, completePetTask } = usePets();
   const { tasks, addTask, toggleTask, downloadICS } = useTasks();
@@ -97,17 +99,19 @@ export default function App() {
               coupleSettings={coupleSettings}
               categories={categories}
               accounts={accounts}
+              accountBalances={accountBalances}
               addTransaction={addTransaction}
               setActiveTab={setActiveTab}
-              setDetailSubTab={setDetailSubTab}
+              setSelectedAccountId={setSelectedAccountId}
             />
           )}
           {activeTab === 'detail' && (
             <DetailView
-              detailSubTab={detailSubTab}
-              setDetailSubTab={setDetailSubTab}
+              selectedAccountId={selectedAccountId}
+              setSelectedAccountId={setSelectedAccountId}
               transactions={transactions}
-              groupedTransactions={groupedTransactions}
+              accounts={accounts}
+              accountBalances={accountBalances}
               coupleSettings={coupleSettings}
             />
           )}
@@ -139,6 +143,10 @@ export default function App() {
               categories={categories}
               addCategory={addCategory}
               deleteCategory={deleteCategory}
+              accounts={accounts}
+              addAccount={addAccount}
+              updateAccount={updateAccount}
+              deleteAccount={deleteAccount}
             />
           )}
         </AnimatePresence>

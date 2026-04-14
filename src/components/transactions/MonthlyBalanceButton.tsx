@@ -5,7 +5,7 @@ import { cn, formatCurrency } from '../../lib/utils';
 import { Transaction, AccountType } from '../../types';
 import { Modal } from '../ui/Modal';
 
-export function MonthlyBalanceButton({ transactions, account }: { transactions: Transaction[], account: AccountType }) {
+export function MonthlyBalanceButton({ transactions, accountId, accountName }: { transactions: Transaction[], accountId: string | null, accountName: string }) {
   const [isOpen, setIsOpen] = useState(false);
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
@@ -19,10 +19,8 @@ export function MonthlyBalanceButton({ transactions, account }: { transactions: 
 
   const filteredTransactions = transactions.filter(t => {
     const date = parseISO(t.date);
-    const dbAccountType = t.account?.type;
-    const targetAccountType = account === 'expenses' ? 'checking' : 'savings';
     
-    return dbAccountType === targetAccountType &&
+    return t.account_id === accountId &&
       date.getMonth() === selectedMonth &&
       date.getFullYear() === selectedYear;
   });
@@ -55,7 +53,7 @@ export function MonthlyBalanceButton({ transactions, account }: { transactions: 
         <Calendar className="w-5 h-5" />
       </button>
 
-      <Modal isOpen={isOpen} onClose={() => setIsOpen(false)} title={`Balance ${account === 'savings' ? 'Ahorros' : 'Gastos'}`}>
+      <Modal isOpen={isOpen} onClose={() => setIsOpen(false)} title={`Balance - ${accountName}`}>
         <div className="space-y-6">
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1">

@@ -7,29 +7,27 @@ import { Transaction, Category, CoupleSettings } from '../types';
 import { formatCurrency } from '../lib/utils';
 
 interface DashboardViewProps {
-  savingsBalance: number;
-  expensesBalance: number;
   pendingPetTasksCount: number;
   transactions: Transaction[];
   coupleSettings: CoupleSettings;
   categories: Category[];
   accounts: Account[];
+  accountBalances: Record<string, number>;
   addTransaction: (t: Omit<Transaction, 'id' | 'household_id' | 'created_by'>) => void;
   setActiveTab: (tab: 'dashboard' | 'detail' | 'pets' | 'tasks' | 'settings') => void;
-  setDetailSubTab: (tab: 'expenses' | 'savings') => void;
+  setSelectedAccountId: (id: string | null) => void;
 }
 
 export function DashboardView({
-  savingsBalance,
-  expensesBalance,
   pendingPetTasksCount,
   transactions,
   coupleSettings,
   categories,
   accounts,
+  accountBalances,
   addTransaction,
   setActiveTab,
-  setDetailSubTab
+  setSelectedAccountId
 }: DashboardViewProps) {
   return (
     <motion.div
@@ -41,41 +39,61 @@ export function DashboardView({
     >
       <AddTransactionForm onAdd={addTransaction} categories={categories} accounts={accounts} />
 
-      {/* Account Cards */}
+      {/* Dynamic Account Cards */}
       <div className="grid grid-cols-1 gap-4">
-        <div
-          onClick={() => {
-            setActiveTab('detail');
-            setDetailSubTab('savings');
-          }}
-          className="bg-primary-600 rounded-3xl p-6 text-white shadow-xl shadow-primary-100 cursor-pointer active:scale-[0.98] transition-transform"
-        >
-          <div className="flex justify-between items-start mb-4">
-            <div className="p-2 bg-white/20 rounded-xl">
-              <PiggyBank className="w-6 h-6" />
+        {accounts.map((acc, index) => {
+          const isPrimary = index === 0;
+          const balance = accountBalances[acc.id] || 0;
+          
+          return (
+            <div
+              key={acc.id}
+              onClick={() => {
+                setSelectedAccountId(acc.id);
+                setActiveTab('detail');
+              }}
+              className={cn(
+                "rounded-3xl p-6 shadow-xl cursor-pointer active:scale-[0.98] transition-all border",
+                isPrimary 
+                  ? "bg-primary-600 text-white shadow-primary-100 border-transparent" 
+                  : "bg-white text-slate-900 border-slate-200 shadow-slate-100"
+              )}
+            >
+              <div className="flex justify-between items-start mb-4">
+                <div className={cn("p-2 rounded-xl", isPrimary ? "bg-white/20" : "bg-slate-100")}>
+                  {acc.type === 'savings' ? (
+                    <PiggyBank className={cn("w-6 h-6", isPrimary ? "text-white" : "text-primary-600")} />
+                  ) : (
+                    <Wallet className={cn("w-6 h-6", isPrimary ? "text-white" : "text-slate-600")} />
+                  )}
+                </div>
+                <span className={cn(
+                  "text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-full",
+                  isPrimary ? "bg-white/20 text-white" : "bg-slate-100 text-slate-500"
+                )}>
+                  {acc.type === 'savings' ? 'Ahorros / Metas' : 'Día a Día'}
+                </span>
+              </div>
+              <div className="text-[10px] uppercase font-bold tracking-widest opacity-70 mb-1">{acc.name}</div>
+              <div className="text-3xl font-bold mb-1">{formatCurrency(balance)}</div>
+              <div className={cn("text-sm", isPrimary ? "text-primary-100" : "text-slate-500")}>
+                Haz clic para ver el detalle
+              </div>
             </div>
-            <span className="text-xs font-medium bg-white/20 px-2 py-1 rounded-full">Ahorros / Futuro</span>
-          </div>
-          <div className="text-3xl font-bold mb-1">{formatCurrency(savingsBalance)}</div>
-          <div className="text-primary-100 text-sm">Uso recreativo y metas</div>
-        </div>
+          );
+        })}
 
-        <div
-          onClick={() => {
-            setActiveTab('detail');
-            setDetailSubTab('expenses');
-          }}
-          className="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm cursor-pointer active:scale-[0.98] transition-transform"
-        >
-          <div className="flex justify-between items-start mb-4">
-            <div className="p-2 bg-slate-100 rounded-xl">
-              <Wallet className="w-6 h-6 text-slate-600" />
-            </div>
-            <span className="text-xs font-medium bg-slate-100 text-slate-600 px-2 py-1 rounded-full">Gastos</span>
+        {accounts.length === 0 && (
+          <div className="text-center py-12 bg-slate-50 rounded-3xl border border-dashed border-slate-200">
+             <p className="text-slate-400 text-sm">No hay cuentas configuradas.</p>
+             <button 
+              onClick={() => setActiveTab('settings')}
+              className="text-primary-600 font-bold text-sm mt-2"
+             >
+               Ir a configuración
+             </button>
           </div>
-          <div className="text-3xl font-bold mb-1 text-slate-900">{formatCurrency(expensesBalance)}</div>
-          <div className="text-slate-500 text-sm">Fijos, viajes y salidas</div>
-        </div>
+        )}
       </div>
 
       <div className="bg-secondary-50 rounded-3xl p-6 border border-secondary-100">
