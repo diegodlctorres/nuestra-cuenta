@@ -36,7 +36,7 @@ export default function App() {
 
   const { coupleSettings, setCoupleSettings } = useSettings();
   const { 
-    transactions, accounts, categories, savingsBalance, expensesBalance, 
+    transactions, accounts, categories,
     accountBalances, groupedTransactions, addTransaction, addCategory, deleteCategory,
     addAccount, updateAccount, deleteAccount 
   } = useTransactions();
@@ -92,8 +92,6 @@ export default function App() {
 
           {activeTab === 'dashboard' && (
             <DashboardView
-              savingsBalance={savingsBalance}
-              expensesBalance={expensesBalance}
               pendingPetTasksCount={pendingPetTasksCount}
               transactions={transactions}
               coupleSettings={coupleSettings}

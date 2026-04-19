@@ -93,18 +93,6 @@ export function useTransactions() {
     return balances;
   }, [accounts, transactions]);
 
-  const savingsBalance = useMemo(() =>
-    transactions
-      .filter(t => t.account?.type === 'savings')
-      .reduce((acc, t) => acc + (t.type === 'income' ? Number(t.amount) : -Number(t.amount)), 0)
-  , [transactions]);
-
-  const expensesBalance = useMemo(() =>
-    transactions
-      .filter(t => t.account?.type === 'checking')
-      .reduce((acc, t) => acc + (t.type === 'income' ? Number(t.amount) : -Number(t.amount)), 0)
-  , [transactions]);
-
   const groupedTransactions = useMemo(() => {
     const filterByAccount = (accType: string) => transactions.filter(t => t.account?.type === accType);
 
@@ -240,8 +228,6 @@ export function useTransactions() {
     transactions, 
     accounts, 
     categories, 
-    savingsBalance, 
-    expensesBalance, 
     accountBalances,
     groupedTransactions, 
     addTransaction, 

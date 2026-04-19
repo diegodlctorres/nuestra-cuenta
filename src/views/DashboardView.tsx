@@ -3,8 +3,8 @@ import { motion } from 'framer-motion';
 import { PiggyBank, Wallet, PawPrint } from 'lucide-react';
 import { AddTransactionForm } from '../components/transactions/AddTransactionForm';
 import { TransactionItem } from '../components/transactions/TransactionItem';
-import { Transaction, Category, CoupleSettings } from '../types';
-import { formatCurrency } from '../lib/utils';
+import { Transaction, Category, CoupleSettings, Account } from '../types';
+import { cn, formatCurrency } from '../lib/utils';
 
 interface DashboardViewProps {
   pendingPetTasksCount: number;

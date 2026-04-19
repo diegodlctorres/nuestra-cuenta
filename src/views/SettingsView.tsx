@@ -8,7 +8,7 @@ import { EditPetModal } from '../components/pets/EditPetModal';
 import { AddPetForm } from '../components/pets/AddPetForm';
 import { InvitePartnerModal } from '../components/settings/InvitePartnerModal';
 import { useAuth } from '../contexts/AuthContext';
-import { CoupleSettings, Pet, Category } from '../types';
+import { CoupleSettings, Pet, Category, Account, AccountType } from '../types';
 
 interface SettingsViewProps {
   coupleSettings: CoupleSettings;
@@ -33,6 +33,7 @@ export function SettingsView({
   updatePet,
   deletePet,
   addPet,
+  categories,
   addCategory,
   deleteCategory,
   accounts,
