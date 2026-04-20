@@ -48,7 +48,7 @@ export function SettingsView({
     { id: 'sunset', name: 'Atardecer', color1: '#c026d3', color2: '#f97316' },
   ] as const;
 
-  const { signOut, householdId } = useAuth();
+  const { signOut } = useAuth();
   const [isInviteOpen, setIsInviteOpen] = useState(false);
 
   return (
@@ -67,40 +67,22 @@ export function SettingsView({
       </div>
 
       <div className="space-y-6">
+        <CoupleSettingsModal coupleSettings={coupleSettings} setCoupleSettings={setCoupleSettings} />
+
         <div className="bg-white rounded-3xl border border-slate-200 p-6 shadow-sm space-y-4">
           <div className="flex items-center justify-between">
-            <h3 className="font-bold text-slate-800 flex items-center gap-2">
-              <Palette className="w-5 h-5 text-primary-500" />
-              Tema Visual
-            </h3>
+            <h3 className="font-bold text-slate-800">Invitar a mi Pareja</h3>
           </div>
-          <div className="grid grid-cols-2 gap-3">
-            {THEMES.map(theme => {
-              const isActive = (coupleSettings.theme || 'default') === theme.id;
-              return (
-                <button
-                  key={theme.id}
-                  onClick={() => setCoupleSettings({ ...coupleSettings, theme: theme.id })}
-                  className={`flex items-center gap-3 p-3 rounded-xl border transition-all ${
-                    isActive 
-                      ? 'bg-white border-primary-500 shadow-sm ring-1 ring-primary-500' 
-                      : 'bg-white border-slate-200 hover:border-slate-300'
-                  }`}
-                >
-                  <div className="flex -space-x-1.5">
-                    <div className="w-5 h-5 rounded-full border-2 border-white shadow-sm z-10" style={{ backgroundColor: theme.color1 }} />
-                    <div className="w-5 h-5 rounded-full border-2 border-white shadow-sm" style={{ backgroundColor: theme.color2 }} />
-                  </div>
-                  <span className={`text-xs font-bold ${isActive ? 'text-primary-700' : 'text-slate-600'}`}>
-                    {theme.name}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
+          <p className="text-sm text-slate-500">
+            Genera una invitación para que tu pareja o alguien de confianza se una a tu cuenta compartida.
+          </p>
+          <button 
+            onClick={() => setIsInviteOpen(true)}
+            className="w-full flex items-center justify-center p-3 rounded-xl border-2 border-primary-100 bg-primary-50 text-primary-700 font-bold hover:bg-primary-100 transition-colors"
+          >
+            Invitar a mi Pareja
+          </button>
         </div>
-
-        <CoupleSettingsModal coupleSettings={coupleSettings} setCoupleSettings={setCoupleSettings} />
 
         <div className="bg-white rounded-3xl border border-slate-200 p-6 shadow-sm space-y-4">
           <div className="flex items-center justify-between">
@@ -159,7 +141,39 @@ export function SettingsView({
           onDelete={deleteCategory}
         />
 
-        {/* Sección de Cuenta y Peligro */}
+        <div className="bg-white rounded-3xl border border-slate-200 p-6 shadow-sm space-y-4">
+          <div className="flex items-center justify-between">
+            <h3 className="font-bold text-slate-800 flex items-center gap-2">
+              <Palette className="w-5 h-5 text-primary-500" />
+              Tema Visual
+            </h3>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            {THEMES.map(theme => {
+              const isActive = (coupleSettings.theme || 'default') === theme.id;
+              return (
+                <button
+                  key={theme.id}
+                  onClick={() => setCoupleSettings({ ...coupleSettings, theme: theme.id })}
+                  className={`flex items-center gap-3 p-3 rounded-xl border transition-all ${
+                    isActive 
+                      ? 'bg-white border-primary-500 shadow-sm ring-1 ring-primary-500' 
+                      : 'bg-white border-slate-200 hover:border-slate-300'
+                  }`}
+                >
+                  <div className="flex -space-x-1.5">
+                    <div className="w-5 h-5 rounded-full border-2 border-white shadow-sm z-10" style={{ backgroundColor: theme.color1 }} />
+                    <div className="w-5 h-5 rounded-full border-2 border-white shadow-sm" style={{ backgroundColor: theme.color2 }} />
+                  </div>
+                  <span className={`text-xs font-bold ${isActive ? 'text-primary-700' : 'text-slate-600'}`}>
+                    {theme.name}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
         <div className="bg-white rounded-3xl border border-rose-200 p-6 shadow-sm space-y-4">
           <div className="flex items-center justify-between">
             <h3 className="font-bold text-rose-800 flex items-center gap-2">
@@ -167,21 +181,13 @@ export function SettingsView({
               Cuenta y Acceso
             </h3>
           </div>
-          
-          <div className="space-y-3">
-            <button 
-              onClick={() => setIsInviteOpen(true)}
-              className="w-full flex items-center justify-center p-3 rounded-xl border-2 border-primary-100 bg-primary-50 text-primary-700 font-bold hover:bg-primary-100 transition-colors"
+
+          <button 
+            onClick={signOut}
+            className="w-full flex items-center justify-center p-3 rounded-xl bg-slate-900 text-white font-bold hover:bg-slate-800 transition-colors"
             >
-              Invitar a mi Pareja
-            </button>
-            <button 
-              onClick={signOut}
-              className="w-full flex items-center justify-center p-3 rounded-xl bg-slate-900 text-white font-bold hover:bg-slate-800 transition-colors"
-            >
-              Cerrar Sesión
-            </button>
-          </div>
+            Cerrar Sesión
+          </button>
         </div>
 
       </div>
