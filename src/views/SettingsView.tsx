@@ -80,7 +80,7 @@ export function SettingsView({
               return (
                 <button
                   key={theme.id}
-                  onClick={() => setCoupleSettings({ ...coupleSettings, theme: theme.id as any })}
+                  onClick={() => setCoupleSettings({ ...coupleSettings, theme: theme.id })}
                   className={`flex items-center gap-3 p-3 rounded-xl border transition-all ${
                     isActive 
                       ? 'bg-white border-primary-500 shadow-sm ring-1 ring-primary-500' 

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { Home, Users, Loader2, LogOut } from 'lucide-react';
+import { getFriendlyErrorMessage } from '../lib/errors';
 
 export function OnboardingView() {
   const { profile, signOut, refreshProfile } = useAuth();
@@ -16,16 +17,15 @@ export function OnboardingView() {
     setErrorMsg('');
     try {
       // Llamada al RPC
-      const { data, error } = await supabase.rpc('create_household_and_insert_admin', {
+      const { error } = await supabase.rpc('create_household_and_insert_admin', {
         p_theme: 'default'
       });
-      console.log('>> DEBUG RPC Result:', data, 'Error:', error);
       if (error) throw error;
       
       // Forzamos actualización del contexto para redirigir
       await refreshProfile();
-    } catch (err: any) {
-      setErrorMsg(err.message || 'Error al crear el hogar.');
+    } catch (err) {
+      setErrorMsg(getFriendlyErrorMessage(err, 'No pudimos crear la cuenta compartida.'));
     } finally {
       setIsLoading(false);
     }
@@ -44,8 +44,8 @@ export function OnboardingView() {
       if (error) throw error;
       
       await refreshProfile();
-    } catch (err: any) {
-      setErrorMsg(err.message || 'Código de invitación inválido o caducado.');
+    } catch (err) {
+      setErrorMsg(getFriendlyErrorMessage(err, 'Código de invitación inválido o caducado.'));
     } finally {
       setIsJoining(false);
     }

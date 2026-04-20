@@ -4,13 +4,13 @@ import { PawPrint, Clock, Calendar, History, CheckCircle2, Trash2, Plus } from '
 import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { AddPetTaskForm } from '../components/pets/AddPetTaskForm';
-import { Pet, PetTask } from '../types';
+import { Pet, PetTask, PetTaskInput } from '../types';
 
 interface PetsViewProps {
   pets: Pet[];
   petTasks: PetTask[];
   setPetTasks: (tasks: PetTask[]) => void;
-  addPetTask: (task: any) => void;
+  addPetTask: (task: PetTaskInput) => void;
   completePetTask: (id: string) => void;
 }
 

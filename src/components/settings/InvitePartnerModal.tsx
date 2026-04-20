@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { Link, Copy, Check, X, Loader2 } from 'lucide-react';
+import { getFriendlyErrorMessage } from '../../lib/errors';
 
 export function InvitePartnerModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
   const { householdId, user } = useAuth();
@@ -29,7 +30,7 @@ export function InvitePartnerModal({ isOpen, onClose }: { isOpen: boolean; onClo
       const expiresAt = new Date();
       expiresAt.setDate(expiresAt.getDate() + 7); // 7 días de validez
 
-      const { data, error } = await supabase.from('household_invitations').insert({
+      const { error } = await supabase.from('household_invitations').insert({
         household_id: householdId,
         email: email,
         token: token,
@@ -40,8 +41,8 @@ export function InvitePartnerModal({ isOpen, onClose }: { isOpen: boolean; onClo
 
       if (error) throw error;
       setInviteToken(token);
-    } catch (err: any) {
-      setErrorMsg(err.message || 'Error al generar la invitación');
+    } catch (err) {
+      setErrorMsg(getFriendlyErrorMessage(err, 'No pudimos generar la invitación.'));
     } finally {
       setIsLoading(false);
     }

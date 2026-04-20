@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 import { Plus, ChevronRight } from 'lucide-react';
-import { Pet } from '../../types';
+import { Pet, PetTaskInput } from '../../types';
 import { Modal } from '../ui/Modal';
 import { cn } from '../../lib/utils';
 
-export function AddPetTaskForm({ pets, onAdd }: { pets: Pet[], onAdd: (t: any) => void }) {
+export function AddPetTaskForm({ pets, onAdd }: { pets: Pet[], onAdd: (t: PetTaskInput) => void }) {
   const [isOpen, setIsOpen] = useState(false);
   const [selectedPetIds, setSelectedPetIds] = useState<string[]>([]);
   const [title, setTitle] = useState('');

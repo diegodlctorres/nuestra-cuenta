@@ -1,7 +1,13 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
-import { Transaction, Account, Category } from '../types';
+import { Transaction, Account, Category, AccountType } from '../types';
+
+type TransactionWithCreatorMember = Transaction & {
+  creator_member?: {
+    profile?: Transaction['creator'];
+  };
+};
 
 export function useTransactions() {
   const { householdId, memberId } = useAuth();
@@ -17,8 +23,6 @@ export function useTransactions() {
     setIsLoading(true);
 
     try {
-      console.log(">> Debug: Asegurando integridad del hogar:", householdId);
-      
       // 1. Ejecutar Bootstrap en el servidor (Crea cuentas/categorías si faltan)
       const { error: rpcErr } = await supabase.rpc('bootstrap_household', { h_id: householdId });
       if (rpcErr) console.error(">> Error en bootstrap_household:", rpcErr);
@@ -49,9 +53,9 @@ export function useTransactions() {
       if (transErr) {
         console.error(">> Error cargando transacciones:", transErr);
       } else {
-        const mapped = (transData || []).map(t => ({
+        const mapped = ((transData || []) as TransactionWithCreatorMember[]).map(t => ({
           ...t,
-          creator: (t as any).creator_member?.profile
+          creator: t.creator_member?.profile
         }));
         setTransactions(mapped as Transaction[]);
       }
@@ -137,7 +141,7 @@ export function useTransactions() {
       
       const mapped = {
         ...data,
-        creator: (data as any).creator_member?.profile
+        creator: (data as TransactionWithCreatorMember).creator_member?.profile
       };
 
       setTransactions([mapped as Transaction, ...transactions]);

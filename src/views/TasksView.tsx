@@ -9,7 +9,7 @@ import { Task } from '../types';
 
 interface TasksViewProps {
   tasks: Task[];
-  addTask: (t: Omit<Task, 'id' | 'completed'>) => void;
+  addTask: (t: Omit<Task, 'id' | 'household_id' | 'completed'>) => void;
   toggleTask: (id: string) => void;
   downloadICS: (task: Task) => void;
 }

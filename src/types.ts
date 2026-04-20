@@ -26,6 +26,20 @@ export interface Profile {
   avatar_url?: string;
 }
 
+export interface Partner {
+  name: string;
+  nickname?: string;
+  gender?: string;
+  birthDate?: string;
+  photoUrl?: string;
+}
+
+export interface CoupleSettings {
+  partner1: Partner;
+  partner2: Partner;
+  theme?: ThemeType;
+}
+
 export interface HouseholdMember {
   id: string;
   household_id: string;
@@ -103,10 +117,19 @@ export interface PetTask {
   notes?: string;
 }
 
+export interface PetTaskInput {
+  petIds: string[];
+  title: string;
+  scheduled_date: string;
+  scheduled_time?: string;
+  notes?: string;
+}
+
 export interface Task {
   id: string;
   household_id: string;
   title: string;
   deadline: string;
   completed: boolean;
+  isDebt?: boolean;
 }

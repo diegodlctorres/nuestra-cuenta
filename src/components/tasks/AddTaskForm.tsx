@@ -3,7 +3,7 @@ import { Plus, ChevronRight } from 'lucide-react';
 import { Task } from '../../types';
 import { Modal } from '../ui/Modal';
 
-export function AddTaskForm({ onAdd }: { onAdd: (t: Omit<Task, 'id' | 'completed'>) => void }) {
+export function AddTaskForm({ onAdd }: { onAdd: (t: Omit<Task, 'id' | 'household_id' | 'completed'>) => void }) {
   const [isOpen, setIsOpen] = useState(false);
   const [title, setTitle] = useState('');
   const [deadline, setDeadline] = useState('');

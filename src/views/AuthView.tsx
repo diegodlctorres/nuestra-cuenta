@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { supabase } from '../lib/supabase';
-import { ArrowRightLeft, Mail, Lock, Loader2 } from 'lucide-react';
+import { ArrowRightLeft, Mail, Lock, Loader2, CheckCircle2 } from 'lucide-react';
+import { Modal } from '../components/ui/Modal';
+import { getFriendlyErrorMessage } from '../lib/errors';
 
 export function AuthView() {
   const [isLogin, setIsLogin] = useState(true);
@@ -9,6 +11,7 @@ export function AuthView() {
   const [fullName, setFullName] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+  const [showSignupSuccess, setShowSignupSuccess] = useState(false);
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -24,15 +27,19 @@ export function AuthView() {
           email,
           password,
           options: {
+            emailRedirectTo: `${window.location.origin}/`,
             data: {
               full_name: fullName,
             }
           }
         });
         if (error) throw error;
+        setPassword('');
+        setIsLogin(true);
+        setShowSignupSuccess(true);
       }
-    } catch (err: any) {
-      setErrorMsg(err.message || 'Ocurrió un error en la autenticación.');
+    } catch (err) {
+      setErrorMsg(getFriendlyErrorMessage(err, 'No pudimos completar la autenticación.'));
     } finally {
       setIsLoading(false);
     }
@@ -120,7 +127,10 @@ export function AuthView() {
 
         <div className="mt-6 text-center">
           <button 
-            onClick={() => setIsLogin(!isLogin)}
+            onClick={() => {
+              setIsLogin(!isLogin);
+              setErrorMsg('');
+            }}
             className="text-sm font-semibold text-primary-600 hover:text-primary-800"
           >
             {isLogin ? '¿No tienes cuenta? Regístrate aquí' : '¿Ya tienes cuenta? Ingresa aquí'}
@@ -128,6 +138,31 @@ export function AuthView() {
         </div>
 
       </div>
+
+      <Modal
+        isOpen={showSignupSuccess}
+        onClose={() => setShowSignupSuccess(false)}
+        title="Revisa tu correo"
+      >
+        <div className="text-center">
+          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-primary-100 text-primary-600">
+            <CheckCircle2 className="h-8 w-8" />
+          </div>
+          <p className="text-sm font-semibold text-slate-700">
+            Te enviamos un enlace de confirmación a {email}.
+          </p>
+          <p className="mt-2 text-sm text-slate-500">
+            Abre ese enlace y volverás a la app con tu sesión activa.
+          </p>
+          <button
+            type="button"
+            onClick={() => setShowSignupSuccess(false)}
+            className="mt-6 w-full rounded-2xl bg-primary-600 py-3 text-sm font-bold text-white shadow-lg shadow-primary-100 transition-colors hover:bg-primary-700"
+          >
+            Entendido
+          </button>
+        </div>
+      </Modal>
     </div>
   );
 }

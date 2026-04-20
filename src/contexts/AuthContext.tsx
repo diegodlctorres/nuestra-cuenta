@@ -41,8 +41,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         .select('*')
         .eq('id', userId)
         .maybeSingle();
-      
-      console.log(">> DEBUG profileData:", profileData, "profileErr:", profileErr);
+
+      if (profileErr) throw profileErr;
         
       if (profileData) {
         setProfile(profileData as Profile);
@@ -56,8 +56,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         .eq('status', 'active')
         .limit(1)
         .maybeSingle();
-      
-      console.log(">> DEBUG memberData:", memberData, "memberErr:", memberErr);
+
+      if (memberErr) throw memberErr;
 
       if (memberData) {
         setHouseholdId(memberData.household_id);

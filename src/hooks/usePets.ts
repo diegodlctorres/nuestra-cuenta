@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
-import { Pet, PetTask } from '../types';
+import { Pet, PetTask, PetTaskInput } from '../types';
 
 export function usePets() {
   const { householdId } = useAuth();
@@ -147,14 +147,14 @@ export function usePets() {
     }
   };
 
-  const addPetTask = async (task: any) => {
+  const addPetTask = async (task: PetTaskInput) => {
     const { petIds, ...taskData } = task; // Front-end format with plural petIds
     
     const dbTasks = petIds.map((pid: string) => ({
       pet_id: pid,
       title: taskData.title,
-      scheduled_date: taskData.scheduledDate || taskData.scheduled_date,
-      scheduled_time: taskData.scheduledTime || taskData.scheduled_time,
+      scheduled_date: taskData.scheduled_date,
+      scheduled_time: taskData.scheduled_time,
       notes: taskData.notes,
       completed: false
     }));
