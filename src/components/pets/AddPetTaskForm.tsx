@@ -11,6 +11,18 @@ export function AddPetTaskForm({ pets, onAdd }: { pets: Pet[], onAdd: (t: PetTas
   const [date, setDate] = useState('');
   const [time, setTime] = useState('');
   const [notes, setNotes] = useState('');
+  const [submitAttempted, setSubmitAttempted] = useState(false);
+  const petError = selectedPetIds.length === 0;
+  const titleError = title.trim().length === 0;
+  const dateError = date.length === 0;
+  const hasErrors = petError || titleError || dateError;
+
+  const inputClassName = (hasError: boolean) => cn(
+    "w-full p-3 rounded-xl border text-sm transition focus:outline-none",
+    hasError
+      ? "border-red-300 bg-red-50 text-slate-900 focus:ring-2 focus:ring-red-200"
+      : "border-transparent bg-slate-50 text-slate-900 focus:ring-2 focus:ring-secondary-500"
+  );
 
   const togglePet = (id: string) => {
     setSelectedPetIds(prev => prev.includes(id) ? prev.filter(p => p !== id) : [...prev, id]);
@@ -18,15 +30,17 @@ export function AddPetTaskForm({ pets, onAdd }: { pets: Pet[], onAdd: (t: PetTas
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!title || !date || selectedPetIds.length === 0) return;
+    setSubmitAttempted(true);
+    if (hasErrors) return;
+
     onAdd({
       petIds: selectedPetIds,
-      title,
+      title: title.trim(),
       scheduled_date: date,
       scheduled_time: time || undefined,
       notes: notes || undefined
     });
-    setTitle(''); setDate(''); setTime(''); setNotes(''); setSelectedPetIds([]);
+    setTitle(''); setDate(''); setTime(''); setNotes(''); setSelectedPetIds([]); setSubmitAttempted(false);
     setIsOpen(false);
   };
 
@@ -43,15 +57,19 @@ export function AddPetTaskForm({ pets, onAdd }: { pets: Pet[], onAdd: (t: PetTas
         <ChevronRight className="w-5 h-5 text-slate-400" />
       </button>
 
-      <Modal isOpen={isOpen} onClose={() => setIsOpen(false)} title="Nueva Tarea Mascota">
+      <Modal isOpen={isOpen} onClose={() => { setIsOpen(false); setSubmitAttempted(false); }} title="Nueva Tarea Mascota">
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Seleccionar Mascota(s)</label>
+            <label className={cn("text-[10px] font-bold uppercase ml-1", submitAttempted && petError ? "text-red-500" : "text-slate-400")}>Seleccionar Mascota(s)</label>
             <div className="flex flex-wrap gap-2">
               {pets.map(p => (
                 <button
                   key={p.id} type="button" onClick={() => togglePet(p.id)}
-                  className={cn("px-3 py-2 rounded-xl text-xs font-bold border transition-all", selectedPetIds.includes(p.id) ? "bg-secondary-500 text-white border-secondary-500" : "bg-white text-slate-500 border-slate-200")}
+                  className={cn(
+                    "px-3 py-2 rounded-xl text-xs font-bold border transition-all",
+                    selectedPetIds.includes(p.id) ? "bg-secondary-500 text-white border-secondary-500" : "bg-white text-slate-500 border-slate-200",
+                    submitAttempted && petError && "border-red-300 bg-red-50 text-red-600"
+                  )}
                 >
                   {p.name}
                 </button>
@@ -60,24 +78,46 @@ export function AddPetTaskForm({ pets, onAdd }: { pets: Pet[], onAdd: (t: PetTas
                 Ambos/Todos
               </button>
             </div>
+            {submitAttempted && petError && (
+              <p className="text-xs text-red-500 ml-1">Selecciona al menos una mascota.</p>
+            )}
           </div>
           <div className="space-y-1">
-            <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">¿Qué necesita?</label>
-            <input type="text" placeholder="Vacuna, Baño, etc." className="w-full p-3 bg-slate-50 rounded-xl border-none text-sm focus:ring-2 focus:ring-secondary-500" value={title} onChange={e => setTitle(e.target.value)} />
+            <label className={cn("text-[10px] font-bold uppercase ml-1", submitAttempted && titleError ? "text-red-500" : "text-slate-400")}>¿Qué necesita?</label>
+            <input
+              type="text"
+              placeholder="Vacuna, Baño, etc."
+              className={inputClassName(submitAttempted && titleError)}
+              value={title}
+              onChange={e => setTitle(e.target.value)}
+              aria-invalid={submitAttempted && titleError}
+            />
+            {submitAttempted && titleError && (
+              <p className="text-xs text-red-500 ml-1">El título de la tarea es obligatorio.</p>
+            )}
           </div>
           <div className="grid grid-cols-2 gap-2">
             <div className="space-y-1">
-              <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Fecha</label>
-              <input type="date" required className="w-full p-3 bg-slate-50 rounded-xl border-none text-sm focus:ring-2 focus:ring-secondary-500" value={date} onChange={e => setDate(e.target.value)} />
+              <label className={cn("text-[10px] font-bold uppercase ml-1", submitAttempted && dateError ? "text-red-500" : "text-slate-400")}>Fecha</label>
+              <input
+                type="date"
+                className={inputClassName(submitAttempted && dateError)}
+                value={date}
+                onChange={e => setDate(e.target.value)}
+                aria-invalid={submitAttempted && dateError}
+              />
+              {submitAttempted && dateError && (
+                <p className="text-xs text-red-500 ml-1">La fecha es obligatoria.</p>
+              )}
             </div>
             <div className="space-y-1">
               <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Hora</label>
-              <input type="time" className="w-full p-3 bg-slate-50 rounded-xl border-none text-sm focus:ring-2 focus:ring-secondary-500" value={time} onChange={e => setTime(e.target.value)} />
+              <input type="time" className={inputClassName(false)} value={time} onChange={e => setTime(e.target.value)} />
             </div>
           </div>
           <div className="space-y-1">
             <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Notas</label>
-            <textarea placeholder="Notas adicionales..." className="w-full p-3 bg-slate-50 rounded-xl border-none text-sm focus:ring-2 focus:ring-secondary-500 min-h-[80px]" value={notes} onChange={e => setNotes(e.target.value)} />
+            <textarea placeholder="Notas adicionales..." className={cn(inputClassName(false), "min-h-[80px]")} value={notes} onChange={e => setNotes(e.target.value)} />
           </div>
           <button type="submit" className="w-full py-4 bg-secondary-500 text-white rounded-2xl font-bold text-sm shadow-lg shadow-secondary-100 mt-4">Programar Tarea</button>
         </form>

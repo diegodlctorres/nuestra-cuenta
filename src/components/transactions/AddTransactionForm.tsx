@@ -8,6 +8,7 @@ export function AddTransactionForm({ onAdd, categories, accounts }: { onAdd: (t:
   const [isOpen, setIsOpen] = useState(false);
   const [amount, setAmount] = useState('');
   const [description, setDescription] = useState('');
+  const [submitAttempted, setSubmitAttempted] = useState(false);
   
   // Asignar primer ID disponible por default
   const [accountId, setAccountId] = useState<string>(accounts[0]?.id || '');
@@ -18,6 +19,25 @@ export function AddTransactionForm({ onAdd, categories, accounts }: { onAdd: (t:
 
   // Filtrar categorías según tipo (income / expense)
   const filteredCategories = categories.filter(c => c.kind === type);
+  const amountNumber = Number(amount);
+  const amountError = !amount || Number.isNaN(amountNumber) || amountNumber <= 0;
+  const descriptionError = description.trim().length === 0;
+  const accountError = accountId.length === 0;
+  const hasErrors = amountError || descriptionError || accountError;
+
+  const inputClassName = (hasError: boolean) => cn(
+    "w-full p-3 rounded-xl border text-sm transition focus:outline-none",
+    hasError
+      ? "border-red-300 bg-red-50 text-slate-900 focus:ring-2 focus:ring-red-200"
+      : "border-transparent bg-slate-50 text-slate-900 focus:ring-2 focus:ring-primary-500"
+  );
+
+  const resetForm = () => {
+    setAmount('');
+    setDescription('');
+    setIsPetRelated(false);
+    setSubmitAttempted(false);
+  };
 
   useEffect(() => {
     if (filteredCategories.length > 0 && !filteredCategories.find(c => c.id === categoryId)) {
@@ -30,10 +50,12 @@ export function AddTransactionForm({ onAdd, categories, accounts }: { onAdd: (t:
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!amount || !description || !accountId) return;
+    setSubmitAttempted(true);
+    if (hasErrors) return;
+
     onAdd({
-      amount: Math.abs(parseFloat(amount)),
-      description,
+      amount: Math.abs(amountNumber),
+      description: description.trim(),
       account_id: accountId,
       type,
       category_id: categoryId || undefined,
@@ -41,8 +63,7 @@ export function AddTransactionForm({ onAdd, categories, accounts }: { onAdd: (t:
       is_pet_related: isPetRelated,
       date: new Date().toISOString(),
     });
-    setAmount('');
-    setDescription('');
+    resetForm();
     setIsOpen(false);
   };
 
@@ -61,10 +82,10 @@ export function AddTransactionForm({ onAdd, categories, accounts }: { onAdd: (t:
         <ChevronRight className="w-5 h-5 text-slate-400" />
       </button>
 
-      <Modal isOpen={isOpen} onClose={() => setIsOpen(false)} title="Nueva Transacción">
+      <Modal isOpen={isOpen} onClose={() => { setIsOpen(false); setSubmitAttempted(false); }} title="Nueva Transacción">
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-1">
-            <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Cuenta de Origen / Destino</label>
+            <label className={cn("text-[10px] font-bold uppercase ml-1", submitAttempted && accountError ? "text-red-500" : "text-slate-400")}>Cuenta de Origen / Destino</label>
             <div className="grid grid-cols-2 gap-2">
               {accounts.map(acc => (
                 <button
@@ -73,13 +94,17 @@ export function AddTransactionForm({ onAdd, categories, accounts }: { onAdd: (t:
                   onClick={() => setAccountId(acc.id)}
                   className={cn(
                     "py-2 rounded-xl text-xs font-bold border transition-all truncate px-2",
-                    accountId === acc.id ? "bg-slate-900 text-white border-slate-900" : "bg-white text-slate-500 border-slate-200"
+                    accountId === acc.id ? "bg-slate-900 text-white border-slate-900" : "bg-white text-slate-500 border-slate-200",
+                    submitAttempted && accountError && "border-red-300 bg-red-50 text-red-600"
                   )}
                 >
                   {acc.name}
                 </button>
               ))}
             </div>
+            {submitAttempted && accountError && (
+              <p className="text-xs text-red-500 ml-1">Selecciona una cuenta para registrar la transacción.</p>
+            )}
           </div>
 
           <div className="space-y-1">
@@ -142,25 +167,33 @@ export function AddTransactionForm({ onAdd, categories, accounts }: { onAdd: (t:
           )}
 
           <div className="space-y-1">
-            <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Monto</label>
+            <label className={cn("text-[10px] font-bold uppercase ml-1", submitAttempted && amountError ? "text-red-500" : "text-slate-400")}>Monto</label>
             <input
               type="number"
               placeholder="Monto (ej: -50 o 100)"
-              className="w-full p-3 bg-slate-50 rounded-xl border-none text-sm focus:ring-2 focus:ring-primary-500"
+              className={inputClassName(submitAttempted && amountError)}
               value={amount}
               onChange={e => setAmount(e.target.value)}
+              aria-invalid={submitAttempted && amountError}
             />
+            {submitAttempted && amountError && (
+              <p className="text-xs text-red-500 ml-1">Ingresa un monto mayor a 0.</p>
+            )}
           </div>
 
           <div className="space-y-1">
-            <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Descripción</label>
+            <label className={cn("text-[10px] font-bold uppercase ml-1", submitAttempted && descriptionError ? "text-red-500" : "text-slate-400")}>Descripción</label>
             <input
               type="text"
               placeholder="¿En qué se usó?"
-              className="w-full p-3 bg-slate-50 rounded-xl border-none text-sm focus:ring-2 focus:ring-primary-500"
+              className={inputClassName(submitAttempted && descriptionError)}
               value={description}
               onChange={e => setDescription(e.target.value)}
+              aria-invalid={submitAttempted && descriptionError}
             />
+            {submitAttempted && descriptionError && (
+              <p className="text-xs text-red-500 ml-1">La descripción es obligatoria.</p>
+            )}
           </div>
 
           <div className="space-y-1">

@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { UserPlus, ChevronRight } from 'lucide-react';
 import { Pet } from '../../types';
 import { Modal } from '../ui/Modal';
-import { processImageUpload } from '../../lib/utils';
+import { cn } from '../../lib/utils';
 
 export function AddPetForm({ onAdd }: { onAdd: (pet: Omit<Pet, 'id' | 'household_id'>, file?: File) => void }) {
   const [isOpen, setIsOpen] = useState(false);
@@ -12,6 +12,8 @@ export function AddPetForm({ onAdd }: { onAdd: (pet: Omit<Pet, 'id' | 'household
   const [birthDate, setBirthDate] = useState('');
   const [photoUrl, setPhotoUrl] = useState('');
   const [photoFile, setPhotoFile] = useState<File | undefined>();
+  const [submitAttempted, setSubmitAttempted] = useState(false);
+  const nameError = name.trim().length === 0;
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -28,14 +30,16 @@ export function AddPetForm({ onAdd }: { onAdd: (pet: Omit<Pet, 'id' | 'household
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name) return;
+    setSubmitAttempted(true);
+    if (nameError) return;
+
     onAdd({ 
-      name, 
+      name: name.trim(),
       species, 
       breed, 
       birth_date: birthDate || undefined,
     }, photoFile);
-    setName(''); setBreed(''); setBirthDate(''); setPhotoUrl(''); setPhotoFile(undefined);
+    setName(''); setBreed(''); setBirthDate(''); setPhotoUrl(''); setPhotoFile(undefined); setSubmitAttempted(false);
     setIsOpen(false);
   };
 
@@ -52,11 +56,26 @@ export function AddPetForm({ onAdd }: { onAdd: (pet: Omit<Pet, 'id' | 'household
         <ChevronRight className="w-5 h-5 text-slate-400" />
       </button>
 
-      <Modal isOpen={isOpen} onClose={() => setIsOpen(false)} title="Registrar Mascota">
+      <Modal isOpen={isOpen} onClose={() => { setIsOpen(false); setSubmitAttempted(false); }} title="Registrar Mascota">
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-1">
-            <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Nombre</label>
-            <input type="text" placeholder="Nombre de la mascota" className="w-full p-3 bg-slate-50 rounded-xl border-none text-sm focus:ring-2 focus:ring-secondary-500" value={name} onChange={e => setName(e.target.value)} />
+            <label className={cn("text-[10px] font-bold uppercase ml-1", submitAttempted && nameError ? "text-red-500" : "text-slate-400")}>Nombre</label>
+            <input
+              type="text"
+              placeholder="Nombre de la mascota"
+              className={cn(
+                "w-full p-3 rounded-xl border text-sm transition focus:outline-none",
+                submitAttempted && nameError
+                  ? "border-red-300 bg-red-50 text-slate-900 focus:ring-2 focus:ring-red-200"
+                  : "border-transparent bg-slate-50 text-slate-900 focus:ring-2 focus:ring-secondary-500"
+              )}
+              value={name}
+              onChange={e => setName(e.target.value)}
+              aria-invalid={submitAttempted && nameError}
+            />
+            {submitAttempted && nameError && (
+              <p className="text-xs text-red-500 ml-1">El nombre de la mascota es obligatorio.</p>
+            )}
           </div>
           <div className="space-y-1">
             <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Especie</label>
