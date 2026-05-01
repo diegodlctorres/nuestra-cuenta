@@ -2,7 +2,7 @@ import React, { useMemo, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { TrendingDown, TrendingUp, Clock, Wallet, PiggyBank, ArrowRightLeft } from 'lucide-react';
 import { MonthlyBalanceButton } from '../components/transactions/MonthlyBalanceButton';
-import { TransactionGroup } from '../components/transactions/TransactionGroup';
+import { CategoryBreakdownGroup } from '../components/transactions/CategoryBreakdownGroup';
 import { cn, formatCurrency } from '../lib/utils';
 import { Transaction, Account, CoupleSettings } from '../types';
 
@@ -40,14 +40,13 @@ export function DetailView({
   , [currentAccount, accountBalances]);
 
   const filteredGroups = useMemo(() => {
-    if (!currentAccount) return { incomes: [], fixed: [], variable: [] };
+    if (!currentAccount) return { incomes: [], expenses: [] };
 
     const accountTransactions = transactions.filter(t => t.account_id === currentAccount.id);
 
     return {
       incomes: accountTransactions.filter(t => t.type === 'income'),
-      fixed: accountTransactions.filter(t => t.type === 'expense' && t.recurrence === 'fixed'),
-      variable: accountTransactions.filter(t => t.type === 'expense' && t.recurrence !== 'fixed'),
+      expenses: accountTransactions.filter(t => t.type === 'expense'),
     };
   }, [transactions, currentAccount]);
 
@@ -122,26 +121,22 @@ export function DetailView({
       </div>
 
       <div className="space-y-8">
-        <TransactionGroup
+        <CategoryBreakdownGroup
           title="Ingresos"
           icon={<TrendingUp className="w-4 h-4 text-emerald-500" />}
           transactions={filteredGroups.incomes}
           coupleSettings={coupleSettings}
+          accent="income"
         />
-        <TransactionGroup
-          title="Gastos Fijos"
-          icon={<Clock className="w-4 h-4 text-amber-500" />}
-          transactions={filteredGroups.fixed}
+        <CategoryBreakdownGroup
+          title="Egresos"
+          icon={<TrendingDown className="w-4 h-4 text-secondary-500" />}
+          transactions={filteredGroups.expenses}
           coupleSettings={coupleSettings}
-        />
-        <TransactionGroup
-          title="Gastos Variables"
-          icon={<TrendingDown className="w-4 h-4 text-blue-500" />}
-          transactions={filteredGroups.variable}
-          coupleSettings={coupleSettings}
+          accent="expense"
         />
 
-        {filteredGroups.incomes.length === 0 && filteredGroups.fixed.length === 0 && filteredGroups.variable.length === 0 && (
+        {filteredGroups.incomes.length === 0 && filteredGroups.expenses.length === 0 && (
           <div className="text-center py-12 bg-slate-50 rounded-3xl border border-dashed border-slate-200">
             <div className="text-slate-400 text-sm">No hay movimientos en esta cuenta</div>
           </div>
