@@ -12,7 +12,7 @@ import { CoupleSettings, Pet, Category, Account, AccountType } from '../types';
 
 interface SettingsViewProps {
   coupleSettings: CoupleSettings;
-  setCoupleSettings: (s: CoupleSettings) => void;
+  setCoupleSettings: (s: CoupleSettings) => Promise<void>;
   pets: Pet[];
   updatePet: (pet: Pet, file?: File) => void;
   deletePet: (id: string) => void;

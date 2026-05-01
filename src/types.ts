@@ -27,11 +27,13 @@ export interface Profile {
 }
 
 export interface Partner {
+  id?: string;
   name: string;
   nickname?: string;
   gender?: string;
   birthDate?: string;
   photoUrl?: string;
+  isCurrentUser?: boolean;
 }
 
 export interface CoupleSettings {

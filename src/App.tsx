@@ -68,22 +68,16 @@ export default function App() {
             <ArrowRightLeft className="w-6 h-6" />
             Nuestra Cuenta
           </h1>
-          <div className="flex gap-2">
-            {coupleSettings.partner1.photoUrl ? (
-              <img src={coupleSettings.partner1.photoUrl} alt="P1" className="w-8 h-8 rounded-full object-cover border-2 border-primary-100" />
-            ) : (
-              <div className="w-8 h-8 rounded-full bg-primary-100 flex items-center justify-center text-primary-600 font-bold text-xs uppercase">
-                {(coupleSettings.partner1.nickname || coupleSettings.partner1.name || 'P').charAt(0)}
-              </div>
-            )}
-            {coupleSettings.partner2.photoUrl ? (
-              <img src={coupleSettings.partner2.photoUrl} alt="P2" className="w-8 h-8 rounded-full object-cover border-2 border-secondary-100" />
-            ) : (
-              <div className="w-8 h-8 rounded-full bg-secondary-100 flex items-center justify-center text-secondary-600 font-bold text-xs uppercase">
-                {(coupleSettings.partner2.nickname || coupleSettings.partner2.name || 'P').charAt(0)}
-              </div>
-            )}
-          </div>
+          {(coupleSettings.partner1.photoUrl || coupleSettings.partner2.photoUrl) && (
+            <div className="flex gap-2">
+              {coupleSettings.partner1.photoUrl && (
+                <img src={coupleSettings.partner1.photoUrl} alt="P1" className="w-8 h-8 rounded-full object-cover border-2 border-primary-100" />
+              )}
+              {coupleSettings.partner2.photoUrl && (
+                <img src={coupleSettings.partner2.photoUrl} alt="P2" className="w-8 h-8 rounded-full object-cover border-2 border-secondary-100" />
+              )}
+            </div>
+          )}
         </div>
       </header>
 
