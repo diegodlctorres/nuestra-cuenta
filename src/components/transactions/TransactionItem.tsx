@@ -3,6 +3,7 @@ import { TrendingUp, TrendingDown, Trash2 } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { cn, formatCurrency } from '../../lib/utils';
 import { Transaction, CoupleSettings } from '../../types';
+import { Modal } from '../ui/Modal';
 
 export const TransactionItem: React.FC<{
   t: Transaction,
@@ -20,6 +21,7 @@ export const TransactionItem: React.FC<{
   const [offsetX, setOffsetX] = useState(0);
   const [isSwipeOpen, setIsSwipeOpen] = useState(false);
   const [isDesktopDeleteVisible, setIsDesktopDeleteVisible] = useState(false);
+  const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
   const startXRef = useRef<number | null>(null);
   const dragStartOffsetRef = useRef(0);
   const pointerTypeRef = useRef<string | null>(null);
@@ -64,6 +66,12 @@ export const TransactionItem: React.FC<{
     if (!onDelete) return;
     onDelete(t.id);
     closeSwipe();
+    setIsDeleteConfirmOpen(false);
+  };
+
+  const openDeleteConfirm = () => {
+    if (!onDelete) return;
+    setIsDeleteConfirmOpen(true);
   };
 
   return (
@@ -72,7 +80,7 @@ export const TransactionItem: React.FC<{
         <div className="absolute inset-y-0 right-0 flex items-stretch">
           <button
             type="button"
-            onClick={handleDelete}
+            onClick={openDeleteConfirm}
             className="w-24 bg-secondary-600 text-white text-xs font-bold uppercase tracking-wider"
           >
             Eliminar
@@ -138,7 +146,7 @@ export const TransactionItem: React.FC<{
             type="button"
             onClick={(event) => {
               event.stopPropagation();
-              handleDelete();
+              openDeleteConfirm();
             }}
             className={cn(
               "ml-3 shrink-0 rounded-xl border border-slate-200 bg-white p-2 text-slate-400 transition-all",
@@ -151,6 +159,47 @@ export const TransactionItem: React.FC<{
           </button>
         )}
       </div>
+
+      <Modal
+        isOpen={isDeleteConfirmOpen}
+        onClose={() => setIsDeleteConfirmOpen(false)}
+        title="Confirmar eliminación"
+      >
+        <div className="space-y-5">
+          <div className="rounded-2xl border border-secondary-100 bg-secondary-50 p-4">
+            <p className="text-sm font-semibold text-secondary-700">
+              Vas a eliminar este movimiento.
+            </p>
+            <p className="mt-2 text-sm text-secondary-600">
+              Esta acción no se puede deshacer.
+            </p>
+          </div>
+
+          <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
+            <div className="text-sm font-bold text-slate-800 truncate">{displayDescription}</div>
+            <div className="mt-2 text-xs text-slate-500">
+              {format(parseISO(timestamp), 'dd/MM/yyyy HH:mm')}
+            </div>
+          </div>
+
+          <div className="flex gap-3">
+            <button
+              type="button"
+              onClick={() => setIsDeleteConfirmOpen(false)}
+              className="flex-1 rounded-2xl border border-slate-200 bg-white py-3 text-sm font-bold text-slate-600 transition-colors hover:bg-slate-50"
+            >
+              Cancelar
+            </button>
+            <button
+              type="button"
+              onClick={handleDelete}
+              className="flex-1 rounded-2xl bg-secondary-600 py-3 text-sm font-bold text-white shadow-lg shadow-secondary-100 transition-colors hover:bg-secondary-700"
+            >
+              Eliminar
+            </button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }
