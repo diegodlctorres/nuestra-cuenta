@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, ChevronDown, Check, PiggyBank, Wallet } from 'lucide-react';
 import { cn } from '../../lib/utils';
-import { Transaction, Category, Account, TransactionType, RecurrenceType } from '../../types';
+import { Transaction, Category, Account, TransactionType } from '../../types';
 import { Modal } from '../ui/Modal';
 
 export function AddTransactionForm({ onAdd, categories, accounts }: { onAdd: (t: Omit<Transaction, 'id' | 'household_id' | 'created_by'>) => void, categories: Category[], accounts: Account[] }) {
@@ -15,7 +15,6 @@ export function AddTransactionForm({ onAdd, categories, accounts }: { onAdd: (t:
   const [accountId, setAccountId] = useState<string>(accounts[0]?.id || '');
   const [type, setType] = useState<TransactionType>('expense');
   const [categoryId, setCategoryId] = useState<string>('');
-  const [recurrence, setRecurrence] = useState<RecurrenceType>('variable');
   const [isPetRelated, setIsPetRelated] = useState(false);
 
   // Filtrar categorías según tipo (income / expense)
@@ -38,7 +37,6 @@ export function AddTransactionForm({ onAdd, categories, accounts }: { onAdd: (t:
     setAmount('');
     setDescription('');
     setIsPetRelated(false);
-    setRecurrence('variable');
     setSubmitAttempted(false);
     setIsAccountPickerOpen(false);
   };
@@ -52,12 +50,6 @@ export function AddTransactionForm({ onAdd, categories, accounts }: { onAdd: (t:
     }
   }, [type, filteredCategories, accounts, categoryId, accountId]);
 
-  useEffect(() => {
-    if (type === 'expense' && recurrence === 'none') {
-      setRecurrence('variable');
-    }
-  }, [type, recurrence]);
-
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitAttempted(true);
@@ -65,16 +57,16 @@ export function AddTransactionForm({ onAdd, categories, accounts }: { onAdd: (t:
 
     const finalDescription =
       type === 'income'
-        ? `Ingreso a ${selectedAccount?.name || 'cuenta'}`
+        ? `Ingreso por ${filteredCategories.find(category => category.id === categoryId)?.name || 'categoría'}`
         : description.trim();
 
     onAdd({
+      created_at: new Date().toISOString(),
       amount: Math.abs(amountNumber),
       description: finalDescription,
       account_id: accountId,
       type,
       category_id: categoryId || undefined,
-      recurrence: type === 'expense' ? 'variable' : 'none',
       is_pet_related: isPetRelated,
       date: new Date().toISOString(),
     });

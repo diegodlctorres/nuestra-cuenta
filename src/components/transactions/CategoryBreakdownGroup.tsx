@@ -38,7 +38,7 @@ export function CategoryBreakdownGroup({
       .map(([category, data]) => ({
         category,
         total: data.total,
-        transactions: data.transactions.sort((a, b) => b.date.localeCompare(a.date))
+        transactions: data.transactions.sort((a, b) => (b.created_at || b.date).localeCompare(a.created_at || a.date))
       }))
       .sort((a, b) => b.total - a.total);
   }, [transactions]);

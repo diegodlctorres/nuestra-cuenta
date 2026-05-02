@@ -1,8 +1,9 @@
 import React, { useMemo, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { TrendingDown, TrendingUp, Clock, Wallet, PiggyBank, ArrowRightLeft } from 'lucide-react';
+import { TrendingDown, Clock, Wallet, PiggyBank } from 'lucide-react';
+import { parseISO } from 'date-fns';
 import { MonthlyBalanceButton } from '../components/transactions/MonthlyBalanceButton';
-import { CategoryBreakdownGroup } from '../components/transactions/CategoryBreakdownGroup';
+import { TransactionItem } from '../components/transactions/TransactionItem';
 import { cn, formatCurrency } from '../lib/utils';
 import { Transaction, Account, CoupleSettings } from '../types';
 
@@ -13,6 +14,7 @@ interface DetailViewProps {
   accounts: Account[];
   accountBalances: Record<string, number>;
   coupleSettings: CoupleSettings;
+  deleteTransaction: (id: string) => void;
 }
 
 export function DetailView({
@@ -21,7 +23,8 @@ export function DetailView({
   transactions,
   accounts,
   accountBalances,
-  coupleSettings
+  coupleSettings,
+  deleteTransaction
 }: DetailViewProps) {
   
   // Si no hay cuenta seleccionada, seleccionamos la primera disponible
@@ -39,15 +42,18 @@ export function DetailView({
     currentAccount ? (accountBalances[currentAccount.id] || 0) : 0
   , [currentAccount, accountBalances]);
 
-  const filteredGroups = useMemo(() => {
-    if (!currentAccount) return { incomes: [], expenses: [] };
+  const currentMonthTransactions = useMemo(() => {
+    if (!currentAccount) return [];
 
     const accountTransactions = transactions.filter(t => t.account_id === currentAccount.id);
+    const now = new Date();
 
-    return {
-      incomes: accountTransactions.filter(t => t.type === 'income'),
-      expenses: accountTransactions.filter(t => t.type === 'expense'),
-    };
+    return accountTransactions
+      .filter(t => {
+        const date = parseISO(t.date);
+        return date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear();
+      })
+      .sort((a, b) => (b.created_at || b.date).localeCompare(a.created_at || a.date));
   }, [transactions, currentAccount]);
 
   if (accounts.length === 0) {
@@ -83,6 +89,7 @@ export function DetailView({
           transactions={transactions} 
           accountId={currentAccount?.id || null} 
           accountName={currentAccount?.name || ''} 
+          coupleSettings={coupleSettings}
         />
       </div>
 
@@ -120,25 +127,27 @@ export function DetailView({
         <div className="text-4xl font-bold">{formatCurrency(currentBalance)}</div>
       </div>
 
-      <div className="space-y-8">
-        <CategoryBreakdownGroup
-          title="Ingresos"
-          icon={<TrendingUp className="w-4 h-4 text-emerald-500" />}
-          transactions={filteredGroups.incomes}
-          coupleSettings={coupleSettings}
-          accent="income"
-        />
-        <CategoryBreakdownGroup
-          title="Egresos"
-          icon={<TrendingDown className="w-4 h-4 text-secondary-500" />}
-          transactions={filteredGroups.expenses}
-          coupleSettings={coupleSettings}
-          accent="expense"
-        />
+      <div className="space-y-4">
+        <div className="flex items-center gap-2 px-1">
+          <Clock className="w-4 h-4 text-slate-400" />
+          <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Movimientos del mes actual</h3>
+        </div>
 
-        {filteredGroups.incomes.length === 0 && filteredGroups.expenses.length === 0 && (
+        {currentMonthTransactions.length > 0 ? (
+          <div className="space-y-3">
+            {currentMonthTransactions.map(transaction => (
+              <TransactionItem
+                key={transaction.id}
+                t={transaction}
+                coupleSettings={coupleSettings}
+                showAccount={false}
+                onDelete={deleteTransaction}
+              />
+            ))}
+          </div>
+        ) : (
           <div className="text-center py-12 bg-slate-50 rounded-3xl border border-dashed border-slate-200">
-            <div className="text-slate-400 text-sm">No hay movimientos en esta cuenta</div>
+            <div className="text-slate-400 text-sm">No hay movimientos en esta cuenta durante el mes actual</div>
           </div>
         )}
       </div>

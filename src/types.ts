@@ -4,7 +4,6 @@
 
 export type ThemeType = 'default' | 'oceanic' | 'nature' | 'sunset';
 export type TransactionType = 'income' | 'expense' | 'transfer';
-export type RecurrenceType = 'none' | 'fixed' | 'variable';
 export type AccountType = 'savings' | 'checking';
 export type CategoryKind = 'income' | 'expense';
 export type MemberRole = 'admin' | 'member';
@@ -82,6 +81,7 @@ export interface Category {
 export interface Transaction {
   id: string;
   household_id: string;
+  created_at: string;
   created_by: string; // household_member_id
   account_id: string; // fk to Account
   category_id?: string; // fk to Category (optional for some incomes)
@@ -90,7 +90,6 @@ export interface Transaction {
   date: string;
   type: TransactionType;
   is_pet_related: boolean;
-  recurrence: RecurrenceType;
   
   // Potential joined relations
   account?: Account;

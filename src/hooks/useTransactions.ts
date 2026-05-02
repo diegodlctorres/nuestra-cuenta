@@ -1,13 +1,23 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
-import { Transaction, Account, Category, AccountType } from '../types';
+import { Transaction, Account, Category, AccountType, Profile } from '../types';
 
 type TransactionWithCreatorMember = Transaction & {
   creator_member?: {
     profile?: Transaction['creator'];
   };
 };
+
+interface HouseholdMemberProfileRow {
+  member_id: string;
+  profile_id: string;
+  name: string;
+  nickname?: string | null;
+  gender?: string | null;
+  birth_date?: string | null;
+  avatar_url?: string | null;
+}
 
 export function useTransactions() {
   const { householdId, memberId } = useAuth();
@@ -16,6 +26,15 @@ export function useTransactions() {
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+
+  const mapMemberProfile = useCallback((row: HouseholdMemberProfileRow): Profile => ({
+    id: row.profile_id,
+    name: row.name,
+    nickname: row.nickname || undefined,
+    gender: row.gender || undefined,
+    birth_date: row.birth_date || undefined,
+    avatar_url: row.avatar_url || undefined
+  }), []);
 
   // Load Initial Data
   const loadData = useCallback(async () => {
@@ -36,26 +55,36 @@ export function useTransactions() {
       setAccounts(accs || []);
       setCategories(cats || []);
 
-      // 3. Cargar Transacciones con Join profundo
-      const { data: transData, error: transErr } = await supabase
-        .from('transactions')
-        .select(`
-          *,
-          account:accounts(*),
-          category:categories(*),
-          creator_member:household_members(
-            profile:profiles(*)
-          )
-        `)
-        .eq('household_id', householdId)
-        .order('date', { ascending: false });
+      // 3. Cargar transacciones y autores del household
+      const [{ data: transData, error: transErr }, { data: memberProfiles, error: memberProfilesErr }] = await Promise.all([
+        supabase
+          .from('transactions')
+          .select(`
+            *,
+            account:accounts(*),
+            category:categories(*),
+            creator_member:household_members(
+              profile:profiles(*)
+            )
+          `)
+          .eq('household_id', householdId)
+          .order('created_at', { ascending: false }),
+        supabase.rpc('get_household_member_profiles')
+      ]);
 
-      if (transErr) {
+      if (transErr || memberProfilesErr) {
         console.error(">> Error cargando transacciones:", transErr);
+        if (memberProfilesErr) {
+          console.error(">> Error cargando autores del household:", memberProfilesErr);
+        }
       } else {
+        const creatorMap = new Map(
+          ((memberProfiles || []) as HouseholdMemberProfileRow[]).map(row => [row.member_id, mapMemberProfile(row)])
+        );
+
         const mapped = ((transData || []) as TransactionWithCreatorMember[]).map(t => ({
           ...t,
-          creator: t.creator_member?.profile
+          creator: creatorMap.get(t.created_by) || t.creator_member?.profile
         }));
         setTransactions(mapped as Transaction[]);
       }
@@ -65,7 +94,7 @@ export function useTransactions() {
     } finally {
       setIsLoading(false);
     }
-  }, [householdId]);
+  }, [householdId, mapMemberProfile]);
 
   useEffect(() => {
     loadData();
@@ -97,24 +126,7 @@ export function useTransactions() {
     return balances;
   }, [accounts, transactions]);
 
-  const groupedTransactions = useMemo(() => {
-    const filterByAccount = (accType: string) => transactions.filter(t => t.account?.type === accType);
-
-    return {
-      expenses: {
-        incomes: filterByAccount('checking').filter(t => t.type === 'income'),
-        fixed: filterByAccount('checking').filter(t => t.type === 'expense' && t.recurrence === 'fixed'),
-        variable: filterByAccount('checking').filter(t => t.type === 'expense' && t.recurrence !== 'fixed'),
-      },
-      savings: {
-        incomes: filterByAccount('savings').filter(t => t.type === 'income'),
-        fixed: filterByAccount('savings').filter(t => t.type === 'expense' && t.recurrence === 'fixed'),
-        variable: filterByAccount('savings').filter(t => t.type === 'expense' && t.recurrence !== 'fixed'),
-      }
-    };
-  }, [transactions]);
-
-  const addTransaction = async (t: Omit<Transaction, 'id' | 'household_id' | 'created_by'>) => {
+  const addTransaction = useCallback(async (t: Omit<Transaction, 'id' | 'household_id' | 'created_by'>) => {
     if (!householdId || !memberId) {
         console.error("No se puede agregar transacción sin householdId o memberId");
         return;
@@ -138,17 +150,22 @@ export function useTransactions() {
         .single();
 
       if (error) throw error;
+
+      const { data: memberProfiles } = await supabase.rpc('get_household_member_profiles');
+      const creatorMap = new Map(
+        (((memberProfiles || []) as HouseholdMemberProfileRow[]).map(row => [row.member_id, mapMemberProfile(row)]))
+      );
       
       const mapped = {
         ...data,
-        creator: (data as TransactionWithCreatorMember).creator_member?.profile
+        creator: creatorMap.get(memberId) || (data as TransactionWithCreatorMember).creator_member?.profile
       };
 
       setTransactions([mapped as Transaction, ...transactions]);
     } catch (error) {
       console.error('Error adding transaction:', error);
     }
-  };
+  }, [householdId, mapMemberProfile, memberId, transactions]);
 
   const deleteTransaction = async (id: string) => {
     try {
@@ -233,7 +250,6 @@ export function useTransactions() {
     accounts, 
     categories, 
     accountBalances,
-    groupedTransactions, 
     addTransaction, 
     deleteTransaction,
     addCategory,

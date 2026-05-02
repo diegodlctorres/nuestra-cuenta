@@ -38,8 +38,8 @@ export default function App() {
   const { coupleSettings, setCoupleSettings } = useSettings();
   const { 
     transactions, accounts, categories,
-    accountBalances, groupedTransactions, addTransaction, addCategory, deleteCategory,
-    addAccount, updateAccount, deleteAccount 
+    accountBalances, addTransaction, addCategory, deleteCategory,
+    addAccount, updateAccount, deleteAccount, deleteTransaction
   } = useTransactions();
   const { pets, petTasks, setPetTasks, pendingPetTasksCount, addPet, updatePet, deletePet, addPetTask, completePetTask } = usePets();
   const { tasks, addTask, toggleTask, downloadICS } = useTasks();
@@ -132,6 +132,7 @@ export default function App() {
               accounts={accounts}
               accountBalances={accountBalances}
               coupleSettings={coupleSettings}
+              deleteTransaction={deleteTransaction}
             />
           )}
           {activeTab === 'pets' && (
