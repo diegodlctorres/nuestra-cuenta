@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { PiggyBank, Wallet, PawPrint } from 'lucide-react';
+import { PiggyBank, Wallet, PawPrint, Layers3, ChevronRight } from 'lucide-react';
 import { AddTransactionForm } from '../components/transactions/AddTransactionForm';
 import { TransactionItem } from '../components/transactions/TransactionItem';
+import { Modal } from '../components/ui/Modal';
 import { Transaction, Category, CoupleSettings, Account } from '../types';
 import { cn, formatCurrency } from '../lib/utils';
 
@@ -29,6 +30,16 @@ export function DashboardView({
   setActiveTab,
   setSelectedAccountId
 }: DashboardViewProps) {
+  const [isAccountsModalOpen, setIsAccountsModalOpen] = useState(false);
+  const featuredAccounts = accounts.slice(0, 2);
+  const groupedAccounts = accounts.slice(2);
+
+  const openAccountDetail = (accountId: string) => {
+    setSelectedAccountId(accountId);
+    setActiveTab('detail');
+    setIsAccountsModalOpen(false);
+  };
+
   return (
     <motion.div
       key="dashboard"
@@ -41,7 +52,7 @@ export function DashboardView({
 
       {/* Dynamic Account Cards */}
       <div className="grid grid-cols-1 gap-4">
-        {accounts.map((acc, index) => {
+        {featuredAccounts.map((acc, index) => {
           const isPrimary = index === 0;
           const balance = accountBalances[acc.id] || 0;
           
@@ -83,6 +94,36 @@ export function DashboardView({
           );
         })}
 
+        {groupedAccounts.length > 0 && (
+          <button
+            type="button"
+            onClick={() => setIsAccountsModalOpen(true)}
+            className="rounded-3xl p-4 bg-white text-slate-900 border border-slate-200 shadow-slate-100 shadow-sm text-left transition-all active:scale-[0.98]"
+          >
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="p-2 rounded-xl bg-slate-100">
+                  <Layers3 className="w-5 h-5 text-slate-600" />
+                </div>
+                <div className="min-w-0">
+                  <div className="text-sm font-bold text-slate-700">
+                    Ver todas las cuentas restantes
+                  </div>
+                  <div className="text-xs text-slate-500 mt-1">
+                    {groupedAccounts.length} cuenta{groupedAccounts.length > 1 ? 's' : ''} adicional{groupedAccounts.length > 1 ? 'es' : ''}
+                  </div>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-full bg-slate-100 text-slate-500">
+                  +{groupedAccounts.length}
+                </span>
+                <ChevronRight className="w-4 h-4 text-slate-400" />
+              </div>
+            </div>
+          </button>
+        )}
+
         {accounts.length === 0 && (
           <div className="text-center py-12 bg-slate-50 rounded-3xl border border-dashed border-slate-200">
              <p className="text-slate-400 text-sm">No hay cuentas configuradas.</p>
@@ -95,6 +136,49 @@ export function DashboardView({
           </div>
         )}
       </div>
+
+      <Modal
+        isOpen={isAccountsModalOpen}
+        onClose={() => setIsAccountsModalOpen(false)}
+        title="Otras cuentas"
+      >
+        <div className="space-y-3">
+          {groupedAccounts.map((account) => {
+            const balance = accountBalances[account.id] || 0;
+
+            return (
+              <button
+                key={account.id}
+                type="button"
+                onClick={() => openAccountDetail(account.id)}
+                className="w-full rounded-2xl border border-slate-100 bg-slate-50 p-4 text-left transition-colors hover:bg-slate-100"
+              >
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="p-2 bg-white rounded-xl shadow-sm">
+                      {account.type === 'savings' ? (
+                        <PiggyBank className="w-5 h-5 text-primary-500" />
+                      ) : (
+                        <Wallet className="w-5 h-5 text-slate-500" />
+                      )}
+                    </div>
+                    <div className="min-w-0">
+                      <div className="font-bold text-slate-700 text-sm truncate">{account.name}</div>
+                      <div className="text-[10px] uppercase font-bold text-slate-400 mt-1">
+                        {account.type === 'savings' ? 'Ahorros / Metas' : 'Día a Día'}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="text-right shrink-0">
+                    <div className="font-bold text-slate-800">{formatCurrency(balance)}</div>
+                    <div className="text-xs text-slate-400 mt-1">Ver detalle</div>
+                  </div>
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      </Modal>
 
       <div className="bg-secondary-50 rounded-3xl p-6 border border-secondary-100">
         <div className="flex items-center gap-3 mb-4">
