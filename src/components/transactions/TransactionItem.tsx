@@ -1,5 +1,5 @@
 import React, { useRef, useState } from 'react';
-import { TrendingUp, TrendingDown } from 'lucide-react';
+import { TrendingUp, TrendingDown, Trash2 } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { cn, formatCurrency } from '../../lib/utils';
 import { Transaction, CoupleSettings } from '../../types';
@@ -19,30 +19,40 @@ export const TransactionItem: React.FC<{
       : t.description;
   const [offsetX, setOffsetX] = useState(0);
   const [isSwipeOpen, setIsSwipeOpen] = useState(false);
+  const [isDesktopDeleteVisible, setIsDesktopDeleteVisible] = useState(false);
   const startXRef = useRef<number | null>(null);
   const dragStartOffsetRef = useRef(0);
+  const pointerTypeRef = useRef<string | null>(null);
   const SWIPE_ACTION_WIDTH = 96;
   const SWIPE_THRESHOLD = 48;
 
   const handlePointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
     if (!onDelete) return;
+    pointerTypeRef.current = event.pointerType;
+    if (event.pointerType === 'mouse') return;
     startXRef.current = event.clientX;
     dragStartOffsetRef.current = offsetX;
   };
 
   const handlePointerMove = (event: React.PointerEvent<HTMLDivElement>) => {
-    if (!onDelete || startXRef.current === null) return;
+    if (!onDelete || startXRef.current === null || pointerTypeRef.current === 'mouse') return;
     const deltaX = event.clientX - startXRef.current;
     const nextOffset = Math.max(-SWIPE_ACTION_WIDTH, Math.min(0, dragStartOffsetRef.current + deltaX));
     setOffsetX(nextOffset);
   };
 
   const handlePointerEnd = () => {
-    if (!onDelete || startXRef.current === null) return;
+    if (!onDelete) return;
+    if (pointerTypeRef.current === 'mouse') {
+      pointerTypeRef.current = null;
+      return;
+    }
+    if (startXRef.current === null) return;
     const shouldOpen = offsetX <= -SWIPE_THRESHOLD;
     setOffsetX(shouldOpen ? -SWIPE_ACTION_WIDTH : 0);
     setIsSwipeOpen(shouldOpen);
     startXRef.current = null;
+    pointerTypeRef.current = null;
   };
 
   const closeSwipe = () => {
@@ -71,7 +81,7 @@ export const TransactionItem: React.FC<{
       )}
       <div
         className={cn(
-          "bg-white p-4 rounded-2xl border border-slate-100 flex justify-between items-center shadow-sm transition-transform",
+          "bg-white p-4 rounded-2xl border border-slate-100 flex justify-between items-center shadow-sm transition-transform group",
           onDelete && "touch-pan-y"
         )}
         style={{ transform: `translateX(${offsetX}px)`, touchAction: onDelete ? 'pan-y' : undefined }}
@@ -80,6 +90,12 @@ export const TransactionItem: React.FC<{
         onPointerUp={handlePointerEnd}
         onPointerCancel={handlePointerEnd}
         onPointerLeave={handlePointerEnd}
+        onMouseEnter={() => {
+          if (onDelete) setIsDesktopDeleteVisible(true);
+        }}
+        onMouseLeave={() => {
+          setIsDesktopDeleteVisible(false);
+        }}
         onClick={() => {
           if (isSwipeOpen) {
             closeSwipe();
@@ -117,6 +133,23 @@ export const TransactionItem: React.FC<{
         <div className={cn("font-bold shrink-0 ml-3", isIncome ? "text-emerald-600" : "text-secondary-600")}>
           {isIncome ? '+' : '-'}{formatCurrency(t.amount)}
         </div>
+        {onDelete && (
+          <button
+            type="button"
+            onClick={(event) => {
+              event.stopPropagation();
+              handleDelete();
+            }}
+            className={cn(
+              "ml-3 shrink-0 rounded-xl border border-slate-200 bg-white p-2 text-slate-400 transition-all",
+              isDesktopDeleteVisible ? "opacity-100 pointer-events-auto hover:border-secondary-200 hover:bg-secondary-50 hover:text-secondary-600" : "opacity-0 pointer-events-none"
+            )}
+            aria-label="Eliminar transacción"
+            title="Eliminar transacción"
+          >
+            <Trash2 className="w-4 h-4" />
+          </button>
+        )}
       </div>
     </div>
   );
