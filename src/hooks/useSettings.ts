@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
-import { CoupleSettings, Partner, Profile } from '../types';
+import { CoupleSettings, Partner, Profile, ThemeType } from '../types';
 
 interface HouseholdProfileRow {
   id: string;
@@ -14,23 +14,10 @@ interface HouseholdProfileRow {
 
 export function useSettings() {
   const { user, profile, householdId, refreshProfile } = useAuth();
-  const [coupleSettings, setCoupleSettingsState] = useState<CoupleSettings>(() => {
-    const saved = localStorage.getItem('nc_couple_settings');
-
-    if (saved) {
-      const parsed = JSON.parse(saved);
-      return {
-        partner1: typeof parsed.partner1 === 'string' ? { name: parsed.partner1 } : (parsed.partner1 || { name: '' }),
-        partner2: typeof parsed.partner2 === 'string' ? { name: parsed.partner2 } : (parsed.partner2 || { name: '' }),
-        theme: parsed.theme || 'default'
-      };
-    }
-
-    return {
-      partner1: { name: '' },
-      partner2: { name: '' },
-      theme: 'default'
-    };
+  const [coupleSettings, setCoupleSettingsState] = useState<CoupleSettings>({
+    partner1: { name: '' },
+    partner2: { name: '' },
+    theme: 'default'
   });
 
   const mapProfileToPartner = useCallback((profileData?: HouseholdProfileRow | Profile | null, isCurrentUser: boolean = false): Partner => {
@@ -86,22 +73,52 @@ export function useSettings() {
     }
   }, [householdId, mapProfileToPartner, profile, user]);
 
+  const loadHouseholdTheme = useCallback(async () => {
+    if (!householdId) {
+      setCoupleSettingsState(prev => ({
+        ...prev,
+        theme: 'default'
+      }));
+      return;
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from('households')
+        .select('theme')
+        .eq('id', householdId)
+        .maybeSingle();
+
+      if (error) {
+        throw error;
+      }
+
+      setCoupleSettingsState(prev => ({
+        ...prev,
+        theme: (data?.theme as ThemeType | undefined) || 'default'
+      }));
+    } catch (error) {
+      console.error('Error loading household theme:', error);
+    }
+  }, [householdId]);
+
   useEffect(() => {
     if (coupleSettings.theme) {
       document.documentElement.setAttribute('data-theme', coupleSettings.theme);
     }
-
-    localStorage.setItem('nc_couple_settings', JSON.stringify({
-      theme: coupleSettings.theme
-    }));
   }, [coupleSettings.theme]);
 
   useEffect(() => {
     loadHouseholdProfiles();
   }, [loadHouseholdProfiles]);
 
+  useEffect(() => {
+    loadHouseholdTheme();
+  }, [loadHouseholdTheme]);
+
   const setCoupleSettings = useCallback(async (nextSettings: CoupleSettings) => {
     const nextTheme = nextSettings.theme || 'default';
+    const themeChanged = nextTheme !== (coupleSettings.theme || 'default');
 
     setCoupleSettingsState(prev => ({
       ...prev,
@@ -119,40 +136,53 @@ export function useSettings() {
           ? nextSettings.partner2
           : null;
 
-    if (!editablePartner) {
-      return;
+    if (editablePartner) {
+      setCoupleSettingsState(prev => ({
+        ...prev,
+        partner1: prev.partner1.id === user.id ? { ...editablePartner, isCurrentUser: true } : prev.partner1,
+        partner2: prev.partner2.id === user.id ? { ...editablePartner, isCurrentUser: true } : prev.partner2
+      }));
     }
 
-    setCoupleSettingsState(prev => ({
-      ...prev,
-      partner1: prev.partner1.id === user.id ? { ...editablePartner, isCurrentUser: true } : prev.partner1,
-      partner2: prev.partner2.id === user.id ? { ...editablePartner, isCurrentUser: true } : prev.partner2
-    }));
-
     try {
-      const updates = {
-        name: editablePartner.name,
-        nickname: editablePartner.nickname || null,
-        gender: editablePartner.gender || null,
-        birth_date: editablePartner.birthDate || null,
-        avatar_url: editablePartner.photoUrl || null
-      };
+      if (themeChanged && householdId) {
+        const { error: householdError } = await supabase
+          .from('households')
+          .update({ theme: nextTheme })
+          .eq('id', householdId);
 
-      const { error } = await supabase
-        .from('profiles')
-        .update(updates)
-        .eq('id', user.id);
+        if (householdError) {
+          throw householdError;
+        }
+      }
 
-      if (error) {
-        throw error;
+      if (editablePartner) {
+        const updates = {
+          name: editablePartner.name,
+          nickname: editablePartner.nickname || null,
+          gender: editablePartner.gender || null,
+          birth_date: editablePartner.birthDate || null,
+          avatar_url: editablePartner.photoUrl || null
+        };
+
+        const { error } = await supabase
+          .from('profiles')
+          .update(updates)
+          .eq('id', user.id);
+
+        if (error) {
+          throw error;
+        }
       }
 
       await refreshProfile();
       await loadHouseholdProfiles();
     } catch (error) {
       console.error('Error saving couple settings:', error);
+      await loadHouseholdTheme();
+      await loadHouseholdProfiles();
     }
-  }, [loadHouseholdProfiles, refreshProfile, user]);
+  }, [coupleSettings.theme, householdId, loadHouseholdProfiles, loadHouseholdTheme, refreshProfile, user]);
 
   return { coupleSettings, setCoupleSettings };
 }

@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Wallet,
   TrendingDown,
@@ -33,6 +33,7 @@ export default function App() {
   const [activeTab, setActiveTab] = useState<'dashboard' | 'detail' | 'pets' | 'tasks' | 'settings'>('dashboard');
   const [detailSubTab, setDetailSubTab] = useState<'expenses' | 'savings'>('expenses');
   const [selectedAccountId, setSelectedAccountId] = useState<string | null>(null);
+  const [isRecoveryMode, setIsRecoveryMode] = useState(false);
 
   const { coupleSettings, setCoupleSettings } = useSettings();
   const { 
@@ -43,11 +44,37 @@ export default function App() {
   const { pets, petTasks, setPetTasks, pendingPetTasksCount, addPet, updatePet, deletePet, addPetTask, completePetTask } = usePets();
   const { tasks, addTask, toggleTask, downloadICS } = useTasks();
 
+  useEffect(() => {
+    const updateRecoveryMode = () => {
+      const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ''));
+      const searchParams = new URLSearchParams(window.location.search);
+      const recoveryType = hashParams.get('type') || searchParams.get('type');
+      setIsRecoveryMode(recoveryType === 'recovery');
+    };
+
+    updateRecoveryMode();
+    window.addEventListener('hashchange', updateRecoveryMode);
+
+    return () => window.removeEventListener('hashchange', updateRecoveryMode);
+  }, []);
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center p-6 text-slate-900">
         <div className="animate-spin text-primary-500"><ArrowRightLeft className="w-8 h-8" /></div>
       </div>
+    );
+  }
+
+  if (isRecoveryMode) {
+    return (
+      <AuthView
+        recoveryMode
+        onRecoveryComplete={() => {
+          window.history.replaceState({}, document.title, window.location.pathname);
+          setIsRecoveryMode(false);
+        }}
+      />
     );
   }
 

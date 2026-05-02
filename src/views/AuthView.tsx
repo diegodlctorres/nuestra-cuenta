@@ -4,14 +4,76 @@ import { ArrowRightLeft, Mail, Lock, Loader2, CheckCircle2 } from 'lucide-react'
 import { Modal } from '../components/ui/Modal';
 import { getFriendlyErrorMessage } from '../lib/errors';
 
-export function AuthView() {
+export function AuthView({
+  recoveryMode = false,
+  onRecoveryComplete
+}: {
+  recoveryMode?: boolean;
+  onRecoveryComplete?: () => void;
+}) {
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [fullName, setFullName] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [showSignupSuccess, setShowSignupSuccess] = useState(false);
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [showResetSent, setShowResetSent] = useState(false);
+  const [resetTargetEmail, setResetTargetEmail] = useState('');
+  const [resetSuccess, setResetSuccess] = useState(false);
+
+  const handleRequestPasswordReset = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+    setErrorMsg('');
+
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/`
+      });
+
+      if (error) throw error;
+
+      setResetTargetEmail(email);
+      setShowForgotPassword(false);
+      setShowResetSent(true);
+    } catch (err) {
+      setErrorMsg(getFriendlyErrorMessage(err, 'No pudimos enviar el correo para restablecer tu contraseña.'));
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleUpdatePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (password.length < 6) {
+      setErrorMsg('La contraseña debe tener al menos 6 caracteres.');
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      setErrorMsg('Las contraseñas no coinciden.');
+      return;
+    }
+
+    setIsLoading(true);
+    setErrorMsg('');
+
+    try {
+      const { error } = await supabase.auth.updateUser({ password });
+      if (error) throw error;
+
+      setResetSuccess(true);
+      setPassword('');
+      setConfirmPassword('');
+    } catch (err) {
+      setErrorMsg(getFriendlyErrorMessage(err, 'No pudimos actualizar tu contraseña.'));
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -44,6 +106,96 @@ export function AuthView() {
       setIsLoading(false);
     }
   };
+
+  if (recoveryMode) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-6 text-slate-900 font-sans">
+        <div className="max-w-md w-full bg-white rounded-3xl p-8 shadow-sm border border-slate-200">
+          <div className="flex flex-col items-center mb-8">
+            <div className="w-16 h-16 bg-primary-100 text-primary-600 rounded-full flex items-center justify-center mb-4">
+              <Lock className="w-8 h-8" />
+            </div>
+            <h1 className="text-2xl font-bold tracking-tight text-slate-800">
+              Nueva contraseña
+            </h1>
+            <p className="text-sm text-slate-500 mt-2 text-center">
+              Define una nueva contraseña para tu cuenta.
+            </p>
+          </div>
+
+          {errorMsg && (
+            <div className="bg-secondary-50 text-secondary-600 text-sm font-semibold p-3 rounded-xl mb-6 text-center border border-secondary-100">
+              {errorMsg}
+            </div>
+          )}
+
+          {resetSuccess ? (
+            <div className="text-center">
+              <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-primary-100 text-primary-600">
+                <CheckCircle2 className="h-8 w-8" />
+              </div>
+              <p className="text-sm font-semibold text-slate-700">
+                Tu contraseña se actualizó correctamente.
+              </p>
+              <p className="mt-2 text-sm text-slate-500">
+                Ya puedes continuar usando la app con tu nueva contraseña.
+              </p>
+              <button
+                type="button"
+                onClick={onRecoveryComplete}
+                className="mt-6 w-full rounded-2xl bg-primary-600 py-3 text-sm font-bold text-white shadow-lg shadow-primary-100 transition-colors hover:bg-primary-700"
+              >
+                Continuar
+              </button>
+            </div>
+          ) : (
+            <form onSubmit={handleUpdatePassword} className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-600 uppercase mb-1">Nueva Contraseña</label>
+                <div className="relative">
+                  <input
+                    type="password"
+                    required
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="w-full pl-4 pr-10 py-3 bg-slate-50 border border-slate-200 rounded-xl font-medium focus:ring-2 focus:ring-primary-500 outline-none"
+                    placeholder="••••••••"
+                    minLength={6}
+                  />
+                  <Lock className="absolute right-3 top-3.5 w-5 h-5 text-slate-400" />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-600 uppercase mb-1">Confirmar Contraseña</label>
+                <div className="relative">
+                  <input
+                    type="password"
+                    required
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    className="w-full pl-4 pr-10 py-3 bg-slate-50 border border-slate-200 rounded-xl font-medium focus:ring-2 focus:ring-primary-500 outline-none"
+                    placeholder="••••••••"
+                    minLength={6}
+                  />
+                  <Lock className="absolute right-3 top-3.5 w-5 h-5 text-slate-400" />
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                disabled={isLoading}
+                className="w-full py-4 bg-primary-600 text-white rounded-2xl font-bold text-sm shadow-lg shadow-primary-100 hover:bg-primary-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2 mt-4"
+              >
+                {isLoading && <Loader2 className="w-4 h-4 animate-spin" />}
+                Guardar nueva contraseña
+              </button>
+            </form>
+          )}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-slate-50 flex items-center justify-center p-6 text-slate-900 font-sans">
@@ -125,6 +277,21 @@ export function AuthView() {
           </button>
         </form>
 
+        {isLogin && (
+          <div className="mt-4 text-center">
+            <button
+              type="button"
+              onClick={() => {
+                setErrorMsg('');
+                setShowForgotPassword(true);
+              }}
+              className="text-sm font-semibold text-slate-500 hover:text-primary-700"
+            >
+              Olvidé mi contraseña
+            </button>
+          </div>
+        )}
+
         <div className="mt-6 text-center">
           <button 
             onClick={() => {
@@ -157,6 +324,65 @@ export function AuthView() {
           <button
             type="button"
             onClick={() => setShowSignupSuccess(false)}
+            className="mt-6 w-full rounded-2xl bg-primary-600 py-3 text-sm font-bold text-white shadow-lg shadow-primary-100 transition-colors hover:bg-primary-700"
+          >
+            Entendido
+          </button>
+        </div>
+      </Modal>
+
+      <Modal
+        isOpen={showForgotPassword}
+        onClose={() => setShowForgotPassword(false)}
+        title="Restablecer contraseña"
+      >
+        <form onSubmit={handleRequestPasswordReset} className="space-y-4">
+          <p className="text-sm text-slate-500">
+            Te enviaremos un enlace para crear una nueva contraseña.
+          </p>
+          <div>
+            <label className="block text-xs font-bold text-slate-600 uppercase mb-1">Correo Electrónico</label>
+            <div className="relative">
+              <input
+                type="email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="w-full pl-4 pr-10 py-3 bg-slate-50 border border-slate-200 rounded-xl font-medium focus:ring-2 focus:ring-primary-500 outline-none"
+                placeholder="tu@correo.com"
+              />
+              <Mail className="absolute right-3 top-3.5 w-5 h-5 text-slate-400" />
+            </div>
+          </div>
+          <button
+            type="submit"
+            disabled={isLoading}
+            className="w-full rounded-2xl bg-primary-600 py-3 text-sm font-bold text-white shadow-lg shadow-primary-100 transition-colors hover:bg-primary-700 disabled:opacity-50 flex items-center justify-center gap-2"
+          >
+            {isLoading && <Loader2 className="w-4 h-4 animate-spin" />}
+            Enviar enlace
+          </button>
+        </form>
+      </Modal>
+
+      <Modal
+        isOpen={showResetSent}
+        onClose={() => setShowResetSent(false)}
+        title="Revisa tu correo"
+      >
+        <div className="text-center">
+          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-primary-100 text-primary-600">
+            <CheckCircle2 className="h-8 w-8" />
+          </div>
+          <p className="text-sm font-semibold text-slate-700">
+            Te enviamos un enlace de recuperación a {resetTargetEmail}.
+          </p>
+          <p className="mt-2 text-sm text-slate-500">
+            Abre ese enlace y podrás definir una nueva contraseña dentro de la app.
+          </p>
+          <button
+            type="button"
+            onClick={() => setShowResetSent(false)}
             className="mt-6 w-full rounded-2xl bg-primary-600 py-3 text-sm font-bold text-white shadow-lg shadow-primary-100 transition-colors hover:bg-primary-700"
           >
             Entendido
