@@ -2,45 +2,63 @@ import React, { useState } from 'react';
 import { UserPlus, ChevronRight } from 'lucide-react';
 import { Pet } from '../../types';
 import { Modal } from '../ui/Modal';
-import { cn } from '../../lib/utils';
+import { cn, processImageUpload } from '../../lib/utils';
 
-export function AddPetForm({ onAdd }: { onAdd: (pet: Omit<Pet, 'id' | 'household_id'>, file?: File) => void }) {
+export function AddPetForm({ onAdd }: { onAdd: (pet: Omit<Pet, 'id' | 'household_id'>) => Promise<boolean> }) {
   const [isOpen, setIsOpen] = useState(false);
   const [name, setName] = useState('');
   const [species, setSpecies] = useState('Perro');
   const [breed, setBreed] = useState('');
   const [birthDate, setBirthDate] = useState('');
   const [photoUrl, setPhotoUrl] = useState('');
-  const [photoFile, setPhotoFile] = useState<File | undefined>();
   const [submitAttempted, setSubmitAttempted] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveError, setSaveError] = useState('');
   const nameError = name.trim().length === 0;
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      setPhotoFile(file);
-      // Solo para la vista previa local
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setPhotoUrl(reader.result as string);
-      };
-      reader.readAsDataURL(file);
+      try {
+        const url = await processImageUpload(file);
+        setPhotoUrl(url);
+      } catch (err) {
+        console.error("Error al procesar la imagen", err);
+      }
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const resetForm = () => {
+    setName('');
+    setBreed('');
+    setBirthDate('');
+    setPhotoUrl('');
+    setSubmitAttempted(false);
+    setSaveError('');
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitAttempted(true);
-    if (nameError) return;
+    setSaveError('');
+    if (nameError || isSaving) return;
 
-    onAdd({ 
+    setIsSaving(true);
+    const wasSaved = await onAdd({
       name: name.trim(),
-      species, 
-      breed, 
+      species,
+      breed,
       birth_date: birthDate || undefined,
-    }, photoFile);
-    setName(''); setBreed(''); setBirthDate(''); setPhotoUrl(''); setPhotoFile(undefined); setSubmitAttempted(false);
-    setIsOpen(false);
+      photo_url: photoUrl || undefined
+    });
+    setIsSaving(false);
+
+    if (wasSaved) {
+      resetForm();
+      setIsOpen(false);
+    } else {
+      setSaveError('No se pudo registrar la mascota. Inténtalo nuevamente.');
+    }
   };
 
   return (
@@ -56,7 +74,7 @@ export function AddPetForm({ onAdd }: { onAdd: (pet: Omit<Pet, 'id' | 'household
         <ChevronRight className="w-5 h-5 text-slate-400" />
       </button>
 
-      <Modal isOpen={isOpen} onClose={() => { setIsOpen(false); setSubmitAttempted(false); }} title="Registrar Mascota">
+      <Modal isOpen={isOpen} onClose={() => { if (!isSaving) { setIsOpen(false); setSubmitAttempted(false); setSaveError(''); } }} title="Registrar Mascota">
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-1">
             <label className={cn("text-[10px] font-bold uppercase ml-1", submitAttempted && nameError ? "text-red-500" : "text-slate-400")}>Nombre</label>
@@ -95,13 +113,22 @@ export function AddPetForm({ onAdd }: { onAdd: (pet: Omit<Pet, 'id' | 'household
             <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Foto (Opcional)</label>
             <div className="flex items-center gap-4">
               <label className="flex items-center justify-center w-full p-3 bg-slate-50 border-2 border-dashed border-slate-200 rounded-xl cursor-pointer hover:bg-slate-100 transition-colors text-sm text-slate-500">
-                <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload} />
+                <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload} disabled={isSaving} />
                 {photoUrl ? "Cambiar foto" : "Subir archivo de imagen"}
               </label>
               {photoUrl && <img src={photoUrl} alt="Vista previa" className="w-12 h-12 object-cover rounded-full shadow-sm flex-shrink-0" />}
             </div>
           </div>
-          <button type="submit" className="w-full py-4 bg-secondary-500 text-white rounded-2xl font-bold text-sm shadow-lg shadow-secondary-100 mt-4">Registrar Mascota</button>
+          {saveError && (
+            <p className="text-xs text-red-500 ml-1">{saveError}</p>
+          )}
+          <button
+            type="submit"
+            disabled={isSaving}
+            className="w-full py-4 bg-secondary-500 text-white rounded-2xl font-bold text-sm shadow-lg shadow-secondary-100 mt-4 disabled:opacity-60 disabled:cursor-not-allowed"
+          >
+            {isSaving ? 'Guardando...' : 'Registrar Mascota'}
+          </button>
         </form>
       </Modal>
     </>

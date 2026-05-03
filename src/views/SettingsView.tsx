@@ -14,9 +14,9 @@ interface SettingsViewProps {
   coupleSettings: CoupleSettings;
   setCoupleSettings: (s: CoupleSettings) => Promise<void>;
   pets: Pet[];
-  updatePet: (pet: Pet, file?: File) => void;
+  updatePet: (pet: Pet) => void;
   deletePet: (id: string) => void;
-  addPet: (pet: Omit<Pet, 'id' | 'household_id'>, file?: File) => void;
+  addPet: (pet: Omit<Pet, 'id' | 'household_id'>) => Promise<boolean>;
   categories: Category[];
   addCategory: (name: string, kind: 'income' | 'expense') => void;
   deleteCategory: (id: string) => void;

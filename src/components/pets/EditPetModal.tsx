@@ -4,24 +4,23 @@ import { Pet } from '../../types';
 import { Modal } from '../ui/Modal';
 import { processImageUpload } from '../../lib/utils';
 
-export function EditPetModal({ pet, onUpdate }: { pet: Pet, onUpdate: (pet: Pet, file?: File) => void }) {
+export function EditPetModal({ pet, onUpdate }: { pet: Pet, onUpdate: (pet: Pet) => void }) {
   const [isOpen, setIsOpen] = useState(false);
   const [name, setName] = useState(pet.name);
   const [species, setSpecies] = useState(pet.species);
   const [breed, setBreed] = useState(pet.breed || '');
   const [birthDate, setBirthDate] = useState(pet.birth_date || '');
   const [photoUrl, setPhotoUrl] = useState(pet.photo_url || '');
-  const [photoFile, setPhotoFile] = useState<File | undefined>();
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      setPhotoFile(file);
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setPhotoUrl(reader.result as string);
-      };
-      reader.readAsDataURL(file);
+      try {
+        const url = await processImageUpload(file);
+        setPhotoUrl(url);
+      } catch (err) {
+        console.error("Error al procesar la imagen", err);
+      }
     }
   };
 
@@ -35,7 +34,7 @@ export function EditPetModal({ pet, onUpdate }: { pet: Pet, onUpdate: (pet: Pet,
       breed, 
       birth_date: birthDate || undefined,
       photo_url: photoUrl || undefined 
-    }, photoFile);
+    });
     setIsOpen(false);
   };
 

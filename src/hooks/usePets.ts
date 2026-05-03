@@ -59,28 +59,9 @@ export function usePets() {
     petTasks.filter(t => !t.completed).length
   , [petTasks]);
 
-  const uploadPetPhoto = async (petId: string, file: File) => {
-    const fileExt = file.name.split('.').pop();
-    const fileName = `${petId}-${Math.random()}.${fileExt}`;
-    const filePath = `pet-photos/${fileName}`;
-
-    const { error: uploadError } = await supabase.storage
-      .from('public-assets') // Make sure this bucket exists and is public
-      .upload(filePath, file);
-
-    if (uploadError) throw uploadError;
-
-    const { data } = supabase.storage
-      .from('public-assets')
-      .getPublicUrl(filePath);
-
-    return data.publicUrl;
-  };
-
-  const addPet = async (pet: Omit<Pet, 'id' | 'household_id'>, photoFile?: File) => {
-    if (!householdId) return;
+  const addPet = async (pet: Omit<Pet, 'id' | 'household_id'>) => {
+    if (!householdId) return false;
     try {
-      // 1. Create Pet record first to get ID
       const { data: newPet, error } = await supabase
         .from('pets')
         .insert({ ...pet, household_id: householdId })
@@ -88,46 +69,34 @@ export function usePets() {
         .single();
 
       if (error) throw error;
-      
-      let finalPet = newPet;
 
-      // 2. Upload photo if exists and update record
-      if (photoFile && newPet) {
-        const publicUrl = await uploadPetPhoto(newPet.id, photoFile);
-        const { data: updatedPet, error: updateError } = await supabase
-          .from('pets')
-          .update({ photo_url: publicUrl })
-          .eq('id', newPet.id)
-          .select()
-          .single();
-        
-        if (updateError) throw updateError;
-        finalPet = updatedPet;
-      }
-
-      setPets([...pets, finalPet]);
+      setPets(currentPets => [...currentPets, newPet]);
+      return true;
     } catch (error) {
       console.error('Error adding pet:', error);
+      return false;
     }
   };
 
-  const updatePet = async (updatedPet: Pet, photoFile?: File) => {
+  const updatePet = async (updatedPet: Pet) => {
+    if (!householdId) return;
     try {
-      let photoUrl = updatedPet.photo_url;
-      
-      if (photoFile) {
-        photoUrl = await uploadPetPhoto(updatedPet.id, photoFile);
-      }
-
       const { data, error } = await supabase
         .from('pets')
-        .update({ ...updatedPet, photo_url: photoUrl })
+        .update({
+          name: updatedPet.name,
+          species: updatedPet.species,
+          breed: updatedPet.breed || null,
+          birth_date: updatedPet.birth_date || null,
+          photo_url: updatedPet.photo_url || null
+        })
         .eq('id', updatedPet.id)
+        .eq('household_id', householdId)
         .select()
         .single();
 
       if (error) throw error;
-      setPets(pets.map(p => p.id === updatedPet.id ? data : p));
+      setPets(currentPets => currentPets.map(p => p.id === updatedPet.id ? data : p));
     } catch (error) {
       console.error('Error updating pet:', error);
     }
