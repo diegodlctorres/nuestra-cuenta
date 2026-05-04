@@ -1,20 +1,19 @@
 import { useState, useEffect, useCallback } from 'react';
-import { subDays } from 'date-fns';
-import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import {
   RenderableTaskReminder,
-  Task,
-  TaskInput,
-  TaskOccurrence
+  TaskInput
 } from '../types';
 import {
-  fromStoredOccurrenceTime,
-  getPreviousOccurrenceDate,
-  normalizeTaskInput,
-  resolveTaskReminders,
-  toStoredOccurrenceTime
-} from '../lib/taskRecurrence';
+  archiveTaskSeriesRecord,
+  completeReminderRecord,
+  createTask,
+  deleteReminderRecord,
+  deleteSeriesFromReminderRecord,
+  editTask,
+  loadTaskReminders,
+  reopenReminderRecord
+} from '../lib/tasksData';
 
 export interface TaskMutationResult {
   success: boolean;
@@ -35,50 +34,11 @@ export function useTasks() {
   const loadTasks = useCallback(async () => {
     if (!householdId || !viewRange) return;
 
-    const { start, end } = viewRange;
     setIsLoading(true);
 
     try {
-      const { data: taskData, error: tasksError } = await supabase
-        .from('tasks')
-        .select('*')
-        .eq('household_id', householdId)
-        .order('deadline', { ascending: true });
-
-      if (tasksError) throw tasksError;
-
-      const normalizedTasks = ((taskData || []) as Task[]).map(task => ({
-        ...task,
-        is_recurring: Boolean(task.is_recurring),
-        recurrence_unit: task.recurrence_unit || null,
-        recurrence_interval: task.recurrence_interval ?? null,
-        recurrence_end_type: task.recurrence_end_type || null,
-        recurrence_until: task.recurrence_until || null,
-        series_anchor_date: task.series_anchor_date || task.deadline,
-        archived_at: task.archived_at || null,
-        requires_transaction: Boolean(task.requires_transaction)
-      }));
-
-      const taskIds = normalizedTasks.map(task => task.id);
-      let normalizedOccurrences: TaskOccurrence[] = [];
-
-      if (taskIds.length > 0) {
-        const { data: occurrenceData, error: occurrencesError } = await supabase
-          .from('task_occurrences')
-          .select('*')
-          .in('task_id', taskIds)
-          .gte('occurrence_date', start)
-          .lte('occurrence_date', end);
-
-        if (occurrencesError) throw occurrencesError;
-
-        normalizedOccurrences = ((occurrenceData || []) as TaskOccurrence[]).map(occurrence => ({
-          ...occurrence,
-          occurrence_due_time: fromStoredOccurrenceTime(occurrence.occurrence_due_time)
-        }));
-      }
-
-      setTasks(resolveTaskReminders(normalizedTasks, normalizedOccurrences, start, end));
+      const reminders = await loadTaskReminders(householdId, viewRange);
+      setTasks(reminders);
     } catch (error) {
       console.error('Error loading tasks:', error);
       setTasks([]);
@@ -96,29 +56,7 @@ export function useTasks() {
     if (!householdId) return { success: false, error: 'No se encontró un hogar activo.' };
 
     try {
-      const normalizedTask = normalizeTaskInput(task);
-      const insertPayload = {
-        title: normalizedTask.title,
-        deadline: normalizedTask.deadline,
-        due_time: normalizedTask.due_time || null,
-        requires_transaction: Boolean(normalizedTask.requires_transaction),
-        household_id: householdId,
-        completed: false,
-        is_recurring: normalizedTask.is_recurring,
-        recurrence_unit: normalizedTask.recurrence_unit,
-        recurrence_interval: normalizedTask.recurrence_interval,
-        recurrence_end_type: normalizedTask.recurrence_end_type,
-        recurrence_until: normalizedTask.recurrence_until,
-        series_anchor_date: normalizedTask.series_anchor_date,
-        archived_at: null
-      };
-
-      const { error } = await supabase
-        .from('tasks')
-        .insert(insertPayload);
-
-      if (error) throw error;
-
+      await createTask(householdId, task);
       await loadTasks();
       return { success: true };
     } catch (error) {
@@ -132,26 +70,7 @@ export function useTasks() {
 
   const updateTask = async (taskId: string, task: TaskInput): Promise<TaskMutationResult> => {
     try {
-      const normalizedTask = normalizeTaskInput(task);
-      const { error } = await supabase
-        .from('tasks')
-        .update({
-          title: normalizedTask.title,
-          deadline: normalizedTask.deadline,
-          due_time: normalizedTask.due_time || null,
-          requires_transaction: Boolean(normalizedTask.requires_transaction),
-          is_recurring: normalizedTask.is_recurring,
-          recurrence_unit: normalizedTask.recurrence_unit,
-          recurrence_interval: normalizedTask.recurrence_interval,
-          recurrence_end_type: normalizedTask.recurrence_end_type,
-          recurrence_until: normalizedTask.recurrence_until,
-          series_anchor_date: normalizedTask.series_anchor_date,
-          archived_at: null
-        })
-        .eq('id', taskId);
-
-      if (error) throw error;
-
+      await editTask(taskId, task);
       await loadTasks();
       return { success: true };
     } catch (error) {
@@ -165,30 +84,7 @@ export function useTasks() {
 
   const completeReminder = async (reminder: RenderableTaskReminder) => {
     try {
-      if (!reminder.isRecurring) {
-        const { error } = await supabase
-          .from('tasks')
-          .update({ completed: true })
-          .eq('id', reminder.taskId);
-
-        if (error) throw error;
-      } else {
-        const { error } = await supabase
-          .from('task_occurrences')
-          .upsert({
-            task_id: reminder.taskId,
-            occurrence_date: reminder.occurrenceDate,
-            occurrence_due_time: toStoredOccurrenceTime(reminder.occurrenceDueTime),
-            status: 'completed',
-            completed_at: new Date().toISOString(),
-            requires_transaction_snapshot: reminder.requiresTransaction
-          }, {
-            onConflict: 'task_id,occurrence_date,occurrence_due_time'
-          });
-
-        if (error) throw error;
-      }
-
+      await completeReminderRecord(reminder);
       await loadTasks();
       return true;
     } catch (error) {
@@ -199,24 +95,7 @@ export function useTasks() {
 
   const reopenReminder = async (reminder: RenderableTaskReminder) => {
     try {
-      if (!reminder.isRecurring) {
-        const { error } = await supabase
-          .from('tasks')
-          .update({ completed: false })
-          .eq('id', reminder.taskId);
-
-        if (error) throw error;
-      } else {
-        const { error } = await supabase
-          .from('task_occurrences')
-          .delete()
-          .eq('task_id', reminder.taskId)
-          .eq('occurrence_date', reminder.occurrenceDate)
-          .eq('occurrence_due_time', toStoredOccurrenceTime(reminder.occurrenceDueTime));
-
-        if (error) throw error;
-      }
-
+      await reopenReminderRecord(reminder);
       await loadTasks();
       return true;
     } catch (error) {
@@ -227,30 +106,7 @@ export function useTasks() {
 
   const deleteReminder = async (reminder: RenderableTaskReminder) => {
     try {
-      if (!reminder.isRecurring) {
-        const { error } = await supabase
-          .from('tasks')
-          .delete()
-          .eq('id', reminder.taskId);
-
-        if (error) throw error;
-      } else {
-        const { error } = await supabase
-          .from('task_occurrences')
-          .upsert({
-            task_id: reminder.taskId,
-            occurrence_date: reminder.occurrenceDate,
-            occurrence_due_time: toStoredOccurrenceTime(reminder.occurrenceDueTime),
-            status: 'deleted',
-            completed_at: null,
-            requires_transaction_snapshot: reminder.requiresTransaction
-          }, {
-            onConflict: 'task_id,occurrence_date,occurrence_due_time'
-          });
-
-        if (error) throw error;
-      }
-
+      await deleteReminderRecord(reminder);
       await loadTasks();
       return true;
     } catch (error) {
@@ -261,13 +117,7 @@ export function useTasks() {
 
   const archiveTaskSeries = async (taskId: string) => {
     try {
-      const { error } = await supabase
-        .from('tasks')
-        .update({ archived_at: new Date().toISOString() })
-        .eq('id', taskId);
-
-      if (error) throw error;
-
+      await archiveTaskSeriesRecord(taskId);
       await loadTasks();
       return true;
     } catch (error) {
@@ -278,29 +128,7 @@ export function useTasks() {
 
   const deleteSeriesFromReminder = async (reminder: RenderableTaskReminder) => {
     try {
-      if (!reminder.isRecurring) {
-        return deleteReminder(reminder);
-      }
-
-      const previousOccurrenceDate = getPreviousOccurrenceDate(reminder.task, reminder.occurrenceDate);
-
-      const updatePayload = previousOccurrenceDate
-        ? {
-            recurrence_end_type: 'until',
-            recurrence_until: previousOccurrenceDate,
-            archived_at: null
-          }
-        : {
-            archived_at: subDays(new Date(`${reminder.occurrenceDate}T00:00:00`), 1).toISOString()
-          };
-
-      const { error } = await supabase
-        .from('tasks')
-        .update(updatePayload)
-        .eq('id', reminder.taskId);
-
-      if (error) throw error;
-
+      await deleteSeriesFromReminderRecord(reminder);
       await loadTasks();
       return true;
     } catch (error) {
