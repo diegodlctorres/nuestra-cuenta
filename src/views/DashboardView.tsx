@@ -4,33 +4,18 @@ import { PawPrint, Layers3, ChevronRight } from 'lucide-react';
 import { AddTransactionForm } from '../components/transactions/AddTransactionForm';
 import { TransactionItem } from '../components/transactions/TransactionItem';
 import { Modal } from '../components/ui/Modal';
-import { Transaction, Category, CoupleSettings, Account } from '../types';
 import { cn, formatCurrency } from '../lib/utils';
 import { getAccountEmoji } from '../lib/accountEmojis';
+import { useFinance } from '../contexts/FinanceContext';
+import { usePetsContext } from '../contexts/PetsContext';
+import { useSettingsContext } from '../contexts/SettingsContext';
+import { useAppNavigation } from '../contexts/AppNavigationContext';
 
-interface DashboardViewProps {
-  pendingPetTasksCount: number;
-  transactions: Transaction[];
-  coupleSettings: CoupleSettings;
-  categories: Category[];
-  accounts: Account[];
-  accountBalances: Record<string, number>;
-  addTransaction: (t: Omit<Transaction, 'id' | 'household_id' | 'created_by'>) => Promise<boolean>;
-  setActiveTab: (tab: 'dashboard' | 'detail' | 'pets' | 'tasks' | 'settings') => void;
-  setSelectedAccountId: (id: string | null) => void;
-}
-
-export function DashboardView({
-  pendingPetTasksCount,
-  transactions,
-  coupleSettings,
-  categories,
-  accounts,
-  accountBalances,
-  addTransaction,
-  setActiveTab,
-  setSelectedAccountId
-}: DashboardViewProps) {
+export function DashboardView() {
+  const { transactions, categories, accounts, accountBalances, addTransaction } = useFinance();
+  const { pendingPetTasksCount } = usePetsContext();
+  const { coupleSettings } = useSettingsContext();
+  const { setActiveTab, setSelectedAccountId } = useAppNavigation();
   const [isAccountsModalOpen, setIsAccountsModalOpen] = useState(false);
   const featuredAccounts = accounts.slice(0, 2);
   const groupedAccounts = accounts.slice(2);

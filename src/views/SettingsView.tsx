@@ -8,42 +8,16 @@ import { EditPetModal } from '../components/pets/EditPetModal';
 import { AddPetForm } from '../components/pets/AddPetForm';
 import { InvitePartnerModal } from '../components/settings/InvitePartnerModal';
 import { useAuth } from '../contexts/AuthContext';
-import { CoupleSettings, Pet, PetTask, Category, Account } from '../types';
+import { Pet } from '../types';
 import { Modal } from '../components/ui/Modal';
+import { useSettingsContext } from '../contexts/SettingsContext';
+import { usePetsContext } from '../contexts/PetsContext';
+import { useFinance } from '../contexts/FinanceContext';
 
-interface SettingsViewProps {
-  coupleSettings: CoupleSettings;
-  setCoupleSettings: (s: CoupleSettings) => Promise<void>;
-  pets: Pet[];
-  petTasks: PetTask[];
-  updatePet: (pet: Pet) => void;
-  deletePet: (id: string) => Promise<boolean>;
-  addPet: (pet: Omit<Pet, 'id' | 'household_id'>) => Promise<boolean>;
-  categories: Category[];
-  addCategory: (name: string, kind: 'income' | 'expense') => void;
-  deleteCategory: (id: string) => void;
-  accounts: Account[];
-  addAccount: (name: string, emoji: string) => void;
-  updateAccount: (id: string, updates: Partial<Account>) => void;
-  deleteAccount: (id: string) => Promise<boolean>;
-}
-
-export function SettingsView({
-  coupleSettings,
-  setCoupleSettings,
-  pets,
-  petTasks,
-  updatePet,
-  deletePet,
-  addPet,
-  categories,
-  addCategory,
-  deleteCategory,
-  accounts,
-  addAccount,
-  updateAccount,
-  deleteAccount
-}: SettingsViewProps) {
+export function SettingsView() {
+  const { coupleSettings, setCoupleSettings } = useSettingsContext();
+  const { pets, petTasks, updatePet, deletePet, addPet } = usePetsContext();
+  const { categories, addCategory, deleteCategory, accounts, addAccount, updateAccount, deleteAccount } = useFinance();
   const THEMES = [
     { id: 'default', name: 'Original', color1: '#6366f1', color2: '#f43f5e' },
     { id: 'oceanic', name: 'Oceánico', color1: '#14b8a6', color2: '#f97316' },

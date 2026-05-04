@@ -339,7 +339,7 @@ export function AddTransactionForm({ onAdd, categories, accounts }: { onAdd: (t:
       <button
         type="button"
         onClick={() => setIsOpen(true)}
-        className="fixed bottom-28 right-6 z-30 flex h-14 w-14 items-center justify-center rounded-full bg-primary-600 text-white shadow-2xl shadow-primary-200 transition-colors hover:bg-primary-700 active:scale-95"
+        className="fixed bottom-[calc(7rem+env(safe-area-inset-bottom,0px))] right-6 z-30 flex h-14 w-14 items-center justify-center rounded-full bg-primary-600 text-white shadow-2xl shadow-primary-200 transition-colors hover:bg-primary-700 active:scale-95"
         aria-label="Nueva transacción"
       >
         <Plus className="w-6 h-6" />

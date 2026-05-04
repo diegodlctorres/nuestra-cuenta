@@ -5,17 +5,9 @@ import { differenceInMonths, format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { AddPetTaskForm } from '../components/pets/AddPetTaskForm';
 import { Modal } from '../components/ui/Modal';
-import { Pet, PetTask, PetTaskInput } from '../types';
+import { Pet, PetTask } from '../types';
 import { cn } from '../lib/utils';
-
-interface PetsViewProps {
-  pets: Pet[];
-  petTasks: PetTask[];
-  addPetTask: (task: PetTaskInput) => Promise<boolean>;
-  completePetTask: (id: string) => Promise<boolean>;
-  reopenPetTask: (id: string) => Promise<boolean>;
-  deletePetTask: (id: string) => Promise<boolean>;
-}
+import { usePetsContext } from '../contexts/PetsContext';
 
 function formatPetAge(birthDate: string) {
   const totalMonths = Math.max(0, differenceInMonths(new Date(), parseISO(birthDate)));
@@ -204,14 +196,8 @@ function PendingPetTaskItem({
   );
 }
 
-export function PetsView({
-  pets,
-  petTasks,
-  addPetTask,
-  completePetTask,
-  reopenPetTask,
-  deletePetTask,
-}: PetsViewProps) {
+export function PetsView() {
+  const { pets, petTasks, addPetTask, completePetTask, reopenPetTask, deletePetTask } = usePetsContext();
   const [selectedTask, setSelectedTask] = useState<PetTask | null>(null);
   const [historyPet, setHistoryPet] = useState<Pet | null>(null);
 
@@ -335,7 +321,7 @@ export function PetsView({
       {/* Task Detail Modal */}
       <AnimatePresence>
         {activeSelectedTask && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center px-6">
+          <div className="fixed inset-0 z-50 flex items-center justify-center px-6 pb-[calc(1.5rem+env(safe-area-inset-bottom,0px))] pt-[calc(1.5rem+env(safe-area-inset-top,0px))]">
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -347,7 +333,7 @@ export function PetsView({
               initial={{ opacity: 0, scale: 0.9, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              className="relative w-full max-w-sm bg-white rounded-3xl p-6 shadow-2xl"
+              className="relative w-full max-w-sm rounded-3xl bg-white p-6 shadow-2xl"
             >
               <div className="flex justify-between items-start mb-6">
                 <div className="p-3 bg-secondary-50 rounded-2xl">
@@ -425,7 +411,7 @@ export function PetsView({
       {/* Full History Modal */}
       <AnimatePresence>
         {historyPet && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center px-6">
+          <div className="fixed inset-0 z-50 flex items-center justify-center px-6 pb-[calc(1.5rem+env(safe-area-inset-bottom,0px))] pt-[calc(1.5rem+env(safe-area-inset-top,0px))]">
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -437,7 +423,7 @@ export function PetsView({
               initial={{ opacity: 0, scale: 0.9, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              className="relative w-full max-w-sm bg-white rounded-3xl p-6 shadow-2xl max-h-[80vh] flex flex-col"
+              className="relative flex max-h-[min(80vh,42rem)] w-full max-w-sm flex-col rounded-3xl bg-white p-6 shadow-2xl"
             >
               <div className="flex justify-between items-center mb-6">
                 <div className="flex items-center gap-3">

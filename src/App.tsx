@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useEffect, useState } from 'react';
+import React, { Suspense, lazy, useEffect, useState } from 'react';
 import {
   Wallet,
   TrendingDown,
@@ -14,189 +14,73 @@ import {
 } from 'lucide-react';
 import { AnimatePresence } from 'motion/react';
 import { NavButton } from './components/ui/NavButton';
-import { DashboardView } from './views/DashboardView';
-import { DetailView } from './views/DetailView';
-import { PetsView } from './views/PetsView';
-import { TasksView } from './views/TasksView';
-import { SettingsView } from './views/SettingsView';
-import { useSettings } from './hooks/useSettings';
-import { useTransactions } from './hooks/useTransactions';
-import { usePets } from './hooks/usePets';
-import { useTasks } from './hooks/useTasks';
 import { useAuth } from './contexts/AuthContext';
-import { AuthView } from './views/AuthView';
-import { OnboardingView } from './views/OnboardingView';
+import { AppNavigationProvider, useAppNavigation } from './contexts/AppNavigationContext';
+import { FinanceProvider } from './contexts/FinanceContext';
+import { PetsProvider } from './contexts/PetsContext';
+import { SettingsProvider, useSettingsContext } from './contexts/SettingsContext';
+import { TasksProvider } from './contexts/TasksContext';
 
+const AuthView = lazy(() => import('./views/AuthView').then(module => ({ default: module.AuthView })));
+const OnboardingView = lazy(() => import('./views/OnboardingView').then(module => ({ default: module.OnboardingView })));
+const DashboardView = lazy(() => import('./views/DashboardView').then(module => ({ default: module.DashboardView })));
+const DetailView = lazy(() => import('./views/DetailView').then(module => ({ default: module.DetailView })));
+const PetsView = lazy(() => import('./views/PetsView').then(module => ({ default: module.PetsView })));
+const TasksView = lazy(() => import('./views/TasksView').then(module => ({ default: module.TasksView })));
+const SettingsView = lazy(() => import('./views/SettingsView').then(module => ({ default: module.SettingsView })));
 
-export default function App() {
-  const { session, householdId, isLoading } = useAuth();
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'detail' | 'pets' | 'tasks' | 'settings'>('dashboard');
-  const [detailSubTab, setDetailSubTab] = useState<'expenses' | 'savings'>('expenses');
-  const [selectedAccountId, setSelectedAccountId] = useState<string | null>(null);
-  const [isRecoveryMode, setIsRecoveryMode] = useState(false);
-
-  const { coupleSettings, setCoupleSettings } = useSettings();
-  const { 
-    transactions, accounts, categories,
-    accountBalances, addTransaction, addCategory, deleteCategory,
-    addAccount, updateAccount, deleteAccount, deleteTransaction
-  } = useTransactions();
-  const { pets, petTasks, pendingPetTasksCount, addPet, updatePet, deletePet, addPetTask, completePetTask, reopenPetTask, deletePetTask } = usePets();
-  const {
-    tasks,
-    addTask,
-    updateTask,
-    completeReminder,
-    reopenReminder,
-    deleteReminder,
-    deleteSeriesFromReminder,
-    archiveTaskSeries,
-    downloadICS,
-    setViewRange
-  } = useTasks();
-
-  useEffect(() => {
-    const updateRecoveryMode = () => {
-      const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ''));
-      const searchParams = new URLSearchParams(window.location.search);
-      const recoveryType = hashParams.get('type') || searchParams.get('type');
-      setIsRecoveryMode(recoveryType === 'recovery');
-    };
-
-    updateRecoveryMode();
-    window.addEventListener('hashchange', updateRecoveryMode);
-
-    return () => window.removeEventListener('hashchange', updateRecoveryMode);
-  }, []);
-
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-6 text-slate-900">
-        <div className="animate-spin text-primary-500"><ArrowRightLeft className="w-8 h-8" /></div>
+function AppShellFallback() {
+  return (
+    <div className="flex min-h-[40vh] items-center justify-center px-6 py-12 text-slate-500">
+      <div className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
+        <ArrowRightLeft className="h-5 w-5 animate-spin text-primary-500" />
+        <span className="text-sm font-semibold">Cargando vista...</span>
       </div>
-    );
-  }
+    </div>
+  );
+}
 
-  if (isRecoveryMode) {
-    return (
-      <AuthView
-        recoveryMode
-        onRecoveryComplete={() => {
-          window.history.replaceState({}, document.title, window.location.pathname);
-          setIsRecoveryMode(false);
-        }}
-      />
-    );
-  }
-
-  if (!session) {
-    return <AuthView />;
-  }
-
-  if (!householdId) {
-    return <OnboardingView />;
-  }
+function HouseholdShell() {
+  const { activeTab, setActiveTab } = useAppNavigation();
+  const { coupleSettings } = useSettingsContext();
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 font-sans pb-24">
-      {/* Header */}
-      <header className="bg-white border-b border-slate-200 sticky top-0 z-10 px-6 py-4">
-        <div className="max-w-md mx-auto flex justify-between items-center">
-          <h1 className="text-xl font-bold tracking-tight text-primary-600 flex items-center gap-2">
-            <ArrowRightLeft className="w-6 h-6" />
-            Nuestra Cuenta
-          </h1>
-          {(coupleSettings.partner1.photoUrl || coupleSettings.partner2.photoUrl) && (
-            <div className="flex gap-2">
-              {coupleSettings.partner1.photoUrl && (
-                <img src={coupleSettings.partner1.photoUrl} alt="P1" className="w-8 h-8 rounded-full object-cover border-2 border-primary-100" />
-              )}
-              {coupleSettings.partner2.photoUrl && (
-                <img src={coupleSettings.partner2.photoUrl} alt="P2" className="w-8 h-8 rounded-full object-cover border-2 border-secondary-100" />
-              )}
-            </div>
-          )}
+    <div className="min-h-[100dvh] bg-slate-50 text-slate-900 font-sans pb-[calc(6rem+env(safe-area-inset-bottom,0px))]">
+      <header className="sticky top-0 z-10 border-b border-slate-200 bg-white/95 px-safe pt-safe backdrop-blur">
+        <div className="px-6 py-4">
+          <div className="max-w-md mx-auto flex justify-between items-center">
+            <h1 className="text-xl font-bold tracking-tight text-primary-600 flex items-center gap-2">
+              <ArrowRightLeft className="w-6 h-6" />
+              Nuestra Cuenta
+            </h1>
+            {(coupleSettings.partner1.photoUrl || coupleSettings.partner2.photoUrl) && (
+              <div className="flex gap-2">
+                {coupleSettings.partner1.photoUrl && (
+                  <img src={coupleSettings.partner1.photoUrl} alt="P1" referrerPolicy="no-referrer" className="w-8 h-8 rounded-full object-cover border-2 border-primary-100" />
+                )}
+                {coupleSettings.partner2.photoUrl && (
+                  <img src={coupleSettings.partner2.photoUrl} alt="P2" referrerPolicy="no-referrer" className="w-8 h-8 rounded-full object-cover border-2 border-secondary-100" />
+                )}
+              </div>
+            )}
+          </div>
         </div>
       </header>
 
       <main className="max-w-md mx-auto px-6 py-8">
-        <AnimatePresence mode="wait">
-
-          {activeTab === 'dashboard' && (
-            <DashboardView
-              pendingPetTasksCount={pendingPetTasksCount}
-              transactions={transactions}
-              coupleSettings={coupleSettings}
-              categories={categories}
-              accounts={accounts}
-              accountBalances={accountBalances}
-              addTransaction={addTransaction}
-              setActiveTab={setActiveTab}
-              setSelectedAccountId={setSelectedAccountId}
-            />
-          )}
-          {activeTab === 'detail' && (
-            <DetailView
-              selectedAccountId={selectedAccountId}
-              setSelectedAccountId={setSelectedAccountId}
-              transactions={transactions}
-              accounts={accounts}
-              accountBalances={accountBalances}
-              coupleSettings={coupleSettings}
-              deleteTransaction={deleteTransaction}
-            />
-          )}
-          {activeTab === 'pets' && (
-            <PetsView
-              pets={pets}
-              petTasks={petTasks}
-              addPetTask={addPetTask}
-              completePetTask={completePetTask}
-              reopenPetTask={reopenPetTask}
-              deletePetTask={deletePetTask}
-            />
-          )}
-          {activeTab === 'tasks' && (
-            <TasksView
-              tasks={tasks}
-              addTask={addTask}
-              updateTask={updateTask}
-              completeReminder={completeReminder}
-              reopenReminder={reopenReminder}
-              deleteReminder={deleteReminder}
-              deleteSeriesFromReminder={deleteSeriesFromReminder}
-              archiveTaskSeries={archiveTaskSeries}
-              downloadICS={downloadICS}
-              setViewRange={setViewRange}
-              addTransaction={addTransaction}
-              categories={categories}
-              accounts={accounts}
-            />
-          )}
-          {activeTab === 'settings' && (
-            <SettingsView
-              coupleSettings={coupleSettings}
-              setCoupleSettings={setCoupleSettings}
-              pets={pets}
-              petTasks={petTasks}
-              updatePet={updatePet}
-              deletePet={deletePet}
-              addPet={addPet}
-              categories={categories}
-              addCategory={addCategory}
-              deleteCategory={deleteCategory}
-              accounts={accounts}
-              addAccount={addAccount}
-              updateAccount={updateAccount}
-              deleteAccount={deleteAccount}
-            />
-          )}
-        </AnimatePresence>
+        <Suspense fallback={<AppShellFallback />}>
+          <AnimatePresence mode="wait">
+            {activeTab === 'dashboard' && <DashboardView />}
+            {activeTab === 'detail' && <DetailView />}
+            {activeTab === 'pets' && <PetsView />}
+            {activeTab === 'tasks' && <TasksView />}
+            {activeTab === 'settings' && <SettingsView />}
+          </AnimatePresence>
+        </Suspense>
       </main>
 
-      {/* Navigation Bar */}
-      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 px-6 py-3 pb-8 z-20">
-        <div className="max-w-md mx-auto flex justify-between items-center">
+      <nav className="fixed bottom-0 left-0 right-0 z-20 border-t border-slate-200 bg-white/95 px-safe backdrop-blur">
+        <div className="max-w-md mx-auto flex justify-between items-center px-6 py-3 pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))]">
           <NavButton
             active={activeTab === 'dashboard'}
             onClick={() => setActiveTab('dashboard')}
@@ -230,5 +114,77 @@ export default function App() {
         </div>
       </nav>
     </div>
+  );
+}
+
+
+export default function App() {
+  const { session, householdId, isLoading } = useAuth();
+  const [isRecoveryMode, setIsRecoveryMode] = useState(false);
+
+  useEffect(() => {
+    const updateRecoveryMode = () => {
+      const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ''));
+      const searchParams = new URLSearchParams(window.location.search);
+      const recoveryType = hashParams.get('type') || searchParams.get('type');
+      setIsRecoveryMode(recoveryType === 'recovery');
+    };
+
+    updateRecoveryMode();
+    window.addEventListener('hashchange', updateRecoveryMode);
+
+    return () => window.removeEventListener('hashchange', updateRecoveryMode);
+  }, []);
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-6 text-slate-900">
+        <div className="animate-spin text-primary-500"><ArrowRightLeft className="w-8 h-8" /></div>
+      </div>
+    );
+  }
+
+  if (isRecoveryMode) {
+    return (
+      <Suspense fallback={<AppShellFallback />}>
+        <AuthView
+          recoveryMode
+          onRecoveryComplete={() => {
+            window.history.replaceState({}, document.title, window.location.pathname);
+            setIsRecoveryMode(false);
+          }}
+        />
+      </Suspense>
+    );
+  }
+
+  if (!session) {
+    return (
+      <Suspense fallback={<AppShellFallback />}>
+        <AuthView />
+      </Suspense>
+    );
+  }
+
+  if (!householdId) {
+    return (
+      <Suspense fallback={<AppShellFallback />}>
+        <OnboardingView />
+      </Suspense>
+    );
+  }
+
+  return (
+    <SettingsProvider>
+      <FinanceProvider>
+        <PetsProvider>
+          <TasksProvider>
+            <AppNavigationProvider>
+              <HouseholdShell />
+            </AppNavigationProvider>
+          </TasksProvider>
+        </PetsProvider>
+      </FinanceProvider>
+    </SettingsProvider>
   );
 }

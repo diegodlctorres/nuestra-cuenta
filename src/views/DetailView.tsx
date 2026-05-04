@@ -5,28 +5,15 @@ import { parseISO } from 'date-fns';
 import { MonthlyBalanceButton } from '../components/transactions/MonthlyBalanceButton';
 import { TransactionItem } from '../components/transactions/TransactionItem';
 import { cn, formatCurrency } from '../lib/utils';
-import { Transaction, Account, CoupleSettings } from '../types';
 import { getAccountEmoji } from '../lib/accountEmojis';
+import { useFinance } from '../contexts/FinanceContext';
+import { useSettingsContext } from '../contexts/SettingsContext';
+import { useAppNavigation } from '../contexts/AppNavigationContext';
 
-interface DetailViewProps {
-  selectedAccountId: string | null;
-  setSelectedAccountId: (id: string | null) => void;
-  transactions: Transaction[];
-  accounts: Account[];
-  accountBalances: Record<string, number>;
-  coupleSettings: CoupleSettings;
-  deleteTransaction: (id: string) => void;
-}
-
-export function DetailView({
-  selectedAccountId,
-  setSelectedAccountId,
-  transactions,
-  accounts,
-  accountBalances,
-  coupleSettings,
-  deleteTransaction
-}: DetailViewProps) {
+export function DetailView() {
+  const { transactions, accounts, accountBalances, deleteTransaction } = useFinance();
+  const { coupleSettings } = useSettingsContext();
+  const { selectedAccountId, setSelectedAccountId } = useAppNavigation();
   
   // Si no hay cuenta seleccionada, seleccionamos la primera disponible
   useEffect(() => {

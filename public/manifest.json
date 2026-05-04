@@ -1,21 +1,27 @@
 {
-  "short_name": "NuestraCuenta",
-  "name": "Nuestra Cuenta - Gastos en Pareja",
+  "id": "/",
+  "short_name": "Nuestra Cuenta",
+  "name": "Nuestra Cuenta - Hogar Compartido",
+  "description": "Finanzas, recordatorios y mascotas para un hogar compartido.",
+  "lang": "es-PE",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#f8fafc",
+  "theme_color": "#4f46e5",
   "icons": [
     {
-      "src": "https://picsum.photos/seed/money/192/192",
-      "type": "image/png",
-      "sizes": "192x192"
+      "src": "/icon-192.svg",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
     },
     {
-      "src": "https://picsum.photos/seed/money/512/512",
-      "type": "image/png",
-      "sizes": "512x512"
+      "src": "/icon-512.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
     }
-  ],
-  "start_url": "/",
-  "background_color": "#ffffff",
-  "display": "standalone",
-  "theme_color": "#4f46e5",
-  "description": "Gestiona gastos, ahorros y tareas en pareja."
+  ]
 }

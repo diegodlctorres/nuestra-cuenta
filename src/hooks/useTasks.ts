@@ -90,9 +90,6 @@ export function useTasks() {
   useEffect(() => {
     if (!viewRange) return;
     loadTasks();
-    const handleFocus = () => loadTasks();
-    window.addEventListener('focus', handleFocus);
-    return () => window.removeEventListener('focus', handleFocus);
   }, [loadTasks, viewRange]);
 
   const addTask = async (task: TaskInput): Promise<TaskMutationResult> => {

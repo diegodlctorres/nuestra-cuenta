@@ -30,28 +30,14 @@ import { AddTaskForm, TaskFormModal } from '../components/tasks/AddTaskForm';
 import { TransactionModal } from '../components/transactions/AddTransactionForm';
 import { Modal } from '../components/ui/Modal';
 import { cn } from '../lib/utils';
-import { ReminderViewRange, TaskMutationResult } from '../hooks/useTasks';
-import { Account, Category, RenderableTaskReminder, TaskInput, Transaction } from '../types';
+import { ReminderViewRange } from '../hooks/useTasks';
+import { RenderableTaskReminder, Transaction } from '../types';
 import { buildTaskInputFromTask } from '../lib/taskRecurrence';
+import { useTasksContext } from '../contexts/TasksContext';
+import { useFinance } from '../contexts/FinanceContext';
 
 type ReminderPeriod = 'month' | 'week';
 type DeleteMode = 'single' | 'series';
-
-interface TasksViewProps {
-  tasks: RenderableTaskReminder[];
-  addTask: (task: TaskInput) => Promise<TaskMutationResult>;
-  updateTask: (taskId: string, task: TaskInput) => Promise<TaskMutationResult>;
-  completeReminder: (reminder: RenderableTaskReminder) => Promise<boolean>;
-  reopenReminder: (reminder: RenderableTaskReminder) => Promise<boolean>;
-  deleteReminder: (reminder: RenderableTaskReminder) => Promise<boolean>;
-  deleteSeriesFromReminder: (reminder: RenderableTaskReminder) => Promise<boolean>;
-  archiveTaskSeries: (taskId: string) => Promise<boolean>;
-  downloadICS: (reminder: RenderableTaskReminder) => void;
-  setViewRange: (range: ReminderViewRange) => void;
-  addTransaction: (t: Omit<Transaction, 'id' | 'household_id' | 'created_by'>) => Promise<boolean>;
-  categories: Category[];
-  accounts: Account[];
-}
 
 function getRangeForPeriod(period: ReminderPeriod, cursorDate: Date): ReminderViewRange {
   if (period === 'week') {
@@ -348,21 +334,20 @@ function TaskItem({
   );
 }
 
-export function TasksView({
-  tasks,
-  addTask,
-  updateTask,
-  completeReminder,
-  reopenReminder,
-  deleteReminder,
-  deleteSeriesFromReminder,
-  archiveTaskSeries,
-  downloadICS,
-  setViewRange,
-  addTransaction,
-  categories,
-  accounts
-}: TasksViewProps) {
+export function TasksView() {
+  const {
+    tasks,
+    addTask,
+    updateTask,
+    completeReminder,
+    reopenReminder,
+    deleteReminder,
+    deleteSeriesFromReminder,
+    archiveTaskSeries,
+    downloadICS,
+    setViewRange
+  } = useTasksContext();
+  const { addTransaction, categories, accounts } = useFinance();
   const [selectedReminderId, setSelectedReminderId] = useState<string | null>(null);
   const [transactionReminderId, setTransactionReminderId] = useState<string | null>(null);
   const [editingReminderId, setEditingReminderId] = useState<string | null>(null);

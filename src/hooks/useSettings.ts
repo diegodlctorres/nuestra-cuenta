@@ -175,12 +175,16 @@ export function useSettings() {
         }
       }
 
-      await refreshProfile();
-      await loadHouseholdProfiles();
+      await Promise.all([
+        refreshProfile(),
+        loadHouseholdProfiles()
+      ]);
     } catch (error) {
       console.error('Error saving couple settings:', error);
-      await loadHouseholdTheme();
-      await loadHouseholdProfiles();
+      await Promise.all([
+        loadHouseholdTheme(),
+        loadHouseholdProfiles()
+      ]);
     }
   }, [coupleSettings.theme, householdId, loadHouseholdProfiles, loadHouseholdTheme, refreshProfile, user]);
 

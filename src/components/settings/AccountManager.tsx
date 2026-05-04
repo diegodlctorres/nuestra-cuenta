@@ -152,7 +152,7 @@ export function AccountManager({ accounts, onAdd, onDelete, onUpdate }: AccountM
           </button>
           <input
             type="text"
-            placeholder="Nombre (ej: BCP, BBVA, Efectivo)"
+            placeholder="Nombre (ej: BCP, BBVA)"
             className="flex-1 p-3 bg-slate-50 rounded-xl border-none text-sm focus:ring-2 focus:ring-primary-500"
             value={newName}
             onChange={e => setNewName(e.target.value)}

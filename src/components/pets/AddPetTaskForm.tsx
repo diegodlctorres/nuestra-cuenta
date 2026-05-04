@@ -103,7 +103,7 @@ export function AddPetTaskForm({ pets, onAdd }: { pets: Pet[], onAdd: (t: PetTas
       <button
         type="button"
         onClick={() => setIsOpen(true)}
-        className="fixed bottom-28 right-6 z-30 flex h-14 w-14 items-center justify-center rounded-full bg-secondary-500 text-white shadow-2xl shadow-secondary-200 transition-colors hover:bg-secondary-600 active:scale-95"
+        className="fixed bottom-[calc(7rem+env(safe-area-inset-bottom,0px))] right-6 z-30 flex h-14 w-14 items-center justify-center rounded-full bg-secondary-500 text-white shadow-2xl shadow-secondary-200 transition-colors hover:bg-secondary-600 active:scale-95"
         aria-label="Nueva tarea de mascota"
       >
         <Plus className="w-6 h-6" />
