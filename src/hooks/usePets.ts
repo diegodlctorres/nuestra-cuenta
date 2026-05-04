@@ -229,6 +229,22 @@ export function usePets() {
     }
   };
 
+  const deletePetTask = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from('pet_tasks')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+      setPetTasks(currentPetTasks => currentPetTasks.filter(task => task.id !== id));
+      return true;
+    } catch (error) {
+      console.error('Error deleting pet task:', error);
+      return false;
+    }
+  };
+
   return { 
     pets, 
     petTasks, 
@@ -240,6 +256,7 @@ export function usePets() {
     addPetTask, 
     completePetTask,
     reopenPetTask,
+    deletePetTask,
     isLoading 
   };
 }

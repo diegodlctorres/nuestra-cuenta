@@ -1,27 +1,199 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { PawPrint, Clock, Calendar, History, CheckCircle2, Trash2, Plus, RotateCcw } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { AddPetTaskForm } from '../components/pets/AddPetTaskForm';
+import { Modal } from '../components/ui/Modal';
 import { Pet, PetTask, PetTaskInput } from '../types';
+import { cn } from '../lib/utils';
 
 interface PetsViewProps {
   pets: Pet[];
   petTasks: PetTask[];
-  setPetTasks: (tasks: PetTask[]) => void;
   addPetTask: (task: PetTaskInput) => Promise<boolean>;
   completePetTask: (id: string) => Promise<boolean>;
   reopenPetTask: (id: string) => Promise<boolean>;
+  deletePetTask: (id: string) => Promise<boolean>;
+}
+
+function PendingPetTaskItem({
+  task,
+  onOpen,
+  onComplete,
+  onDelete
+}: {
+  task: PetTask;
+  onOpen: () => void;
+  onComplete: () => void;
+  onDelete: () => Promise<boolean>;
+}) {
+  const [offsetX, setOffsetX] = useState(0);
+  const [isSwipeOpen, setIsSwipeOpen] = useState(false);
+  const [isDesktopDeleteVisible, setIsDesktopDeleteVisible] = useState(false);
+  const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
+  const startXRef = useRef<number | null>(null);
+  const dragStartOffsetRef = useRef(0);
+  const pointerTypeRef = useRef<string | null>(null);
+  const SWIPE_ACTION_WIDTH = 96;
+  const SWIPE_THRESHOLD = 48;
+
+  const handlePointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
+    pointerTypeRef.current = event.pointerType;
+    if (event.pointerType === 'mouse') return;
+    startXRef.current = event.clientX;
+    dragStartOffsetRef.current = offsetX;
+  };
+
+  const handlePointerMove = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (startXRef.current === null || pointerTypeRef.current === 'mouse') return;
+    const deltaX = event.clientX - startXRef.current;
+    const nextOffset = Math.max(-SWIPE_ACTION_WIDTH, Math.min(0, dragStartOffsetRef.current + deltaX));
+    setOffsetX(nextOffset);
+  };
+
+  const handlePointerEnd = () => {
+    if (pointerTypeRef.current === 'mouse') {
+      pointerTypeRef.current = null;
+      return;
+    }
+    if (startXRef.current === null) return;
+    const shouldOpen = offsetX <= -SWIPE_THRESHOLD;
+    setOffsetX(shouldOpen ? -SWIPE_ACTION_WIDTH : 0);
+    setIsSwipeOpen(shouldOpen);
+    startXRef.current = null;
+    pointerTypeRef.current = null;
+  };
+
+  const closeSwipe = () => {
+    setOffsetX(0);
+    setIsSwipeOpen(false);
+  };
+
+  const handleDelete = async () => {
+    const wasDeleted = await onDelete();
+    if (wasDeleted) {
+      closeSwipe();
+      setIsDeleteConfirmOpen(false);
+    }
+  };
+
+  const openDeleteConfirm = () => setIsDeleteConfirmOpen(true);
+
+  return (
+    <div className="relative overflow-hidden rounded-xl">
+      <div className="absolute inset-y-0 right-0 flex items-stretch">
+        <button
+          type="button"
+          onClick={openDeleteConfirm}
+          className="w-24 bg-secondary-600 text-white text-xs font-bold uppercase tracking-wider"
+        >
+          Eliminar
+        </button>
+      </div>
+      <div
+        className="bg-slate-50 p-3 rounded-xl flex justify-between items-center transition-transform touch-pan-y group"
+        style={{ transform: `translateX(${offsetX}px)`, touchAction: 'pan-y' }}
+        onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
+        onPointerUp={handlePointerEnd}
+        onPointerCancel={handlePointerEnd}
+        onPointerLeave={handlePointerEnd}
+        onMouseEnter={() => setIsDesktopDeleteVisible(true)}
+        onMouseLeave={() => setIsDesktopDeleteVisible(false)}
+        onClick={() => {
+          if (isSwipeOpen) closeSwipe();
+        }}
+      >
+        <button
+          type="button"
+          onClick={onOpen}
+          className="flex-1 text-left min-w-0"
+        >
+          <div className="text-sm font-bold text-slate-700 truncate">{task.title}</div>
+          <div className="text-[10px] text-slate-500 flex items-center gap-1">
+            <Calendar className="w-3 h-3" />
+            {format(parseISO(task.scheduled_date), 'dd MMM yyyy', { locale: es })}
+            {task.scheduled_time && ` • ${task.scheduled_time}`}
+          </div>
+        </button>
+        <button
+          type="button"
+          onClick={onComplete}
+          className="p-2 bg-emerald-500 text-white rounded-lg shadow-sm ml-2 shrink-0"
+          aria-label="Completar tarea"
+        >
+          <CheckCircle2 className="w-4 h-4" />
+        </button>
+        <button
+          type="button"
+          onClick={(event) => {
+            event.stopPropagation();
+            openDeleteConfirm();
+          }}
+          className={cn(
+            "ml-2 shrink-0 rounded-lg border border-slate-200 bg-white p-2 text-slate-400 transition-all",
+            isDesktopDeleteVisible ? "opacity-100 pointer-events-auto hover:border-secondary-200 hover:bg-secondary-50 hover:text-secondary-600" : "opacity-0 pointer-events-none"
+          )}
+          aria-label="Eliminar tarea"
+          title="Eliminar tarea"
+        >
+          <Trash2 className="w-4 h-4" />
+        </button>
+      </div>
+
+      <Modal
+        isOpen={isDeleteConfirmOpen}
+        onClose={() => setIsDeleteConfirmOpen(false)}
+        title="Confirmar eliminación"
+      >
+        <div className="space-y-5">
+          <div className="rounded-2xl border border-secondary-100 bg-secondary-50 p-4">
+            <p className="text-sm font-semibold text-secondary-700">
+              Vas a eliminar esta tarea de mascota.
+            </p>
+            <p className="mt-2 text-sm text-secondary-600">
+              Esta acción no se puede deshacer.
+            </p>
+          </div>
+
+          <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
+            <div className="text-sm font-bold text-slate-800 truncate">{task.title}</div>
+            <div className="mt-2 text-xs text-slate-500">
+              {format(parseISO(task.scheduled_date), 'dd/MM/yyyy')}
+              {task.scheduled_time && ` • ${task.scheduled_time}`}
+            </div>
+          </div>
+
+          <div className="flex gap-3">
+            <button
+              type="button"
+              onClick={() => setIsDeleteConfirmOpen(false)}
+              className="flex-1 rounded-2xl border border-slate-200 bg-white py-3 text-sm font-bold text-slate-600 transition-colors hover:bg-slate-50"
+            >
+              Cancelar
+            </button>
+            <button
+              type="button"
+              onClick={handleDelete}
+              className="flex-1 rounded-2xl bg-secondary-600 py-3 text-sm font-bold text-white shadow-lg shadow-secondary-100 transition-colors hover:bg-secondary-700"
+            >
+              Eliminar
+            </button>
+          </div>
+        </div>
+      </Modal>
+    </div>
+  );
 }
 
 export function PetsView({
   pets,
   petTasks,
-  setPetTasks,
   addPetTask,
   completePetTask,
   reopenPetTask,
+  deletePetTask,
 }: PetsViewProps) {
   const [selectedTask, setSelectedTask] = useState<PetTask | null>(null);
   const [historyPet, setHistoryPet] = useState<Pet | null>(null);
@@ -86,25 +258,13 @@ export function PetsView({
                   </h4>
                   <div className="space-y-2">
                     {tasksForPet.map(task => (
-                      <div key={task.id} className="bg-slate-50 p-3 rounded-xl flex justify-between items-center">
-                        <button
-                          onClick={() => setSelectedTask(task)}
-                          className="flex-1 text-left"
-                        >
-                          <div className="text-sm font-bold text-slate-700">{task.title}</div>
-                          <div className="text-[10px] text-slate-500 flex items-center gap-1">
-                            <Calendar className="w-3 h-3" />
-                            {format(parseISO(task.scheduled_date), 'dd MMM yyyy', { locale: es })}
-                            {task.scheduled_time && ` • ${task.scheduled_time}`}
-                          </div>
-                        </button>
-                        <button
-                          onClick={() => completePetTask(task.id)}
-                          className="p-2 bg-emerald-500 text-white rounded-lg shadow-sm ml-2"
-                        >
-                          <CheckCircle2 className="w-4 h-4" />
-                        </button>
-                      </div>
+                      <PendingPetTaskItem
+                        key={task.id}
+                        task={task}
+                        onOpen={() => setSelectedTask(task)}
+                        onComplete={() => completePetTask(task.id)}
+                        onDelete={() => deletePetTask(task.id)}
+                      />
                     ))}
                     {tasksForPet.length === 0 && (
                       <p className="text-xs text-slate-400 italic">No hay tareas pendientes</p>
@@ -176,8 +336,9 @@ export function PetsView({
                   <PawPrint className="w-6 h-6 text-secondary-500" />
                 </div>
                 <button onClick={() => {
-                  setPetTasks(petTasks.filter(t => t.id !== activeSelectedTask.id));
-                  setSelectedTask(null);
+                  deletePetTask(activeSelectedTask.id).then(wasDeleted => {
+                    if (wasDeleted) setSelectedTask(null);
+                  });
                 }} className="p-2 text-slate-400 hover:text-secondary-600 transition-colors">
                   <Trash2 className="w-5 h-5" />
                 </button>

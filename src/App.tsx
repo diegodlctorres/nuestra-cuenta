@@ -41,7 +41,7 @@ export default function App() {
     accountBalances, addTransaction, addCategory, deleteCategory,
     addAccount, updateAccount, deleteAccount, deleteTransaction
   } = useTransactions();
-  const { pets, petTasks, setPetTasks, pendingPetTasksCount, addPet, updatePet, deletePet, addPetTask, completePetTask, reopenPetTask } = usePets();
+  const { pets, petTasks, pendingPetTasksCount, addPet, updatePet, deletePet, addPetTask, completePetTask, reopenPetTask, deletePetTask } = usePets();
   const { tasks, addTask, toggleTask, downloadICS } = useTasks();
 
   useEffect(() => {
@@ -139,10 +139,10 @@ export default function App() {
             <PetsView
               pets={pets}
               petTasks={petTasks}
-              setPetTasks={setPetTasks}
               addPetTask={addPetTask}
               completePetTask={completePetTask}
               reopenPetTask={reopenPetTask}
+              deletePetTask={deletePetTask}
             />
           )}
           {activeTab === 'tasks' && (
