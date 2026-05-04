@@ -9,6 +9,9 @@ export type CategoryKind = 'income' | 'expense';
 export type MemberRole = 'admin' | 'member';
 export type MemberStatus = 'active' | 'inactive';
 export type InvitationStatus = 'pending' | 'accepted' | 'expired' | 'revoked';
+export type RecurrenceUnit = 'day' | 'week' | 'month' | 'year';
+export type RecurrenceEndType = 'never' | 'until';
+export type TaskOccurrenceStatus = 'pending' | 'completed' | 'skipped' | 'deleted';
 
 export interface Household {
   id: string;
@@ -136,4 +139,51 @@ export interface Task {
   due_time?: string;
   completed: boolean;
   requires_transaction?: boolean;
+  is_recurring: boolean;
+  recurrence_unit?: RecurrenceUnit | null;
+  recurrence_interval?: number | null;
+  recurrence_end_type?: RecurrenceEndType | null;
+  recurrence_until?: string | null;
+  series_anchor_date?: string | null;
+  archived_at?: string | null;
+}
+
+export interface TaskInput {
+  title: string;
+  deadline: string;
+  due_time?: string;
+  requires_transaction?: boolean;
+  is_recurring: boolean;
+  recurrence_unit?: RecurrenceUnit | null;
+  recurrence_interval?: number | null;
+  recurrence_end_type?: RecurrenceEndType | null;
+  recurrence_until?: string | null;
+  series_anchor_date?: string | null;
+}
+
+export interface TaskOccurrence {
+  id: string;
+  task_id: string;
+  occurrence_date: string;
+  occurrence_due_time?: string | null;
+  status: TaskOccurrenceStatus;
+  completed_at?: string | null;
+  requires_transaction_snapshot?: boolean | null;
+  created_at?: string;
+}
+
+export interface RenderableTaskReminder {
+  id: string;
+  taskId: string;
+  title: string;
+  occurrenceDate: string;
+  occurrenceDueTime?: string;
+  completed: boolean;
+  requiresTransaction: boolean;
+  isRecurring: boolean;
+  sourceStatus: TaskOccurrenceStatus;
+  completedAt?: string | null;
+  recurrenceLabel?: string;
+  recurrenceDescription?: string;
+  task: Task;
 }

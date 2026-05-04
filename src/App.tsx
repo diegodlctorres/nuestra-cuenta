@@ -42,7 +42,18 @@ export default function App() {
     addAccount, updateAccount, deleteAccount, deleteTransaction
   } = useTransactions();
   const { pets, petTasks, pendingPetTasksCount, addPet, updatePet, deletePet, addPetTask, completePetTask, reopenPetTask, deletePetTask } = usePets();
-  const { tasks, addTask, toggleTask, deleteTask, downloadICS } = useTasks();
+  const {
+    tasks,
+    addTask,
+    updateTask,
+    completeReminder,
+    reopenReminder,
+    deleteReminder,
+    deleteSeriesFromReminder,
+    archiveTaskSeries,
+    downloadICS,
+    setViewRange
+  } = useTasks();
 
   useEffect(() => {
     const updateRecoveryMode = () => {
@@ -149,9 +160,14 @@ export default function App() {
             <TasksView
               tasks={tasks}
               addTask={addTask}
-              toggleTask={toggleTask}
-              deleteTask={deleteTask}
+              updateTask={updateTask}
+              completeReminder={completeReminder}
+              reopenReminder={reopenReminder}
+              deleteReminder={deleteReminder}
+              deleteSeriesFromReminder={deleteSeriesFromReminder}
+              archiveTaskSeries={archiveTaskSeries}
               downloadICS={downloadICS}
+              setViewRange={setViewRange}
               addTransaction={addTransaction}
               categories={categories}
               accounts={accounts}
