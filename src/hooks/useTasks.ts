@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../contexts/AuthContext';
 import {
@@ -31,6 +31,7 @@ export function useTasks() {
   const { householdId } = useAuth();
   const [viewRange, setViewRange] = useState<ReminderViewRange | null>(null);
   const queryClient = useQueryClient();
+  const taskQueryPrefix = ['tasks', householdId] as const;
 
   const tasksQuery = useQuery({
     queryKey: queryKeys.tasks(householdId, viewRange),
@@ -41,8 +42,29 @@ export function useTasks() {
   const tasks = tasksQuery.data || [];
   const isLoading = tasksQuery.isLoading;
   const invalidateTasks = useCallback(() => (
-    queryClient.invalidateQueries({ queryKey: ['tasks', householdId] })
+    queryClient.invalidateQueries({ queryKey: taskQueryPrefix })
   ), [householdId, queryClient]);
+
+  const updateTaskQueries = useCallback((
+    updater: (reminders: RenderableTaskReminder[]) => RenderableTaskReminder[]
+  ) => {
+    queryClient.setQueriesData<RenderableTaskReminder[]>(
+      { queryKey: taskQueryPrefix },
+      (current) => current ? updater(current) : current
+    );
+  }, [queryClient, taskQueryPrefix]);
+
+  const snapshotTaskQueries = useCallback(() => (
+    queryClient.getQueriesData<RenderableTaskReminder[]>({ queryKey: taskQueryPrefix })
+  ), [queryClient, taskQueryPrefix]);
+
+  const restoreTaskQueries = useCallback((
+    snapshots: Array<[readonly unknown[], RenderableTaskReminder[] | undefined]>
+  ) => {
+    snapshots.forEach(([queryKey, data]) => {
+      queryClient.setQueryData(queryKey, data);
+    });
+  }, [queryClient]);
 
   const addTaskMutation = useMutation({
     mutationFn: (task: TaskInput) => createTask(householdId!, task),
@@ -84,7 +106,29 @@ export function useTasks() {
 
   const completeReminderMutation = useMutation({
     mutationFn: completeReminderRecord,
-    onSuccess: invalidateTasks
+    onMutate: async (reminder) => {
+      await queryClient.cancelQueries({ queryKey: taskQueryPrefix });
+      const previous = snapshotTaskQueries();
+
+      updateTaskQueries((reminders) => reminders.map((entry) => (
+        entry.id === reminder.id
+          ? {
+              ...entry,
+              completed: true,
+              sourceStatus: 'completed',
+              completedAt: new Date().toISOString()
+            }
+          : entry
+      )));
+
+      return { previous };
+    },
+    onError: (_error, _reminder, context) => {
+      if (context?.previous) {
+        restoreTaskQueries(context.previous);
+      }
+    },
+    onSettled: invalidateTasks
   });
 
   const completeReminder = async (reminder: RenderableTaskReminder) => {
@@ -99,7 +143,29 @@ export function useTasks() {
 
   const reopenReminderMutation = useMutation({
     mutationFn: reopenReminderRecord,
-    onSuccess: invalidateTasks
+    onMutate: async (reminder) => {
+      await queryClient.cancelQueries({ queryKey: taskQueryPrefix });
+      const previous = snapshotTaskQueries();
+
+      updateTaskQueries((reminders) => reminders.map((entry) => (
+        entry.id === reminder.id
+          ? {
+              ...entry,
+              completed: false,
+              sourceStatus: 'pending',
+              completedAt: null
+            }
+          : entry
+      )));
+
+      return { previous };
+    },
+    onError: (_error, _reminder, context) => {
+      if (context?.previous) {
+        restoreTaskQueries(context.previous);
+      }
+    },
+    onSettled: invalidateTasks
   });
 
   const reopenReminder = async (reminder: RenderableTaskReminder) => {
@@ -114,7 +180,20 @@ export function useTasks() {
 
   const deleteReminderMutation = useMutation({
     mutationFn: deleteReminderRecord,
-    onSuccess: invalidateTasks
+    onMutate: async (reminder) => {
+      await queryClient.cancelQueries({ queryKey: taskQueryPrefix });
+      const previous = snapshotTaskQueries();
+
+      updateTaskQueries((reminders) => reminders.filter((entry) => entry.id !== reminder.id));
+
+      return { previous };
+    },
+    onError: (_error, _reminder, context) => {
+      if (context?.previous) {
+        restoreTaskQueries(context.previous);
+      }
+    },
+    onSettled: invalidateTasks
   });
 
   const deleteReminder = async (reminder: RenderableTaskReminder) => {
@@ -129,7 +208,20 @@ export function useTasks() {
 
   const archiveTaskSeriesMutation = useMutation({
     mutationFn: archiveTaskSeriesRecord,
-    onSuccess: invalidateTasks
+    onMutate: async (taskId) => {
+      await queryClient.cancelQueries({ queryKey: taskQueryPrefix });
+      const previous = snapshotTaskQueries();
+
+      updateTaskQueries((reminders) => reminders.filter((entry) => entry.taskId !== taskId));
+
+      return { previous };
+    },
+    onError: (_error, _taskId, context) => {
+      if (context?.previous) {
+        restoreTaskQueries(context.previous);
+      }
+    },
+    onSettled: invalidateTasks
   });
 
   const archiveTaskSeries = async (taskId: string) => {
@@ -144,7 +236,20 @@ export function useTasks() {
 
   const deleteSeriesFromReminderMutation = useMutation({
     mutationFn: deleteSeriesFromReminderRecord,
-    onSuccess: invalidateTasks
+    onMutate: async (reminder) => {
+      await queryClient.cancelQueries({ queryKey: taskQueryPrefix });
+      const previous = snapshotTaskQueries();
+
+      updateTaskQueries((reminders) => reminders.filter((entry) => entry.taskId !== reminder.taskId));
+
+      return { previous };
+    },
+    onError: (_error, _reminder, context) => {
+      if (context?.previous) {
+        restoreTaskQueries(context.previous);
+      }
+    },
+    onSettled: invalidateTasks
   });
 
   const deleteSeriesFromReminder = async (reminder: RenderableTaskReminder) => {

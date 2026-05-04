@@ -33,7 +33,7 @@ export function useSettings() {
         return;
       }
 
-      await persistCoupleSettings(
+      return persistCoupleSettings(
         user.id,
         householdId,
         coupleSettings.theme || 'default',
@@ -56,13 +56,33 @@ export function useSettings() {
         queryClient.setQueryData(queryKey, context.previous);
       }
     },
-    onSuccess: async () => {
-      await refreshProfile();
-    },
-    onSettled: async () => {
-      await queryClient.invalidateQueries({
-        queryKey: queryKeys.settings(householdId, user?.id || null)
+    onSuccess: async (result, nextSettings) => {
+      const queryKey = queryKeys.settings(householdId, user?.id || null);
+
+      queryClient.setQueryData<CoupleSettings>(queryKey, (current) => {
+        const baseSettings = current || fallbackSettings;
+        const normalizedTheme = result?.nextTheme || nextSettings.theme || 'default';
+
+        if (!result?.editablePartner || !user) {
+          return {
+            ...nextSettings,
+            theme: normalizedTheme
+          };
+        }
+
+        return {
+          ...baseSettings,
+          theme: normalizedTheme,
+          partner1: baseSettings.partner1.id === user.id
+            ? { ...result.editablePartner, isCurrentUser: true }
+            : baseSettings.partner1,
+          partner2: baseSettings.partner2.id === user.id
+            ? { ...result.editablePartner, isCurrentUser: true }
+            : baseSettings.partner2
+        };
       });
+
+      await refreshProfile();
     }
   });
 

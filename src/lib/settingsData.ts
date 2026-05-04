@@ -117,4 +117,9 @@ export async function persistCoupleSettings(
       throw error;
     }
   }
+
+  return {
+    nextTheme,
+    editablePartner
+  };
 }

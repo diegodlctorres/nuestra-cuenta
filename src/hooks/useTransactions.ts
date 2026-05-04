@@ -1,9 +1,10 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useCallback, useMemo } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../contexts/AuthContext';
 import { Transaction, Account, Category } from '../types';
 import {
   calculateAccountBalances,
+  FinanceSnapshot,
   createAccount,
   createCategory,
   createTransaction,
@@ -18,9 +19,10 @@ import { queryKeys } from '../lib/queryKeys';
 export function useTransactions() {
   const { householdId, memberId } = useAuth();
   const queryClient = useQueryClient();
+  const financeQueryKey = queryKeys.finance(householdId);
 
   const financeQuery = useQuery({
-    queryKey: queryKeys.finance(householdId),
+    queryKey: financeQueryKey,
     queryFn: () => loadFinanceSnapshot(householdId!),
     enabled: Boolean(householdId)
   });
@@ -35,6 +37,18 @@ export function useTransactions() {
     return calculateAccountBalances(accounts, transactions);
   }, [accounts, transactions]);
 
+  const updateFinanceSnapshot = useCallback((updater: (snapshot: FinanceSnapshot) => FinanceSnapshot) => {
+    queryClient.setQueryData<FinanceSnapshot>(financeQueryKey, (current) => {
+      const baseSnapshot = current || {
+        accounts: [],
+        categories: [],
+        transactions: []
+      };
+
+      return updater(baseSnapshot);
+    });
+  }, [financeQueryKey, queryClient]);
+
   const addTransactionMutation = useMutation({
     mutationFn: async (transaction: Omit<Transaction, 'id' | 'household_id' | 'created_by'>) => {
       if (!householdId || !memberId) {
@@ -43,7 +57,12 @@ export function useTransactions() {
 
       return createTransaction(householdId, memberId, transaction);
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.finance(householdId) })
+    onSuccess: (createdTransaction) => {
+      updateFinanceSnapshot((snapshot) => ({
+        ...snapshot,
+        transactions: [createdTransaction, ...snapshot.transactions]
+      }));
+    }
   });
 
   const addTransaction = useCallback(async (t: Omit<Transaction, 'id' | 'household_id' | 'created_by'>) => {
@@ -62,7 +81,23 @@ export function useTransactions() {
 
   const deleteTransactionMutation = useMutation({
     mutationFn: removeTransaction,
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.finance(householdId) })
+    onMutate: async (transactionId) => {
+      await queryClient.cancelQueries({ queryKey: financeQueryKey });
+      const previous = queryClient.getQueryData<FinanceSnapshot>(financeQueryKey);
+
+      updateFinanceSnapshot((snapshot) => ({
+        ...snapshot,
+        transactions: snapshot.transactions.filter((transaction) => transaction.id !== transactionId)
+      }));
+
+      return { previous };
+    },
+    onError: (_error, _transactionId, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(financeQueryKey, context.previous);
+      }
+    },
+    onSettled: () => queryClient.invalidateQueries({ queryKey: financeQueryKey })
   });
 
   const deleteTransaction = async (id: string) => {
@@ -75,7 +110,12 @@ export function useTransactions() {
 
   const addCategoryMutation = useMutation({
     mutationFn: ({ name, kind }: { name: string; kind: 'income' | 'expense' }) => createCategory(householdId!, name, kind),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.finance(householdId) })
+    onSuccess: (createdCategory) => {
+      updateFinanceSnapshot((snapshot) => ({
+        ...snapshot,
+        categories: [...snapshot.categories, createdCategory].sort((a, b) => a.name.localeCompare(b.name))
+      }));
+    }
   });
 
   const addCategory = async (name: string, kind: 'income' | 'expense') => {
@@ -89,7 +129,23 @@ export function useTransactions() {
 
   const deleteCategoryMutation = useMutation({
     mutationFn: removeCategory,
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.finance(householdId) })
+    onMutate: async (categoryId) => {
+      await queryClient.cancelQueries({ queryKey: financeQueryKey });
+      const previous = queryClient.getQueryData<FinanceSnapshot>(financeQueryKey);
+
+      updateFinanceSnapshot((snapshot) => ({
+        ...snapshot,
+        categories: snapshot.categories.filter((category) => category.id !== categoryId)
+      }));
+
+      return { previous };
+    },
+    onError: (_error, _categoryId, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(financeQueryKey, context.previous);
+      }
+    },
+    onSettled: () => queryClient.invalidateQueries({ queryKey: financeQueryKey })
   });
 
   const deleteCategory = async (id: string) => {
@@ -102,7 +158,12 @@ export function useTransactions() {
 
   const addAccountMutation = useMutation({
     mutationFn: ({ name, emoji }: { name: string; emoji?: string }) => createAccount(householdId!, name, emoji),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.finance(householdId) })
+    onSuccess: (createdAccount) => {
+      updateFinanceSnapshot((snapshot) => ({
+        ...snapshot,
+        accounts: [...snapshot.accounts, createdAccount].sort((a, b) => a.name.localeCompare(b.name))
+      }));
+    }
   });
 
   const addAccount = async (name: string, emoji?: string) => {
@@ -116,7 +177,14 @@ export function useTransactions() {
 
   const updateAccountMutation = useMutation({
     mutationFn: ({ id, updates }: { id: string; updates: Partial<Account> }) => editAccount(id, updates),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.finance(householdId) })
+    onSuccess: (updatedAccount) => {
+      updateFinanceSnapshot((snapshot) => ({
+        ...snapshot,
+        accounts: snapshot.accounts
+          .map((account) => account.id === updatedAccount.id ? updatedAccount : account)
+          .sort((a, b) => a.name.localeCompare(b.name))
+      }));
+    }
   });
 
   const updateAccount = async (id: string, updates: Partial<Account>) => {
@@ -129,7 +197,24 @@ export function useTransactions() {
 
   const deleteAccountMutation = useMutation({
     mutationFn: removeAccount,
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.finance(householdId) })
+    onMutate: async (accountId) => {
+      await queryClient.cancelQueries({ queryKey: financeQueryKey });
+      const previous = queryClient.getQueryData<FinanceSnapshot>(financeQueryKey);
+
+      updateFinanceSnapshot((snapshot) => ({
+        ...snapshot,
+        accounts: snapshot.accounts.filter((account) => account.id !== accountId),
+        transactions: snapshot.transactions.filter((transaction) => transaction.account_id !== accountId)
+      }));
+
+      return { previous };
+    },
+    onError: (_error, _accountId, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(financeQueryKey, context.previous);
+      }
+    },
+    onSettled: () => queryClient.invalidateQueries({ queryKey: financeQueryKey })
   });
 
   const deleteAccount = async (id: string) => {
