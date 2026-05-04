@@ -1,0 +1,322 @@
+[
+  {
+    "schemaname": "public",
+    "tablename": "accounts",
+    "policyname": "Members can delete household accounts",
+    "permissive": "PERMISSIVE",
+    "roles": "{public}",
+    "cmd": "DELETE",
+    "qual": "(EXISTS ( SELECT 1\n   FROM household_members\n  WHERE ((household_members.household_id = accounts.household_id) AND (household_members.profile_id = auth.uid()))))",
+    "with_check": null
+  },
+  {
+    "schemaname": "public",
+    "tablename": "accounts",
+    "policyname": "Members can insert household accounts",
+    "permissive": "PERMISSIVE",
+    "roles": "{public}",
+    "cmd": "INSERT",
+    "qual": null,
+    "with_check": "(EXISTS ( SELECT 1\n   FROM household_members\n  WHERE ((household_members.household_id = accounts.household_id) AND (household_members.profile_id = auth.uid()))))"
+  },
+  {
+    "schemaname": "public",
+    "tablename": "accounts",
+    "policyname": "Members can update household accounts",
+    "permissive": "PERMISSIVE",
+    "roles": "{public}",
+    "cmd": "UPDATE",
+    "qual": "(EXISTS ( SELECT 1\n   FROM household_members\n  WHERE ((household_members.household_id = accounts.household_id) AND (household_members.profile_id = auth.uid()))))",
+    "with_check": null
+  },
+  {
+    "schemaname": "public",
+    "tablename": "accounts",
+    "policyname": "Members can view household accounts",
+    "permissive": "PERMISSIVE",
+    "roles": "{public}",
+    "cmd": "SELECT",
+    "qual": "(EXISTS ( SELECT 1\n   FROM household_members\n  WHERE ((household_members.household_id = accounts.household_id) AND (household_members.profile_id = auth.uid()))))",
+    "with_check": null
+  },
+  {
+    "schemaname": "public",
+    "tablename": "categories",
+    "policyname": "Members can delete household categories",
+    "permissive": "PERMISSIVE",
+    "roles": "{public}",
+    "cmd": "DELETE",
+    "qual": "(EXISTS ( SELECT 1\n   FROM household_members\n  WHERE ((household_members.household_id = categories.household_id) AND (household_members.profile_id = auth.uid()))))",
+    "with_check": null
+  },
+  {
+    "schemaname": "public",
+    "tablename": "categories",
+    "policyname": "Members can insert household categories",
+    "permissive": "PERMISSIVE",
+    "roles": "{public}",
+    "cmd": "INSERT",
+    "qual": null,
+    "with_check": "(EXISTS ( SELECT 1\n   FROM household_members\n  WHERE ((household_members.household_id = categories.household_id) AND (household_members.profile_id = auth.uid()))))"
+  },
+  {
+    "schemaname": "public",
+    "tablename": "categories",
+    "policyname": "Members can view household categories",
+    "permissive": "PERMISSIVE",
+    "roles": "{public}",
+    "cmd": "SELECT",
+    "qual": "(EXISTS ( SELECT 1\n   FROM household_members\n  WHERE ((household_members.household_id = categories.household_id) AND (household_members.profile_id = auth.uid()))))",
+    "with_check": null
+  },
+  {
+    "schemaname": "public",
+    "tablename": "categories",
+    "policyname": "Users can see categories in their household",
+    "permissive": "PERMISSIVE",
+    "roles": "{public}",
+    "cmd": "SELECT",
+    "qual": "(EXISTS ( SELECT 1\n   FROM household_members\n  WHERE ((household_members.household_id = categories.household_id) AND (household_members.profile_id = auth.uid()))))",
+    "with_check": null
+  },
+  {
+    "schemaname": "public",
+    "tablename": "household_invitations",
+    "policyname": "Admins can manage invitations",
+    "permissive": "PERMISSIVE",
+    "roles": "{public}",
+    "cmd": "ALL",
+    "qual": "(EXISTS ( SELECT 1\n   FROM household_members\n  WHERE ((household_members.household_id = household_invitations.household_id) AND (household_members.profile_id = auth.uid()) AND (household_members.role = 'admin'::member_role))))",
+    "with_check": null
+  },
+  {
+    "schemaname": "public",
+    "tablename": "household_members",
+    "policyname": "Users can view their own memberships",
+    "permissive": "PERMISSIVE",
+    "roles": "{public}",
+    "cmd": "SELECT",
+    "qual": "(profile_id = auth.uid())",
+    "with_check": null
+  },
+  {
+    "schemaname": "public",
+    "tablename": "households",
+    "policyname": "Members can update their household",
+    "permissive": "PERMISSIVE",
+    "roles": "{public}",
+    "cmd": "UPDATE",
+    "qual": "(EXISTS ( SELECT 1\n   FROM household_members\n  WHERE ((household_members.household_id = households.id) AND (household_members.profile_id = auth.uid()) AND (household_members.status = 'active'::member_status))))",
+    "with_check": null
+  },
+  {
+    "schemaname": "public",
+    "tablename": "households",
+    "policyname": "Users can view their household",
+    "permissive": "PERMISSIVE",
+    "roles": "{public}",
+    "cmd": "SELECT",
+    "qual": "(EXISTS ( SELECT 1\n   FROM household_members\n  WHERE ((household_members.household_id = households.id) AND (household_members.profile_id = auth.uid()))))",
+    "with_check": null
+  },
+  {
+    "schemaname": "public",
+    "tablename": "pet_tasks",
+    "policyname": "pet_tasks_delete_by_household_member",
+    "permissive": "PERMISSIVE",
+    "roles": "{authenticated}",
+    "cmd": "DELETE",
+    "qual": "(EXISTS ( SELECT 1\n   FROM (pets p\n     JOIN household_members hm ON ((hm.household_id = p.household_id)))\n  WHERE ((p.id = pet_tasks.pet_id) AND (hm.profile_id = auth.uid()) AND (hm.status = 'active'::member_status))))",
+    "with_check": null
+  },
+  {
+    "schemaname": "public",
+    "tablename": "pet_tasks",
+    "policyname": "pet_tasks_insert_by_household_member",
+    "permissive": "PERMISSIVE",
+    "roles": "{authenticated}",
+    "cmd": "INSERT",
+    "qual": null,
+    "with_check": "(EXISTS ( SELECT 1\n   FROM (pets p\n     JOIN household_members hm ON ((hm.household_id = p.household_id)))\n  WHERE ((p.id = pet_tasks.pet_id) AND (hm.profile_id = auth.uid()) AND (hm.status = 'active'::member_status))))"
+  },
+  {
+    "schemaname": "public",
+    "tablename": "pet_tasks",
+    "policyname": "pet_tasks_select_by_household_member",
+    "permissive": "PERMISSIVE",
+    "roles": "{authenticated}",
+    "cmd": "SELECT",
+    "qual": "(EXISTS ( SELECT 1\n   FROM (pets p\n     JOIN household_members hm ON ((hm.household_id = p.household_id)))\n  WHERE ((p.id = pet_tasks.pet_id) AND (hm.profile_id = auth.uid()) AND (hm.status = 'active'::member_status))))",
+    "with_check": null
+  },
+  {
+    "schemaname": "public",
+    "tablename": "pet_tasks",
+    "policyname": "pet_tasks_update_by_household_member",
+    "permissive": "PERMISSIVE",
+    "roles": "{authenticated}",
+    "cmd": "UPDATE",
+    "qual": "(EXISTS ( SELECT 1\n   FROM (pets p\n     JOIN household_members hm ON ((hm.household_id = p.household_id)))\n  WHERE ((p.id = pet_tasks.pet_id) AND (hm.profile_id = auth.uid()) AND (hm.status = 'active'::member_status))))",
+    "with_check": "(EXISTS ( SELECT 1\n   FROM (pets p\n     JOIN household_members hm ON ((hm.household_id = p.household_id)))\n  WHERE ((p.id = pet_tasks.pet_id) AND (hm.profile_id = auth.uid()) AND (hm.status = 'active'::member_status))))"
+  },
+  {
+    "schemaname": "public",
+    "tablename": "pets",
+    "policyname": "Members can manage household pets",
+    "permissive": "PERMISSIVE",
+    "roles": "{public}",
+    "cmd": "ALL",
+    "qual": "(EXISTS ( SELECT 1\n   FROM household_members\n  WHERE ((household_members.household_id = pets.household_id) AND (household_members.profile_id = auth.uid()))))",
+    "with_check": null
+  },
+  {
+    "schemaname": "public",
+    "tablename": "profiles",
+    "policyname": "Members can read household profiles",
+    "permissive": "PERMISSIVE",
+    "roles": "{public}",
+    "cmd": "SELECT",
+    "qual": "(EXISTS ( SELECT 1\n   FROM (household_members self_member\n     JOIN household_members other_member ON ((other_member.household_id = self_member.household_id)))\n  WHERE ((self_member.profile_id = auth.uid()) AND (self_member.status = 'active'::member_status) AND (other_member.profile_id = profiles.id) AND (other_member.status = 'active'::member_status))))",
+    "with_check": null
+  },
+  {
+    "schemaname": "public",
+    "tablename": "profiles",
+    "policyname": "Profiles are visible to household members",
+    "permissive": "PERMISSIVE",
+    "roles": "{public}",
+    "cmd": "SELECT",
+    "qual": "((EXISTS ( SELECT 1\n   FROM (household_members m1\n     JOIN household_members m2 ON ((m1.household_id = m2.household_id)))\n  WHERE ((m1.profile_id = auth.uid()) AND (m2.profile_id = profiles.id)))) OR (id = auth.uid()))",
+    "with_check": null
+  },
+  {
+    "schemaname": "public",
+    "tablename": "profiles",
+    "policyname": "Users can read own profile",
+    "permissive": "PERMISSIVE",
+    "roles": "{public}",
+    "cmd": "SELECT",
+    "qual": "(auth.uid() = id)",
+    "with_check": null
+  },
+  {
+    "schemaname": "public",
+    "tablename": "profiles",
+    "policyname": "Users can update own profile",
+    "permissive": "PERMISSIVE",
+    "roles": "{public}",
+    "cmd": "UPDATE",
+    "qual": "(auth.uid() = id)",
+    "with_check": null
+  },
+  {
+    "schemaname": "public",
+    "tablename": "task_occurrences",
+    "policyname": "task_occurrences_delete_by_household_member",
+    "permissive": "PERMISSIVE",
+    "roles": "{authenticated}",
+    "cmd": "DELETE",
+    "qual": "(EXISTS ( SELECT 1\n   FROM (tasks t\n     JOIN household_members hm ON ((hm.household_id = t.household_id)))\n  WHERE ((t.id = task_occurrences.task_id) AND (hm.profile_id = auth.uid()) AND (hm.status = 'active'::member_status))))",
+    "with_check": null
+  },
+  {
+    "schemaname": "public",
+    "tablename": "task_occurrences",
+    "policyname": "task_occurrences_insert_by_household_member",
+    "permissive": "PERMISSIVE",
+    "roles": "{authenticated}",
+    "cmd": "INSERT",
+    "qual": null,
+    "with_check": "(EXISTS ( SELECT 1\n   FROM (tasks t\n     JOIN household_members hm ON ((hm.household_id = t.household_id)))\n  WHERE ((t.id = task_occurrences.task_id) AND (hm.profile_id = auth.uid()) AND (hm.status = 'active'::member_status))))"
+  },
+  {
+    "schemaname": "public",
+    "tablename": "task_occurrences",
+    "policyname": "task_occurrences_select_by_household_member",
+    "permissive": "PERMISSIVE",
+    "roles": "{authenticated}",
+    "cmd": "SELECT",
+    "qual": "(EXISTS ( SELECT 1\n   FROM (tasks t\n     JOIN household_members hm ON ((hm.household_id = t.household_id)))\n  WHERE ((t.id = task_occurrences.task_id) AND (hm.profile_id = auth.uid()) AND (hm.status = 'active'::member_status))))",
+    "with_check": null
+  },
+  {
+    "schemaname": "public",
+    "tablename": "task_occurrences",
+    "policyname": "task_occurrences_update_by_household_member",
+    "permissive": "PERMISSIVE",
+    "roles": "{authenticated}",
+    "cmd": "UPDATE",
+    "qual": "(EXISTS ( SELECT 1\n   FROM (tasks t\n     JOIN household_members hm ON ((hm.household_id = t.household_id)))\n  WHERE ((t.id = task_occurrences.task_id) AND (hm.profile_id = auth.uid()) AND (hm.status = 'active'::member_status))))",
+    "with_check": "(EXISTS ( SELECT 1\n   FROM (tasks t\n     JOIN household_members hm ON ((hm.household_id = t.household_id)))\n  WHERE ((t.id = task_occurrences.task_id) AND (hm.profile_id = auth.uid()) AND (hm.status = 'active'::member_status))))"
+  },
+  {
+    "schemaname": "public",
+    "tablename": "tasks",
+    "policyname": "tasks_delete_by_household_member",
+    "permissive": "PERMISSIVE",
+    "roles": "{authenticated}",
+    "cmd": "DELETE",
+    "qual": "(EXISTS ( SELECT 1\n   FROM household_members hm\n  WHERE ((hm.household_id = tasks.household_id) AND (hm.profile_id = auth.uid()) AND (hm.status = 'active'::member_status))))",
+    "with_check": null
+  },
+  {
+    "schemaname": "public",
+    "tablename": "tasks",
+    "policyname": "tasks_insert_by_household_member",
+    "permissive": "PERMISSIVE",
+    "roles": "{authenticated}",
+    "cmd": "INSERT",
+    "qual": null,
+    "with_check": "(EXISTS ( SELECT 1\n   FROM household_members hm\n  WHERE ((hm.household_id = tasks.household_id) AND (hm.profile_id = auth.uid()) AND (hm.status = 'active'::member_status))))"
+  },
+  {
+    "schemaname": "public",
+    "tablename": "tasks",
+    "policyname": "tasks_select_by_household_member",
+    "permissive": "PERMISSIVE",
+    "roles": "{authenticated}",
+    "cmd": "SELECT",
+    "qual": "(EXISTS ( SELECT 1\n   FROM household_members hm\n  WHERE ((hm.household_id = tasks.household_id) AND (hm.profile_id = auth.uid()) AND (hm.status = 'active'::member_status))))",
+    "with_check": null
+  },
+  {
+    "schemaname": "public",
+    "tablename": "tasks",
+    "policyname": "tasks_update_by_household_member",
+    "permissive": "PERMISSIVE",
+    "roles": "{authenticated}",
+    "cmd": "UPDATE",
+    "qual": "(EXISTS ( SELECT 1\n   FROM household_members hm\n  WHERE ((hm.household_id = tasks.household_id) AND (hm.profile_id = auth.uid()) AND (hm.status = 'active'::member_status))))",
+    "with_check": "(EXISTS ( SELECT 1\n   FROM household_members hm\n  WHERE ((hm.household_id = tasks.household_id) AND (hm.profile_id = auth.uid()) AND (hm.status = 'active'::member_status))))"
+  },
+  {
+    "schemaname": "public",
+    "tablename": "transactions",
+    "policyname": "Members can delete household transactions",
+    "permissive": "PERMISSIVE",
+    "roles": "{public}",
+    "cmd": "DELETE",
+    "qual": "(EXISTS ( SELECT 1\n   FROM household_members\n  WHERE ((household_members.household_id = transactions.household_id) AND (household_members.profile_id = auth.uid()))))",
+    "with_check": null
+  },
+  {
+    "schemaname": "public",
+    "tablename": "transactions",
+    "policyname": "Members can insert household transactions",
+    "permissive": "PERMISSIVE",
+    "roles": "{public}",
+    "cmd": "INSERT",
+    "qual": null,
+    "with_check": "(EXISTS ( SELECT 1\n   FROM household_members\n  WHERE ((household_members.household_id = transactions.household_id) AND (household_members.profile_id = auth.uid()))))"
+  },
+  {
+    "schemaname": "public",
+    "tablename": "transactions",
+    "policyname": "Members can view household transactions",
+    "permissive": "PERMISSIVE",
+    "roles": "{public}",
+    "cmd": "SELECT",
+    "qual": "(EXISTS ( SELECT 1\n   FROM household_members\n  WHERE ((household_members.household_id = transactions.household_id) AND (household_members.profile_id = auth.uid()))))",
+    "with_check": null
+  }
+]

@@ -1,192 +1,178 @@
 # Nuestra Cuenta
 
-Aplicacion web para la gestion financiera compartida de pareja, con modulos de transacciones, tareas del hogar y mascotas. El proyecto esta construido con React + TypeScript y usa Supabase para autenticacion y persistencia de datos.
+Aplicación web compartida para gestión de hogar orientada a instalación como PWA en iPhone. Está desplegada en Vercel y usa Supabase para autenticación, base de datos y storage.
 
-## Objetivo De Producto
+## Qué resuelve
 
-Nuestra Cuenta centraliza la operacion diaria de un hogar en tres ejes:
+Nuestra Cuenta organiza la operación diaria de un `household` en cuatro dominios:
 
-- Finanzas compartidas: ingresos, gastos, cuentas y categorias.
-- Organizacion del hogar: tareas con vencimiento y exportacion a calendario.
-- Cuidado de mascotas: registro de mascotas y tareas programadas por mascota.
+- Finanzas: cuentas, categorías y transacciones.
+- Tareas del hogar: recordatorios puntuales y recurrentes.
+- Mascotas: registro de mascotas y tareas programadas.
+- Configuración: perfil de pareja, tema e invitaciones.
 
-## Alcance Funcional
+La unidad de colaboración es siempre el `household`. Toda operación de negocio debe quedar acotada a ese contexto.
 
-- Autenticacion y onboarding de hogar:
-    - Registro/login con Supabase Auth.
-    - Creacion de hogar mediante RPC `create_household_and_insert_admin`.
-    - Union a hogar por codigo con RPC `accept_invitation`.
-- Dashboard:
-    - Resumen de cuentas y balance por cuenta.
-    - Alta rapida de transacciones.
-    - Contador de tareas de mascota pendientes.
-- Detalle financiero:
-    - Historial de transacciones por cuenta.
-    - Agrupacion por ingresos, gastos fijos y gastos variables.
-- Mascotas:
-    - CRUD de mascotas.
-    - Programacion y marcado de tareas por mascota.
-- Tareas del hogar:
-    - Alta de tareas con deadline.
-    - Marcado de completadas.
-    - Exportacion de recordatorio en formato ICS.
-- Configuracion:
-    - Gestion de pareja (localStorage), cuentas y categorias.
-    - Gestion de invitaciones de pareja.
-    - Selector de tema visual.
+## Estado técnico actual
 
-## Arquitectura En Alto Nivel
+El proyecto ya no está en una SPA básica con hooks locales. A día de hoy:
 
-SPA basada en tabs con cinco vistas principales:
+- La app está preparada como PWA instalable para iOS.
+- La arquitectura frontend está separada por dominios.
+- Los dominios principales usan React Query como capa de server-state.
+- La app sigue una estrategia `online-first` con resiliencia offline limitada.
+- Supabase sigue siendo la fuente de verdad; no existe edición offline colaborativa.
 
-1. `dashboard`
-2. `detail`
-3. `pets`
-4. `tasks`
-5. `settings`
+## Estrategia PWA
 
-Flujo principal:
+La estrategia actual no es `offline-first`.
 
-1. `AuthProvider` determina sesion, perfil y `householdId`.
-2. Si no hay sesion, muestra `AuthView`.
-3. Si hay sesion sin household activo, muestra `OnboardingView`.
-4. Con household activo, se habilitan hooks por dominio:
-    - `useTransactions`
-    - `usePets`
-    - `useTasks`
-    - `useSettings`
-5. Cada hook consulta/actualiza Supabase y expone operaciones CRUD a las vistas.
+Sí soportamos:
 
-## Stack Tecnologico
+- instalación desde Safari/iPhone
+- `manifest` e iconos locales versionados
+- `service worker` para app shell y assets estáticos
+- apertura básica sin red
+- página fallback offline
+- banner de conectividad
+- bloqueo explícito de mutaciones sin red
+
+No soportamos por ahora:
+
+- escritura offline
+- cola local de mutaciones
+- sincronización diferida
+- resolución de conflictos entre usuarios
+
+La decisión es deliberada: la app es colaborativa y Supabase es la fuente de verdad compartida.
+
+## Arquitectura actual
 
 ### Frontend
 
 - React 19
-- TypeScript 5
-- Vite 6
+- TypeScript
+- Vite
 - Tailwind CSS 4
-- Motion (animaciones)
-- Lucide React (iconos)
-- date-fns (fechas)
+- Motion
+- Lucide React
+- date-fns
+- TanStack Query
 
-### Backend/Persistencia
+### Backend y datos
 
-- Supabase (Auth + PostgreSQL + Storage)
-- `@supabase/supabase-js`
-- SQL de esquema y migraciones en carpeta `supabase/`
+- Supabase Auth
+- Supabase Postgres
+- Supabase Storage
+- SQL versionado en `supabase/`
 
-### Herramientas
+### Organización por capas
 
-- `tsc --noEmit` como validacion de tipos (`npm run lint`)
-- Scripts npm para desarrollo y build
+- `src/views/`: composición de cada sección
+- `src/components/`: formularios, modales y UI reusable
+- `src/contexts/`: auth, navegación, red y providers de dominio
+- `src/hooks/`: coordinación de estado por dominio
+- `src/lib/`: acceso a Supabase, mapeos, query keys, utilidades
+- `src/types.ts`: contratos del dominio
 
-## Estructura Del Proyecto
+## Flujo principal de la app
+
+1. `src/main.tsx` monta `NetworkStatusProvider`, `QueryClientProvider`, `AuthProvider` y `App`.
+2. `src/contexts/AuthContext.tsx` resuelve sesión, perfil, `householdId` y `memberId`.
+3. `src/App.tsx` decide:
+   - sin sesión: `AuthView`
+   - con sesión sin household: `OnboardingView`
+   - con household: shell principal por tabs
+4. Con household activo, la UI se monta sobre providers por dominio:
+   - `FinanceProvider`
+   - `PetsProvider`
+   - `TasksProvider`
+   - `SettingsProvider`
+5. Cada dominio usa React Query para lectura, cache e invalidación.
+
+## Server-state y dominios
+
+Los dominios principales ya están desacoplados en capa de datos:
+
+- Finanzas:
+  - `src/hooks/useTransactions.ts`
+  - `src/lib/financeData.ts`
+- Mascotas:
+  - `src/hooks/usePets.ts`
+  - `src/lib/petsData.ts`
+- Tareas:
+  - `src/hooks/useTasks.ts`
+  - `src/lib/tasksData.ts`
+  - `src/lib/taskRecurrence.ts`
+- Settings:
+  - `src/hooks/useSettings.ts`
+  - `src/lib/settingsData.ts`
+
+Infraestructura compartida:
+
+- `src/lib/queryClient.ts`
+- `src/lib/queryKeys.ts`
+- `src/contexts/NetworkStatusContext.tsx`
+- `src/lib/networkStatus.ts`
+
+## Seguridad y Supabase
+
+Principios actuales:
+
+- Supabase es la fuente de verdad.
+- RLS debe proteger el aislamiento por `household`.
+- El cliente no debe asumir permisos sin respaldo en backend.
+- Reglas críticas deben vivir en SQL, políticas o RPCs.
+
+Artefactos relevantes:
+
+- `supabase/schema.sql`: esquema base consolidado del repo
+- `supabase/rls_setup.sql`: políticas relevantes consolidadas
+- `supabase/phase2_invitations.sql`: flujo de invitaciones
+- `supabase/bootstrap_household.sql`: bootstrap inicial
+- `supabase/household_profiles.sql`: RPC para perfiles resumidos del household
+- `supabase/household_member_profiles.sql`: RPC para perfiles de miembros del household
+- `supabase/live/schema_live.sql`: snapshot extraído de la base real
+- `supabase/live/functions_live.sql`
+- `supabase/live/functions_live.json`
+- `supabase/live/rls_live.md`
+- `supabase/live/DRIFT_REPORT.md`
+
+## Estructura relevante del proyecto
 
 ```text
-.
-|-- index.html
-|-- LICENSE
-|-- metadata.json
-|-- package.json
-|-- README.md
-|-- tsconfig.json
-|-- vite.config.ts
-|-- AGENTS.md
-|-- public/
-|   `-- manifest.json
-|-- src/
-|   |-- App.tsx
-|   |-- index.css
-|   |-- main.tsx
-|   |-- types.ts
-|   |-- vite-env.d.ts
-|   |-- components/
-|   |   |-- pets/
-|   |   |   |-- AddPetForm.tsx
-|   |   |   |-- AddPetTaskForm.tsx
-|   |   |   `-- EditPetModal.tsx
-|   |   |-- settings/
-|   |   |   |-- AccountManager.tsx
-|   |   |   |-- CategoryManager.tsx
-|   |   |   |-- CoupleSettingsModal.tsx
-|   |   |   |-- InvitePartnerModal.tsx
-|   |   |   `-- PartnerForm.tsx
-|   |   |-- tasks/
-|   |   |   `-- AddTaskForm.tsx
-|   |   |-- transactions/
-|   |   |   |-- AddTransactionForm.tsx
-|   |   |   |-- MonthlyBalanceButton.tsx
-|   |   |   |-- TransactionGroup.tsx
-|   |   |   `-- TransactionItem.tsx
-|   |   `-- ui/
-|   |       |-- Modal.tsx
-|   |       `-- NavButton.tsx
-|   |-- contexts/
-|   |   `-- AuthContext.tsx
-|   |-- hooks/
-|   |   |-- usePets.ts
-|   |   |-- useSettings.ts
-|   |   |-- useTasks.ts
-|   |   `-- useTransactions.ts
-|   |-- lib/
-|   |   |-- errors.ts
-|   |   |-- supabase.ts
-|   |   `-- utils.ts
-|   `-- views/
-|       |-- AuthView.tsx
-|       |-- DashboardView.tsx
-|       |-- DetailView.tsx
-|       |-- OnboardingView.tsx
-|       |-- PetsView.tsx
-|       |-- SettingsView.tsx
-|       `-- TasksView.tsx
-`-- supabase/
-    |-- accounts.sql
-    |-- bootstrap_household.sql
-    |-- phase2_invitations.sql
-    |-- reset_data.sql
-    |-- rls_setup.sql
-    |-- schema_updates.sql
-    `-- schema.sql
+src/
+  App.tsx
+  main.tsx
+  index.css
+  types.ts
+  components/
+  contexts/
+  hooks/
+  lib/
+  views/
+public/
+  manifest.json
+  sw.js
+  offline.html
+supabase/
+  schema.sql
+  rls_setup.sql
+  phase2_invitations.sql
+  bootstrap_household.sql
+  household_profiles.sql
+  household_member_profiles.sql
+  live/
+    schema_live.sql
+    functions_live.sql
+    functions_live.json
+    rls_live.md
+    DRIFT_REPORT.md
+    extract_live_snapshot.sql
+  archive/
 ```
 
-## Modelo De Datos (Resumen)
-
-Entidades centrales:
-
-- `profiles`
-- `households`
-- `household_members`
-- `household_invitations`
-- `accounts`
-- `categories`
-- `transactions`
-- `pets`
-- `pet_tasks`
-- `tasks`
-
-Enums relevantes:
-
-- `transaction_type`: income, expense, transfer
-- `recurrence_type`: none, fixed, variable
-- `account_type`: savings, checking
-- `member_role`: admin, member
-- `invitation_status`: pending, accepted, expired, revoked
-
-## Seguridad Y RLS
-
-- RLS esta habilitado en tablas principales.
-- Existen politicas implementadas para `profiles`, `households`, `household_members` e invitaciones.
-- Recomendacion de contribucion: cualquier cambio de esquema debe incluir politicas RLS explicitas para lectura/escritura por household.
-
-## Requisitos Y Puesta En Marcha
-
-### Prerrequisitos
-
-- Node.js 18+
-- Proyecto Supabase configurado
-
-### Variables De Entorno
+## Variables de entorno
 
 Crear `.env.local` con:
 
@@ -197,7 +183,7 @@ VITE_SUPABASE_PUBLISHABLE_KEY=TU_SUPABASE_PUBLISHABLE_KEY
 GEMINI_API_KEY=TU_GEMINI_API_KEY
 ```
 
-### Comandos
+## Comandos
 
 ```bash
 npm install
@@ -207,45 +193,68 @@ npm run build
 npm run preview
 ```
 
-Scripts disponibles (fuente: `package.json`):
+Scripts:
 
-- `dev`: inicia Vite en `0.0.0.0:3000`.
-- `build`: build de produccion.
-- `preview`: previsualiza el build local.
-- `clean`: limpia `dist`.
-- `lint`: chequeo de tipos con TypeScript.
+- `dev`: inicia Vite en `0.0.0.0:3000`
+- `build`: build de producción
+- `preview`: previsualización local
+- `lint`: validación de tipos con `tsc --noEmit`
 
-## Convenciones De Contribucion
+## Calidad actual
 
-- Mantener consistencia de tipos en `src/types.ts` cuando se cambie SQL.
-- Si se agrega funcionalidad de dominio, priorizar hook dedicado en `src/hooks/`.
-- Evitar logica de permisos en UI sin respaldo en RLS o RPC segura.
-- No exponer secretos en cliente.
+- Validación de tipos: sí
+- Build de producción: sí
+- PWA base para iOS: sí
+- Server-state con React Query: sí
+- Tests automatizados: todavía no
+- Observabilidad formal: todavía no
 
-## Ruta Recomendada Para Nuevos Contribuidores
+## Contribución
 
-1. Leer este README de principio a fin.
-2. Revisar `src/App.tsx` para entender navegacion y composicion de vistas.
-3. Revisar `src/contexts/AuthContext.tsx` para flujo de sesion y household.
-4. Revisar hooks de dominio en `src/hooks/`.
-5. Revisar esquema y funciones SQL en `supabase/`.
+Antes de tocar lógica sensible:
 
-## Guia Para IA Y Agentes
+1. Revisa `AGENTS.md`.
+2. Revisa el hook y la capa `lib/*Data.ts` del dominio afectado.
+3. Si cambias datos o permisos, revisa `supabase/`.
 
-Para contribucion asistida por IA, consulta `AGENTS.md`.
+Reglas prácticas:
 
-Ese documento incluye:
+- No romper aislamiento por `household`.
+- No introducir lógica de permisos solo en frontend.
+- Si cambias SQL, revisa `src/types.ts` y snapshots de Supabase.
+- Si una mutación requiere red, no intentes convertirla en offline sin diseñar reconciliación.
 
-- Contexto de negocio y reglas operativas.
-- Mapa tecnico por capas.
-- Protocolo de cambios por tipo de tarea.
-- Checklists pre y post cambio para minimizar regresiones.
+## Fuente de verdad en `supabase/`
 
-## Estado Actual De Calidad
+Mantener como fuente activa:
 
-- Hay validacion de tipos via TypeScript.
-- Actualmente no hay suite de tests automatizados integrada en el repo.
+- `supabase/schema.sql`
+- `supabase/rls_setup.sql`
+- `supabase/bootstrap_household.sql`
+- `supabase/phase2_invitations.sql`
+- `supabase/household_profiles.sql`
+- `supabase/household_member_profiles.sql`
 
-## Licencia
+Mantener como auditoría del estado real:
 
-Proyecto bajo licencia definida en `LICENSE`.
+- `supabase/live/schema_live.sql`
+- `supabase/live/functions_live.sql`
+- `supabase/live/functions_live.json`
+- `supabase/live/rls_live.md`
+- `supabase/live/DRIFT_REPORT.md`
+- `supabase/live/extract_live_snapshot.sql`
+
+Mantener en histórico:
+
+- `supabase/archive/`
+
+## Estado de roadmap
+
+- Fase 1 PWA/iOS: completada
+- Fase 2 seguridad y backend base: completada en lo principal
+- Fase 3 arquitectura de datos y server-state: completada
+- Fase 4 reducida `online-first + resiliencia`: en marcha y ya con base implementada
+
+## Guía para agentes
+
+La guía operativa para IA está en `AGENTS.md`.

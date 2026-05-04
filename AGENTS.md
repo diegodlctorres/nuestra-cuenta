@@ -1,174 +1,253 @@
-# AGENTS.md - Guia De Contribucion Para IA
+# AGENTS.md - Guía De Contribución Para IA
 
-Este documento define el contexto completo para que cualquier IA o agente pueda contribuir de forma segura y consistente en este proyecto.
+Este documento define el contexto operativo actual para contribuir de forma segura en este proyecto.
 
-## 1. Contexto De Negocio
+## 1. Contexto De Producto
 
-### 1.1 Que Resuelve El Producto
+### 1.1 Qué resuelve
 
-Nuestra Cuenta es una aplicacion para gestion compartida de pareja. Su unidad de colaboracion es el `household`.
+Nuestra Cuenta es una aplicación compartida para gestión de pareja/hogar. La unidad de colaboración es el `household`.
 
 Dominios funcionales:
 
-- Finanzas: cuentas, categorias y transacciones.
-- Mascotas: registro y tareas programadas.
-- Tareas del hogar: pendientes con fecha limite.
-- Configuracion: datos de pareja, tema e invitaciones.
+- Finanzas: cuentas, categorías y transacciones.
+- Mascotas: mascotas y tareas programadas.
+- Tareas del hogar: recordatorios puntuales y recurrentes.
+- Configuración: perfil de pareja, tema e invitaciones.
 
 ### 1.2 Actores
 
-- Usuario autenticado: opera en su household activo.
-- Admin de household: puede gestionar elementos administrativos (incluye invitaciones).
-- Miembro de household: opera datos del hogar segun politicas.
+- Usuario autenticado
+- Miembro de household
+- Admin de household
 
-### 1.3 Conceptos De Dominio
+### 1.3 Reglas de negocio críticas
 
-- Household: espacio compartido de pareja.
-- Household member: membresia de un perfil en un household con rol y estado.
-- Account: cuenta financiera de tipo checking o savings.
-- Category: clasificacion de ingreso o gasto.
-- Transaction: movimiento economico con tipo y recurrencia.
-- Pet y PetTask: entidad mascota y sus tareas.
-- Task: tarea general del hogar con deadline.
-- Household invitation: token para unir un usuario a un household.
+- Toda operación debe quedar acotada al `household_id` activo.
+- `bootstrap_household` crea datos base de forma idempotente.
+- En transacciones, `created_by` referencia `household_members.id`.
+- No asumir permisos de admin en cliente sin respaldo backend.
+- La app es colaborativa; Supabase es la fuente de verdad.
 
-### 1.4 Reglas Importantes
+## 2. Estrategia Técnica Actual
 
-- Cada operacion de negocio debe estar acotada al `household_id` actual.
-- `bootstrap_household` crea cuentas y categorias base de forma idempotente.
-- Las invitaciones usan token con expiracion y estado.
-- En transacciones, `created_by` referencia `household_members.id`, no `profiles.id`.
+### 2.1 Plataforma
 
-## 2. Arquitectura Tecnica
+- Frontend: React 19 + TypeScript + Vite + Tailwind CSS
+- Datos: TanStack Query + hooks custom + providers por dominio
+- Backend: Supabase Auth + Postgres + Storage
+- Deploy: Vercel
+- Objetivo UX: PWA instalable en iOS
 
-### 2.1 Stack
+### 2.2 Estrategia PWA
 
-- Frontend: React 19, TypeScript, Vite, Tailwind CSS.
-- Estado y datos: hooks custom + AuthContext.
-- Backend de datos: Supabase (Auth, PostgreSQL, Storage).
-- SQL y migraciones: carpeta `supabase/`.
+La app sigue una estrategia `online-first`.
 
-### 2.2 Flujo De Aplicacion
+Sí existe:
 
-1. `src/main.tsx` monta `AuthProvider` y `App`.
-2. `src/contexts/AuthContext.tsx` resuelve sesion, perfil, household y memberId.
+- instalación PWA
+- app shell cacheado
+- assets estáticos cacheados
+- fallback offline
+- banner de conectividad
+- bloqueo explícito de mutaciones sin red
+
+No existe:
+
+- escritura offline
+- cola local de mutaciones
+- sincronización diferida
+- resolución de conflictos entre usuarios
+
+No introducir offline colaborativo sin rediseño explícito.
+
+## 3. Arquitectura Actual
+
+### 3.1 Flujo principal
+
+1. `src/main.tsx` monta:
+   - `NetworkStatusProvider`
+   - `QueryClientProvider`
+   - `AuthProvider`
+   - `App`
+2. `src/contexts/AuthContext.tsx` resuelve sesión, perfil, `householdId` y `memberId`.
 3. `src/App.tsx` decide:
-    - Sin sesion -> `AuthView`
-    - Con sesion sin household -> `OnboardingView`
-    - Con household -> vistas de negocio por tabs
-4. Hooks por dominio realizan lecturas/escrituras en Supabase:
-    - `src/hooks/useTransactions.ts`
-    - `src/hooks/usePets.ts`
-    - `src/hooks/useTasks.ts`
-    - `src/hooks/useSettings.ts`
+   - sin sesión -> `AuthView`
+   - con sesión sin household -> `OnboardingView`
+   - con household -> shell principal
+4. Con household activo, el shell usa providers de dominio:
+   - `FinanceProvider`
+   - `PetsProvider`
+   - `TasksProvider`
+   - `SettingsProvider`
 
-### 2.3 Capas Del Frontend
+### 3.2 Organización por capas
 
-- Vistas (`src/views/`): composicion de cada seccion.
-- Componentes (`src/components/`): formularios, modales y elementos reutilizables.
-- Hooks (`src/hooks/`): logica de consulta y mutaciones.
-- Contextos (`src/contexts/`): estado global de auth y household.
-- Utilidades (`src/lib/`): cliente Supabase, utilidades de UI y manejo de errores.
-- Tipos (`src/types.ts`): contrato de entidades y enums para toda la app.
+- `src/views/`: composición de pantallas
+- `src/components/`: formularios, modales y UI reusable
+- `src/contexts/`: auth, navegación, red, providers de dominio
+- `src/hooks/`: coordinación de estado y mutaciones
+- `src/lib/`: acceso a datos, mapping, server-state, utilidades
+- `src/types.ts`: contratos de dominio
 
-### 2.4 Persistencia Y Seguridad
+### 3.3 Server-state
 
-Fuentes SQL clave:
+Fuente compartida:
 
-- `supabase/schema.sql`: tipos, tablas, triggers y funciones nucleares.
-- `supabase/bootstrap_household.sql`: sembrado inicial de cuentas/categorias.
-- `supabase/phase2_invitations.sql`: politica y RPC para aceptar invitaciones.
-- `supabase/rls_setup.sql`: politicas RLS.
+- `src/lib/queryClient.ts`
+- `src/lib/queryKeys.ts`
 
-Principio: no introducir cambios de negocio en frontend sin respaldo en SQL/RLS/RPC.
+Dominios:
 
-## 3. Guia Operativa Para Contribucion IA
+- Finanzas:
+  - `src/hooks/useTransactions.ts`
+  - `src/lib/financeData.ts`
+- Mascotas:
+  - `src/hooks/usePets.ts`
+  - `src/lib/petsData.ts`
+- Tareas:
+  - `src/hooks/useTasks.ts`
+  - `src/lib/tasksData.ts`
+  - `src/lib/taskRecurrence.ts`
+- Settings:
+  - `src/hooks/useSettings.ts`
+  - `src/lib/settingsData.ts`
 
-### 3.1 Flujo De Trabajo Recomendado
+### 3.4 Red y resiliencia
 
-1. Entender requerimiento y mapear dominio afectado.
-2. Localizar archivos fuente de verdad (hook, vista, SQL, tipos).
-3. Diseñar cambio minimo y coherente con patrones existentes.
-4. Aplicar edicion puntual.
-5. Validar tipos y build cuando aplique.
-6. Documentar impacto y riesgos.
+- `src/contexts/NetworkStatusContext.tsx`
+- `src/lib/networkStatus.ts`
+- `src/components/ui/ConnectivityBanner.tsx`
+- `public/sw.js`
+- `public/offline.html`
 
-### 3.2 Mapa De Archivos Por Tipo De Tarea
+## 4. Supabase Y Fuente De Verdad
 
-- Auth/sesion/household: `src/contexts/AuthContext.tsx`, `src/views/AuthView.tsx`, `src/views/OnboardingView.tsx`.
-- Transacciones/cuentas/categorias: `src/hooks/useTransactions.ts`, `src/components/transactions/`, `src/components/settings/AccountManager.tsx`, `src/components/settings/CategoryManager.tsx`.
-- Mascotas y tareas de mascota: `src/hooks/usePets.ts`, `src/views/PetsView.tsx`, `src/components/pets/`.
-- Tareas generales: `src/hooks/useTasks.ts`, `src/views/TasksView.tsx`, `src/components/tasks/`.
-- Configuracion de pareja y tema: `src/hooks/useSettings.ts`, `src/components/settings/CoupleSettingsModal.tsx`.
-- Modelo de datos: `src/types.ts`, `supabase/*.sql`.
+Archivos importantes:
 
-### 3.3 Contratos Y Dependencias Criticas
+- `supabase/schema.sql`
+- `supabase/rls_setup.sql`
+- `supabase/bootstrap_household.sql`
+- `supabase/phase2_invitations.sql`
+- `supabase/household_profiles.sql`
+- `supabase/household_member_profiles.sql`
 
-- Si cambias columnas/tablas SQL, actualiza tipos en `src/types.ts`.
-- Si cambias naming o shape de datos, revisa joins en hooks.
-- Si cambias permisos de negocio, define o ajusta politicas RLS.
-- Si agregas RPC, documenta firma, retorno y errores esperados.
+Snapshots/auditoría:
 
-## 4. Guardrails (No Romper)
+- `supabase/live/schema_live.sql`
+- `supabase/live/functions_live.sql`
+- `supabase/live/functions_live.json`
+- `supabase/live/rls_live.md`
+- `supabase/live/DRIFT_REPORT.md`
+- `supabase/live/extract_live_snapshot.sql`
 
-- No romper aislamiento por household.
-- No quitar restricciones de seguridad sin alternativa equivalente.
-- No asumir permisos de admin en cliente sin validacion en backend.
-- No introducir secretos hardcodeados.
-- No cambiar APIs publicas internas (props o contratos de hooks) sin actualizar todos los consumidores.
+Principio:
 
-## 5. Checklist Pre-Cambio
+- No introducir lógica sensible en frontend sin respaldo en SQL, RLS o RPC.
 
-- Confirmar dominio impactado y archivos objetivo.
-- Confirmar que el cambio necesita SQL, frontend o ambos.
-- Confirmar impacto en tipos y joins.
-- Confirmar impacto en permisos (RLS/politicas).
+## 5. Flujo De Trabajo Recomendado
 
-## 6. Checklist Post-Cambio
+1. Entender el dominio afectado.
+2. Revisar el provider, hook y `lib/*Data.ts` correspondientes.
+3. Revisar SQL asociado si hay permisos, joins, funciones o integridad.
+4. Aplicar cambio pequeño y localizado.
+5. Validar `npm run lint`.
+6. Si el cambio es amplio, validar `npm run build`.
+7. Reportar riesgos y follow-ups.
 
-- Ejecutar validacion de tipos:
+## 6. Guardrails
+
+- No romper aislamiento por `household`.
+- No relajar RLS sin alternativa equivalente.
+- No mover integridad crítica al cliente si puede vivir en DB/RPC.
+- No asumir offline seguro para mutaciones.
+- No cambiar contratos públicos sin actualizar consumidores.
+- No revertir cambios del usuario no relacionados.
+
+## 7. Mapa Rápido Por Tipo De Tarea
+
+- Auth/sesión/household:
+  - `src/contexts/AuthContext.tsx`
+  - `src/views/AuthView.tsx`
+  - `src/views/OnboardingView.tsx`
+- Finanzas:
+  - `src/hooks/useTransactions.ts`
+  - `src/lib/financeData.ts`
+  - `src/components/transactions/`
+  - `src/components/settings/AccountManager.tsx`
+  - `src/components/settings/CategoryManager.tsx`
+- Mascotas:
+  - `src/hooks/usePets.ts`
+  - `src/lib/petsData.ts`
+  - `src/views/PetsView.tsx`
+  - `src/components/pets/`
+- Tareas:
+  - `src/hooks/useTasks.ts`
+  - `src/lib/tasksData.ts`
+  - `src/lib/taskRecurrence.ts`
+  - `src/views/TasksView.tsx`
+  - `src/components/tasks/`
+- Settings:
+  - `src/hooks/useSettings.ts`
+  - `src/lib/settingsData.ts`
+  - `src/views/SettingsView.tsx`
+  - `src/components/settings/`
+- PWA/red:
+  - `src/main.tsx`
+  - `src/App.tsx`
+  - `src/contexts/NetworkStatusContext.tsx`
+  - `public/sw.js`
+  - `public/offline.html`
+
+## 8. Checklist Pre-Cambio
+
+- Confirmar dominio afectado.
+- Confirmar si toca frontend, SQL o ambos.
+- Confirmar impacto en tipos.
+- Confirmar impacto en permisos.
+- Si afecta mutaciones, revisar comportamiento online/offline.
+
+## 9. Checklist Post-Cambio
+
+Ejecutar:
 
 ```bash
 npm run lint
 ```
 
-- Si hubo cambios amplios, verificar build:
+Si el cambio es amplio:
 
 ```bash
 npm run build
 ```
 
-- Revisar manualmente flujos afectados en UI.
-- Confirmar que no quedaron imports/variables sin uso.
-- Confirmar mensajes de error legibles para usuario final.
+Además:
 
-## 7. Estilo De Implementacion Esperado
+- revisar UX de error si cambias una mutación
+- revisar que no queden imports/variables sin uso
+- revisar que la app siga siendo coherente en iPhone/PWA si tocas shell, layout o service worker
 
-- Cambios pequenos y enfocados.
-- Reutilizar patrones existentes de hooks y componentes.
-- Mantener naming consistente (PascalCase componentes, camelCase funciones/variables).
-- Preferir claridad sobre ingenieria excesiva.
+## 10. Estado De Riesgos Técnicos
 
-## 8. Riesgos Tecnicos Conocidos
+- No hay suite de tests automatizados todavía.
+- La seguridad depende fuertemente de RLS correcta.
+- El bundle ya mejoró, pero aún hay vendor pesado compartido.
+- La app no tiene soporte offline colaborativo, por diseño.
 
-- Cobertura de tests automatizados no establecida en repo.
-- Dependencia fuerte de RLS para seguridad de datos.
-- Cargas completas de datos en hooks pueden escalar mal con volumen alto.
+## 11. Resumen Esperado Al Finalizar
 
-## 9. Plantilla De Resumen De PR Para Agentes
-
-Al finalizar una contribucion, reportar:
+Al reportar una contribución, incluir:
 
 1. Objetivo del cambio.
-2. Archivos tocados y por que.
+2. Archivos tocados y por qué.
 3. Riesgos y mitigaciones.
-4. Validaciones ejecutadas (`npm run lint`, `npm run build`, pruebas manuales).
-5. Pendientes o follow-ups recomendados.
+4. Validaciones ejecutadas.
+5. Pendientes o follow-ups.
 
-## 10. Inicio Rapido Para Agentes
+## 12. Inicio Rápido Para Agentes
 
 1. Leer `README.md`.
 2. Leer este archivo completo.
-3. Abrir `src/App.tsx` y `src/contexts/AuthContext.tsx`.
-4. Ir al hook del dominio a modificar.
-5. Revisar SQL asociado en `supabase/` antes de tocar logica sensible.
+3. Revisar `src/App.tsx` y `src/contexts/AuthContext.tsx`.
+4. Revisar el provider/hook/capa `lib/*Data.ts` del dominio a tocar.
+5. Revisar `supabase/` si hay impacto de datos o permisos.

@@ -1,0 +1,13 @@
+| schemaname | tablename             | rowsecurity | forcerowsecurity |
+| ---------- | --------------------- | ----------- | ---------------- |
+| public     | accounts              | true        | false            |
+| public     | categories            | true        | false            |
+| public     | household_invitations | true        | false            |
+| public     | household_members     | true        | false            |
+| public     | households            | true        | false            |
+| public     | pet_tasks             | true        | false            |
+| public     | pets                  | true        | false            |
+| public     | profiles              | true        | false            |
+| public     | task_occurrences      | true        | false            |
+| public     | tasks                 | true        | false            |
+| public     | transactions          | true        | false            |

@@ -1,0 +1,32 @@
+[
+  {
+    "schema_name": "public",
+    "function_name": "accept_invitation",
+    "definition": "CREATE OR REPLACE FUNCTION public.accept_invitation(p_token character varying)\n RETURNS uuid\n LANGUAGE plpgsql\n SECURITY DEFINER\nAS $function$\r\nDECLARE\r\n  v_invite RECORD;\r\n  v_user_email VARCHAR;\r\nBEGIN\r\n  -- 1. Buscar la invitación que coincida y no esté vencida ni aceptada\r\n  SELECT * INTO v_invite\r\n  FROM household_invitations\r\n  WHERE token = p_token\r\n    AND status = 'pending'\r\n    AND expires_at > now()\r\n  FOR UPDATE; -- Bloqueo transaccional para evitar doble uso\r\n\r\n  IF NOT FOUND THEN\r\n    RAISE EXCEPTION 'El código de invitación es inválido, ya fue usado o ha expirado.';\r\n  END IF;\r\n\r\n  -- (Opcional) Podemos validar que el email invitado coincida con el email del usuario\r\n  -- SELECT email INTO v_user_email FROM auth.users WHERE id = auth.uid();\r\n  -- IF v_user_email != v_invite.email THEN\r\n  --   RAISE EXCEPTION 'Esta invitación no fue enviada a tu correo.';\r\n  -- END IF;\r\n\r\n  -- 2. Insertar al usuario como miembro (role: member)\r\n  INSERT INTO household_members (profile_id, household_id, role, status)\r\n  VALUES (auth.uid(), v_invite.household_id, 'member', 'active');\r\n\r\n  -- 3. Marcar la invitación como aceptada\r\n  UPDATE household_invitations\r\n  SET status = 'accepted'\r\n  WHERE id = v_invite.id;\r\n\r\n  RETURN v_invite.household_id;\r\nEND;\r\n$function$\n"
+  },
+  {
+    "schema_name": "public",
+    "function_name": "bootstrap_household",
+    "definition": "CREATE OR REPLACE FUNCTION public.bootstrap_household(h_id uuid)\n RETURNS void\n LANGUAGE plpgsql\n SECURITY DEFINER\nAS $function$\r\nBEGIN\r\n  IF NOT EXISTS (SELECT 1 FROM public.accounts WHERE household_id = h_id) THEN\r\n    INSERT INTO public.accounts (household_id, name, emoji)\r\n    VALUES\r\n      (h_id, 'Gasto Común', '💳'),\r\n      (h_id, 'Ahorros Compartidos', '🐷');\r\n  END IF;\r\n\r\n  IF NOT EXISTS (SELECT 1 FROM public.categories WHERE household_id = h_id) THEN\r\n    INSERT INTO public.categories (household_id, name, kind)\r\n    VALUES\r\n      (h_id, 'General', 'expense'),\r\n      (h_id, 'Comida', 'expense'),\r\n      (h_id, 'Transporte', 'expense'),\r\n      (h_id, 'Hogar', 'expense'),\r\n      (h_id, 'Salud', 'expense'),\r\n      (h_id, 'Entretenimiento', 'expense'),\r\n      (h_id, 'Compras', 'expense'),\r\n      (h_id, 'Mascotas', 'expense'),\r\n      (h_id, 'Sueldo', 'income'),\r\n      (h_id, 'Inversión', 'income'),\r\n      (h_id, 'Freelance', 'income'),\r\n      (h_id, 'Regalo', 'income');\r\n  END IF;\r\nEND;\r\n$function$\n"
+  },
+  {
+    "schema_name": "public",
+    "function_name": "create_household_and_insert_admin",
+    "definition": "CREATE OR REPLACE FUNCTION public.create_household_and_insert_admin(p_theme theme_type DEFAULT 'default'::theme_type)\n RETURNS uuid\n LANGUAGE plpgsql\n SECURITY DEFINER\nAS $function$\r\nDECLARE\r\n  v_household_id UUID;\r\nBEGIN\r\n  -- 1. Insert the new household\r\n  INSERT INTO households (theme)\r\n  VALUES (p_theme)\r\n  RETURNING id INTO v_household_id;\r\n\r\n  -- 2. Insert the calling user as the explicit admin of this new household\r\n  INSERT INTO household_members (profile_id, household_id, role, status)\r\n  VALUES (auth.uid(), v_household_id, 'admin', 'active');\r\n\r\n  RETURN v_household_id;\r\nEND;\r\n$function$\n"
+  },
+  {
+    "schema_name": "public",
+    "function_name": "get_household_member_profiles",
+    "definition": "CREATE OR REPLACE FUNCTION public.get_household_member_profiles()\n RETURNS TABLE(member_id uuid, profile_id uuid, name character varying, nickname character varying, gender character varying, birth_date date, avatar_url text, joined_at timestamp with time zone)\n LANGUAGE sql\n SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$\r\n  SELECT\r\n    hm.id AS member_id,\r\n    p.id AS profile_id,\r\n    p.name,\r\n    p.nickname,\r\n    p.gender,\r\n    p.birth_date,\r\n    p.avatar_url,\r\n    hm.joined_at\r\n  FROM public.household_members hm\r\n  INNER JOIN public.profiles p ON p.id = hm.profile_id\r\n  WHERE hm.status = 'active'\r\n    AND hm.household_id = (\r\n      SELECT household_id\r\n      FROM public.household_members\r\n      WHERE profile_id = auth.uid()\r\n        AND status = 'active'\r\n      ORDER BY joined_at ASC\r\n      LIMIT 1\r\n    )\r\n  ORDER BY hm.joined_at ASC;\r\n$function$\n"
+  },
+  {
+    "schema_name": "public",
+    "function_name": "get_household_profiles",
+    "definition": "CREATE OR REPLACE FUNCTION public.get_household_profiles()\n RETURNS TABLE(id uuid, name character varying, nickname character varying, gender character varying, birth_date date, avatar_url text, joined_at timestamp with time zone)\n LANGUAGE sql\n SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$\r\n  SELECT\r\n    p.id,\r\n    p.name,\r\n    p.nickname,\r\n    p.gender,\r\n    p.birth_date,\r\n    p.avatar_url,\r\n    hm.joined_at\r\n  FROM public.household_members hm\r\n  INNER JOIN public.profiles p ON p.id = hm.profile_id\r\n  WHERE hm.status = 'active'\r\n    AND hm.household_id = (\r\n      SELECT household_id\r\n      FROM public.household_members\r\n      WHERE profile_id = auth.uid()\r\n        AND status = 'active'\r\n      ORDER BY joined_at ASC\r\n      LIMIT 1\r\n    )\r\n  ORDER BY hm.joined_at ASC;\r\n$function$\n"
+  },
+  {
+    "schema_name": "public",
+    "function_name": "handle_new_user",
+    "definition": "CREATE OR REPLACE FUNCTION public.handle_new_user()\n RETURNS trigger\n LANGUAGE plpgsql\n SECURITY DEFINER\nAS $function$\r\nBEGIN\r\n  INSERT INTO public.profiles (id, name, avatar_url)\r\n  VALUES (\r\n    new.id,\r\n    COALESCE(new.raw_user_meta_data->>'full_name', new.email),\r\n    new.raw_user_meta_data->>'avatar_url'\r\n  );\r\n  RETURN new;\r\nEND;\r\n$function$\n"
+  }
+]
