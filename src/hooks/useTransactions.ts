@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../contexts/AuthContext';
 import { Transaction, Account, Category } from '../types';
 import {
@@ -12,108 +13,128 @@ import {
   removeCategory,
   removeTransaction
 } from '../lib/financeData';
+import { queryKeys } from '../lib/queryKeys';
 
 export function useTransactions() {
   const { householdId, memberId } = useAuth();
-  
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [accounts, setAccounts] = useState<Account[]>([]);
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const queryClient = useQueryClient();
 
-  // Load Initial Data
-  const loadData = useCallback(async () => {
-    if (!householdId) return;
-    setIsLoading(true);
+  const financeQuery = useQuery({
+    queryKey: queryKeys.finance(householdId),
+    queryFn: () => loadFinanceSnapshot(householdId!),
+    enabled: Boolean(householdId)
+  });
 
-    try {
-      const snapshot = await loadFinanceSnapshot(householdId);
-      setAccounts(snapshot.accounts);
-      setCategories(snapshot.categories);
-      setTransactions(snapshot.transactions);
-    } catch (error) {
-      console.error('Error fetching finance data', error);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [householdId]);
-
-  useEffect(() => {
-    loadData();
-  }, [loadData]);
+  const transactions = financeQuery.data?.transactions || [];
+  const accounts = financeQuery.data?.accounts || [];
+  const categories = financeQuery.data?.categories || [];
+  const isLoading = financeQuery.isLoading;
 
 
   const accountBalances = useMemo(() => {
     return calculateAccountBalances(accounts, transactions);
   }, [accounts, transactions]);
 
+  const addTransactionMutation = useMutation({
+    mutationFn: async (transaction: Omit<Transaction, 'id' | 'household_id' | 'created_by'>) => {
+      if (!householdId || !memberId) {
+        throw new Error('No se puede agregar transacción sin householdId o memberId');
+      }
+
+      return createTransaction(householdId, memberId, transaction);
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.finance(householdId) })
+  });
+
   const addTransaction = useCallback(async (t: Omit<Transaction, 'id' | 'household_id' | 'created_by'>) => {
     if (!householdId || !memberId) {
-        console.error("No se puede agregar transacción sin householdId o memberId");
-        return false;
+      console.error("No se puede agregar transacción sin householdId o memberId");
+      return false;
     }
     try {
-      const transaction = await createTransaction(householdId, memberId, t);
-      setTransactions(currentTransactions => [transaction, ...currentTransactions]);
+      await addTransactionMutation.mutateAsync(t);
       return true;
     } catch (error) {
       console.error('Error adding transaction:', error);
       return false;
     }
-  }, [householdId, memberId]);
+  }, [addTransactionMutation, householdId, memberId]);
+
+  const deleteTransactionMutation = useMutation({
+    mutationFn: removeTransaction,
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.finance(householdId) })
+  });
 
   const deleteTransaction = async (id: string) => {
     try {
-      await removeTransaction(id);
-      setTransactions(currentTransactions => currentTransactions.filter(t => t.id !== id));
+      await deleteTransactionMutation.mutateAsync(id);
     } catch (error) {
       console.error('Error deleting transaction:', error);
     }
   };
 
+  const addCategoryMutation = useMutation({
+    mutationFn: ({ name, kind }: { name: string; kind: 'income' | 'expense' }) => createCategory(householdId!, name, kind),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.finance(householdId) })
+  });
+
   const addCategory = async (name: string, kind: 'income' | 'expense') => {
     if (!householdId) return;
     try {
-      const category = await createCategory(householdId, name, kind);
-      setCategories(currentCategories => [...currentCategories, category]);
+      await addCategoryMutation.mutateAsync({ name, kind });
     } catch (error) {
       console.error('Error adding category:', error);
     }
   };
 
+  const deleteCategoryMutation = useMutation({
+    mutationFn: removeCategory,
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.finance(householdId) })
+  });
+
   const deleteCategory = async (id: string) => {
     try {
-      await removeCategory(id);
-      setCategories(currentCategories => currentCategories.filter(c => c.id !== id));
+      await deleteCategoryMutation.mutateAsync(id);
     } catch (error) {
       console.error('Error deleting category:', error);
     }
   };
 
+  const addAccountMutation = useMutation({
+    mutationFn: ({ name, emoji }: { name: string; emoji?: string }) => createAccount(householdId!, name, emoji),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.finance(householdId) })
+  });
+
   const addAccount = async (name: string, emoji?: string) => {
     if (!householdId) return;
     try {
-      const account = await createAccount(householdId, name, emoji);
-      setAccounts(currentAccounts => [...currentAccounts, account]);
+      await addAccountMutation.mutateAsync({ name, emoji });
     } catch (error) {
       console.error('Error adding account:', error);
     }
   };
 
+  const updateAccountMutation = useMutation({
+    mutationFn: ({ id, updates }: { id: string; updates: Partial<Account> }) => editAccount(id, updates),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.finance(householdId) })
+  });
+
   const updateAccount = async (id: string, updates: Partial<Account>) => {
     try {
-      const account = await editAccount(id, updates);
-      setAccounts(currentAccounts => currentAccounts.map(a => a.id === id ? account : a));
+      await updateAccountMutation.mutateAsync({ id, updates });
     } catch (error) {
       console.error('Error updating account:', error);
     }
   };
 
+  const deleteAccountMutation = useMutation({
+    mutationFn: removeAccount,
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.finance(householdId) })
+  });
+
   const deleteAccount = async (id: string) => {
     try {
-      await removeAccount(id);
-      setAccounts(currentAccounts => currentAccounts.filter(a => a.id !== id));
-      setTransactions(currentTransactions => currentTransactions.filter(t => t.account_id !== id));
+      await deleteAccountMutation.mutateAsync(id);
       return true;
     } catch (error) {
       console.error('Error deleting account:', error);

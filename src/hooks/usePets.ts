@@ -1,4 +1,5 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useCallback, useMemo } from 'react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../contexts/AuthContext';
 import { Pet, PetTask, PetTaskInput } from '../types';
 import {
@@ -11,40 +12,39 @@ import {
   removePetTask,
   reopenPetTaskRecord
 } from '../lib/petsData';
+import { queryKeys } from '../lib/queryKeys';
 
 export function usePets() {
   const { householdId, memberId } = useAuth();
-  const [pets, setPets] = useState<Pet[]>([]);
-  const [petTasks, setPetTasks] = useState<PetTask[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const queryClient = useQueryClient();
 
-  const loadData = useCallback(async () => {
-    if (!householdId) return;
-    setIsLoading(true);
-    try {
-      const snapshot = await loadPetsSnapshot(householdId);
-      setPets(snapshot.pets);
-      setPetTasks(snapshot.petTasks);
-    } catch (error) {
-      console.error('Error loading pet data:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [householdId]);
+  const petsQuery = useQuery({
+    queryKey: queryKeys.pets(householdId),
+    queryFn: () => loadPetsSnapshot(householdId!),
+    enabled: Boolean(householdId)
+  });
 
-  useEffect(() => {
-    loadData();
-  }, [loadData]);
+  const pets = petsQuery.data?.pets || [];
+  const petTasks = petsQuery.data?.petTasks || [];
+  const isLoading = petsQuery.isLoading;
 
   const pendingPetTasksCount = useMemo(() =>
     petTasks.filter(t => !t.completed).length
   , [petTasks]);
 
+  const invalidatePets = useCallback(() => (
+    queryClient.invalidateQueries({ queryKey: queryKeys.pets(householdId) })
+  ), [householdId, queryClient]);
+
+  const addPetMutation = useMutation({
+    mutationFn: (pet: Omit<Pet, 'id' | 'household_id'>) => createPet(householdId!, pet),
+    onSuccess: invalidatePets
+  });
+
   const addPet = async (pet: Omit<Pet, 'id' | 'household_id'>) => {
     if (!householdId) return false;
     try {
-      const newPet = await createPet(householdId, pet);
-      setPets(currentPets => [...currentPets, newPet]);
+      await addPetMutation.mutateAsync(pet);
       return true;
     } catch (error) {
       console.error('Error adding pet:', error);
@@ -52,23 +52,30 @@ export function usePets() {
     }
   };
 
+  const updatePetMutation = useMutation({
+    mutationFn: (pet: Pet) => editPet(householdId!, pet),
+    onSuccess: invalidatePets
+  });
+
   const updatePet = async (updatedPet: Pet) => {
     if (!householdId) return;
     try {
-      const pet = await editPet(householdId, updatedPet);
-      setPets(currentPets => currentPets.map(currentPet => currentPet.id === updatedPet.id ? pet : currentPet));
+      await updatePetMutation.mutateAsync(updatedPet);
     } catch (error) {
       console.error('Error updating pet:', error);
     }
   };
 
+  const deletePetMutation = useMutation({
+    mutationFn: (petId: string) => removePet(householdId!, petId),
+    onSuccess: invalidatePets
+  });
+
   const deletePet = async (id: string) => {
     if (!householdId) return false;
     
     try {
-      await removePet(householdId, id);
-      setPets(currentPets => currentPets.filter(p => p.id !== id));
-      setPetTasks(currentPetTasks => currentPetTasks.filter(pt => pt.pet_id !== id));
+      await deletePetMutation.mutateAsync(id);
       return true;
     } catch (error) {
       console.error('Error deleting pet:', error);
@@ -76,11 +83,15 @@ export function usePets() {
     }
   };
 
+  const addPetTaskMutation = useMutation({
+    mutationFn: (task: PetTaskInput) => createPetTasks(task, pets),
+    onSuccess: invalidatePets
+  });
+
   const addPetTask = async (task: PetTaskInput) => {
     try {
-      const tasks = await createPetTasks(task, pets);
+      const tasks = await addPetTaskMutation.mutateAsync(task);
       if (tasks.length === 0) return false;
-      setPetTasks(currentPetTasks => [...tasks, ...currentPetTasks]);
       return true;
     } catch (error) {
       console.error('Error adding pet tasks:', error);
@@ -88,22 +99,16 @@ export function usePets() {
     }
   };
 
+  const completePetTaskMutation = useMutation({
+    mutationFn: ({ id, memberId, householdId }: { id: string; memberId: string; householdId: string }) =>
+      completePetTaskRecord(id, memberId, householdId),
+    onSuccess: invalidatePets
+  });
+
   const completePetTask = async (id: string) => {
     if (!memberId || !householdId) return false;
     try {
-      const { completedDate, completedByMember } = await completePetTaskRecord(id, memberId, householdId);
-
-      setPetTasks(currentPetTasks => currentPetTasks.map(t =>
-        t.id === id
-          ? {
-              ...t,
-              completed: true,
-              completed_date: completedDate,
-              completed_by: memberId,
-              completedByMember
-            }
-          : t
-      ));
+      await completePetTaskMutation.mutateAsync({ id, memberId, householdId });
       return true;
     } catch (error) {
       console.error('Error completing pet task:', error);
@@ -111,14 +116,14 @@ export function usePets() {
     }
   };
 
+  const reopenPetTaskMutation = useMutation({
+    mutationFn: reopenPetTaskRecord,
+    onSuccess: invalidatePets
+  });
+
   const reopenPetTask = async (id: string) => {
     try {
-      await reopenPetTaskRecord(id);
-      setPetTasks(currentPetTasks => currentPetTasks.map(t =>
-        t.id === id
-          ? { ...t, completed: false, completed_date: undefined, completed_by: undefined, completedByMember: undefined }
-          : t
-      ));
+      await reopenPetTaskMutation.mutateAsync(id);
       return true;
     } catch (error) {
       console.error('Error reopening pet task:', error);
@@ -126,10 +131,14 @@ export function usePets() {
     }
   };
 
+  const deletePetTaskMutation = useMutation({
+    mutationFn: removePetTask,
+    onSuccess: invalidatePets
+  });
+
   const deletePetTask = async (id: string) => {
     try {
-      await removePetTask(id);
-      setPetTasks(currentPetTasks => currentPetTasks.filter(task => task.id !== id));
+      await deletePetTaskMutation.mutateAsync(id);
       return true;
     } catch (error) {
       console.error('Error deleting pet task:', error);

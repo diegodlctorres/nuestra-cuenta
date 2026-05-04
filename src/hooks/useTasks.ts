@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../contexts/AuthContext';
 import {
   RenderableTaskReminder,
@@ -14,6 +15,7 @@ import {
   loadTaskReminders,
   reopenReminderRecord
 } from '../lib/tasksData';
+import { queryKeys } from '../lib/queryKeys';
 
 export interface TaskMutationResult {
   success: boolean;
@@ -27,37 +29,31 @@ export interface ReminderViewRange {
 
 export function useTasks() {
   const { householdId } = useAuth();
-  const [tasks, setTasks] = useState<RenderableTaskReminder[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
   const [viewRange, setViewRange] = useState<ReminderViewRange | null>(null);
+  const queryClient = useQueryClient();
 
-  const loadTasks = useCallback(async () => {
-    if (!householdId || !viewRange) return;
+  const tasksQuery = useQuery({
+    queryKey: queryKeys.tasks(householdId, viewRange),
+    queryFn: () => loadTaskReminders(householdId!, viewRange!),
+    enabled: Boolean(householdId && viewRange)
+  });
 
-    setIsLoading(true);
+  const tasks = tasksQuery.data || [];
+  const isLoading = tasksQuery.isLoading;
+  const invalidateTasks = useCallback(() => (
+    queryClient.invalidateQueries({ queryKey: ['tasks', householdId] })
+  ), [householdId, queryClient]);
 
-    try {
-      const reminders = await loadTaskReminders(householdId, viewRange);
-      setTasks(reminders);
-    } catch (error) {
-      console.error('Error loading tasks:', error);
-      setTasks([]);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [householdId, viewRange]);
-
-  useEffect(() => {
-    if (!viewRange) return;
-    loadTasks();
-  }, [loadTasks, viewRange]);
+  const addTaskMutation = useMutation({
+    mutationFn: (task: TaskInput) => createTask(householdId!, task),
+    onSuccess: invalidateTasks
+  });
 
   const addTask = async (task: TaskInput): Promise<TaskMutationResult> => {
     if (!householdId) return { success: false, error: 'No se encontró un hogar activo.' };
 
     try {
-      await createTask(householdId, task);
-      await loadTasks();
+      await addTaskMutation.mutateAsync(task);
       return { success: true };
     } catch (error) {
       console.error('Error adding task:', error);
@@ -68,10 +64,14 @@ export function useTasks() {
     }
   };
 
+  const updateTaskMutation = useMutation({
+    mutationFn: ({ taskId, task }: { taskId: string; task: TaskInput }) => editTask(taskId, task),
+    onSuccess: invalidateTasks
+  });
+
   const updateTask = async (taskId: string, task: TaskInput): Promise<TaskMutationResult> => {
     try {
-      await editTask(taskId, task);
-      await loadTasks();
+      await updateTaskMutation.mutateAsync({ taskId, task });
       return { success: true };
     } catch (error) {
       console.error('Error updating task:', error);
@@ -82,10 +82,14 @@ export function useTasks() {
     }
   };
 
+  const completeReminderMutation = useMutation({
+    mutationFn: completeReminderRecord,
+    onSuccess: invalidateTasks
+  });
+
   const completeReminder = async (reminder: RenderableTaskReminder) => {
     try {
-      await completeReminderRecord(reminder);
-      await loadTasks();
+      await completeReminderMutation.mutateAsync(reminder);
       return true;
     } catch (error) {
       console.error('Error completing reminder:', error);
@@ -93,10 +97,14 @@ export function useTasks() {
     }
   };
 
+  const reopenReminderMutation = useMutation({
+    mutationFn: reopenReminderRecord,
+    onSuccess: invalidateTasks
+  });
+
   const reopenReminder = async (reminder: RenderableTaskReminder) => {
     try {
-      await reopenReminderRecord(reminder);
-      await loadTasks();
+      await reopenReminderMutation.mutateAsync(reminder);
       return true;
     } catch (error) {
       console.error('Error reopening reminder:', error);
@@ -104,10 +112,14 @@ export function useTasks() {
     }
   };
 
+  const deleteReminderMutation = useMutation({
+    mutationFn: deleteReminderRecord,
+    onSuccess: invalidateTasks
+  });
+
   const deleteReminder = async (reminder: RenderableTaskReminder) => {
     try {
-      await deleteReminderRecord(reminder);
-      await loadTasks();
+      await deleteReminderMutation.mutateAsync(reminder);
       return true;
     } catch (error) {
       console.error('Error deleting reminder:', error);
@@ -115,10 +127,14 @@ export function useTasks() {
     }
   };
 
+  const archiveTaskSeriesMutation = useMutation({
+    mutationFn: archiveTaskSeriesRecord,
+    onSuccess: invalidateTasks
+  });
+
   const archiveTaskSeries = async (taskId: string) => {
     try {
-      await archiveTaskSeriesRecord(taskId);
-      await loadTasks();
+      await archiveTaskSeriesMutation.mutateAsync(taskId);
       return true;
     } catch (error) {
       console.error('Error archiving task series:', error);
@@ -126,10 +142,14 @@ export function useTasks() {
     }
   };
 
+  const deleteSeriesFromReminderMutation = useMutation({
+    mutationFn: deleteSeriesFromReminderRecord,
+    onSuccess: invalidateTasks
+  });
+
   const deleteSeriesFromReminder = async (reminder: RenderableTaskReminder) => {
     try {
-      await deleteSeriesFromReminderRecord(reminder);
-      await loadTasks();
+      await deleteSeriesFromReminderMutation.mutateAsync(reminder);
       return true;
     } catch (error) {
       console.error('Error deleting task series from occurrence:', error);
