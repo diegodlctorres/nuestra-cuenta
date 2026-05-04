@@ -129,7 +129,7 @@ export function useTransactions() {
   const addTransaction = useCallback(async (t: Omit<Transaction, 'id' | 'household_id' | 'created_by'>) => {
     if (!householdId || !memberId) {
         console.error("No se puede agregar transacción sin householdId o memberId");
-        return;
+        return false;
     }
     try {
       const { data, error } = await supabase
@@ -161,11 +161,13 @@ export function useTransactions() {
         creator: creatorMap.get(memberId) || (data as TransactionWithCreatorMember).creator_member?.profile
       };
 
-      setTransactions([mapped as Transaction, ...transactions]);
+      setTransactions(currentTransactions => [mapped as Transaction, ...currentTransactions]);
+      return true;
     } catch (error) {
       console.error('Error adding transaction:', error);
+      return false;
     }
-  }, [householdId, mapMemberProfile, memberId, transactions]);
+  }, [householdId, mapMemberProfile, memberId]);
 
   const deleteTransaction = async (id: string) => {
     try {

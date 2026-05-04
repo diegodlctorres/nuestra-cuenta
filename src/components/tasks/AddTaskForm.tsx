@@ -20,6 +20,7 @@ export function AddTaskForm({ onAdd }: { onAdd: (t: Omit<Task, 'id' | 'household
   const [title, setTitle] = useState('');
   const [deadline, setDeadline] = useState('');
   const [dueTime, setDueTime] = useState('');
+  const [requiresTransaction, setRequiresTransaction] = useState(false);
   const [submitAttempted, setSubmitAttempted] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState('');
@@ -42,6 +43,7 @@ export function AddTaskForm({ onAdd }: { onAdd: (t: Omit<Task, 'id' | 'household
     setTitle('');
     setDeadline('');
     setDueTime('');
+    setRequiresTransaction(false);
     setSubmitAttempted(false);
     setSaveError('');
   };
@@ -62,7 +64,8 @@ export function AddTaskForm({ onAdd }: { onAdd: (t: Omit<Task, 'id' | 'household
     const result = await onAdd({
       title: title.trim(),
       deadline,
-      due_time: dueTime || undefined
+      due_time: dueTime || undefined,
+      requires_transaction: requiresTransaction
     });
     setIsSaving(false);
 
@@ -137,6 +140,16 @@ export function AddTaskForm({ onAdd }: { onAdd: (t: Omit<Task, 'id' | 'household
               )}
             </div>
           </div>
+          <label className="flex items-center gap-3 p-4 bg-slate-50 rounded-2xl cursor-pointer hover:bg-slate-100 transition-colors">
+            <input
+              type="checkbox"
+              className="w-5 h-5 rounded border-slate-300 text-primary-600 focus:ring-primary-500"
+              checked={requiresTransaction}
+              onChange={e => setRequiresTransaction(e.target.checked)}
+              disabled={isSaving}
+            />
+            <div className="text-sm font-bold text-slate-700">Requiere registrar una transacción para completar</div>
+          </label>
           {saveError && (
             <p className="text-xs text-red-500 ml-1">{saveError}</p>
           )}

@@ -5,22 +5,55 @@ import { format, parseISO, isAfter } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { cn } from '../lib/utils';
 import { AddTaskForm } from '../components/tasks/AddTaskForm';
+import { TransactionModal } from '../components/transactions/AddTransactionForm';
 import { Task } from '../types';
+import { Transaction, Category, Account } from '../types';
 import { TaskMutationResult } from '../hooks/useTasks';
 
 interface TasksViewProps {
   tasks: Task[];
   addTask: (t: Omit<Task, 'id' | 'household_id' | 'completed'>) => Promise<TaskMutationResult>;
-  toggleTask: (id: string) => void;
+  toggleTask: (id: string) => Promise<boolean>;
   downloadICS: (task: Task) => void;
+  addTransaction: (t: Omit<Transaction, 'id' | 'household_id' | 'created_by'>) => Promise<boolean>;
+  categories: Category[];
+  accounts: Account[];
 }
 
 export function TasksView({
   tasks,
   addTask,
   toggleTask,
-  downloadICS
+  downloadICS,
+  addTransaction,
+  categories,
+  accounts
 }: TasksViewProps) {
+  const [transactionTask, setTransactionTask] = React.useState<Task | null>(null);
+
+  const handleToggleTask = (task: Task) => {
+    if (!task.completed && task.requires_transaction) {
+      setTransactionTask(task);
+      return;
+    }
+
+    toggleTask(task.id);
+  };
+
+  const handleTransactionForTask = async (transaction: Omit<Transaction, 'id' | 'household_id' | 'created_by'>) => {
+    if (!transactionTask) return false;
+
+    const transactionSaved = await addTransaction(transaction);
+    if (!transactionSaved) return false;
+
+    const taskCompleted = await toggleTask(transactionTask.id);
+    if (taskCompleted) {
+      setTransactionTask(null);
+    }
+
+    return taskCompleted;
+  };
+
   return (
     <motion.div
       key="tasks"
@@ -46,7 +79,7 @@ export function TasksView({
               )}
             >
               <button
-                onClick={() => toggleTask(task.id)}
+                onClick={() => handleToggleTask(task)}
                 className={cn(
                   "transition-colors",
                   task.completed ? "text-primary-600" : "text-slate-300 hover:text-primary-400"
@@ -73,6 +106,11 @@ export function TasksView({
                 </div>
               </div>
               <div className="flex items-center gap-2">
+                {task.requires_transaction && (
+                  <div className="px-2 py-1 bg-amber-100 text-amber-700 text-[10px] font-bold rounded-md uppercase">
+                    Transacción
+                  </div>
+                )}
                 {!task.completed && (
                   <button
                     onClick={() => downloadICS(task)}
@@ -87,6 +125,16 @@ export function TasksView({
           );
         })}
       </div>
+
+      <TransactionModal
+        isOpen={!!transactionTask}
+        onClose={() => setTransactionTask(null)}
+        onAdd={handleTransactionForTask}
+        categories={categories}
+        accounts={accounts}
+        initialDescription={transactionTask ? transactionTask.title : ''}
+        title="Registrar transacción pendiente"
+      />
     </motion.div>
   );
 }

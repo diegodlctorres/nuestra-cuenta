@@ -14,7 +14,7 @@ interface DashboardViewProps {
   categories: Category[];
   accounts: Account[];
   accountBalances: Record<string, number>;
-  addTransaction: (t: Omit<Transaction, 'id' | 'household_id' | 'created_by'>) => void;
+  addTransaction: (t: Omit<Transaction, 'id' | 'household_id' | 'created_by'>) => Promise<boolean>;
   setActiveTab: (tab: 'dashboard' | 'detail' | 'pets' | 'tasks' | 'settings') => void;
   setSelectedAccountId: (id: string | null) => void;
 }

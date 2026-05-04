@@ -151,6 +151,9 @@ export default function App() {
               addTask={addTask}
               toggleTask={toggleTask}
               downloadICS={downloadICS}
+              addTransaction={addTransaction}
+              categories={categories}
+              accounts={accounts}
             />
           )}
           {activeTab === 'settings' && (

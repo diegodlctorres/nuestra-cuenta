@@ -46,6 +46,7 @@ export function useTasks() {
         title: task.title,
         deadline: task.deadline,
         ...(task.due_time ? { due_time: task.due_time } : {}),
+        requires_transaction: Boolean(task.requires_transaction),
         household_id: householdId,
         completed: false
       };
@@ -70,18 +71,21 @@ export function useTasks() {
 
   const toggleTask = async (id: string) => {
     const task = tasks.find(t => t.id === id);
-    if (!task) return;
+    if (!task) return false;
 
     try {
+      const nextCompleted = !task.completed;
       const { error } = await supabase
         .from('tasks')
-        .update({ completed: !task.completed })
+        .update({ completed: nextCompleted })
         .eq('id', id);
 
       if (error) throw error;
-      setTasks(tasks.map(t => t.id === id ? { ...t, completed: !t.completed } : t));
+      setTasks(currentTasks => currentTasks.map(t => t.id === id ? { ...t, completed: nextCompleted } : t));
+      return true;
     } catch (error) {
       console.error('Error toggling task:', error);
+      return false;
     }
   };
 

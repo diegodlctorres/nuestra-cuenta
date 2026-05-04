@@ -135,4 +135,5 @@ export interface Task {
   deadline: string;
   due_time?: string;
   completed: boolean;
+  requires_transaction?: boolean;
 }

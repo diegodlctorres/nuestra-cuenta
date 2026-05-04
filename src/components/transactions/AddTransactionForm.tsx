@@ -4,12 +4,31 @@ import { cn } from '../../lib/utils';
 import { Transaction, Category, Account, TransactionType } from '../../types';
 import { Modal } from '../ui/Modal';
 
-export function AddTransactionForm({ onAdd, categories, accounts }: { onAdd: (t: Omit<Transaction, 'id' | 'household_id' | 'created_by'>) => void, categories: Category[], accounts: Account[] }) {
-  const [isOpen, setIsOpen] = useState(false);
+interface TransactionModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onAdd: (t: Omit<Transaction, 'id' | 'household_id' | 'created_by'>) => Promise<boolean>;
+  categories: Category[];
+  accounts: Account[];
+  initialDescription?: string;
+  title?: string;
+}
+
+export function TransactionModal({
+  isOpen,
+  onClose,
+  onAdd,
+  categories,
+  accounts,
+  initialDescription = '',
+  title = 'Nueva Transacción'
+}: TransactionModalProps) {
   const [isAccountPickerOpen, setIsAccountPickerOpen] = useState(false);
   const [amount, setAmount] = useState('');
-  const [description, setDescription] = useState('');
+  const [description, setDescription] = useState(initialDescription);
   const [submitAttempted, setSubmitAttempted] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveError, setSaveError] = useState('');
   
   // Asignar primer ID disponible por default
   const [accountId, setAccountId] = useState<string>(accounts[0]?.id || '');
@@ -35,10 +54,11 @@ export function AddTransactionForm({ onAdd, categories, accounts }: { onAdd: (t:
 
   const resetForm = () => {
     setAmount('');
-    setDescription('');
+    setDescription(initialDescription);
     setIsPetRelated(false);
     setSubmitAttempted(false);
     setIsAccountPickerOpen(false);
+    setSaveError('');
   };
 
   useEffect(() => {
@@ -50,17 +70,25 @@ export function AddTransactionForm({ onAdd, categories, accounts }: { onAdd: (t:
     }
   }, [type, filteredCategories, accounts, categoryId, accountId]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  useEffect(() => {
+    if (isOpen) {
+      setDescription(initialDescription);
+    }
+  }, [initialDescription, isOpen]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitAttempted(true);
-    if (hasErrors) return;
+    setSaveError('');
+    if (hasErrors || isSaving) return;
 
     const finalDescription =
       type === 'income'
         ? `Ingreso por ${filteredCategories.find(category => category.id === categoryId)?.name || 'categoría'}`
         : description.trim();
 
-    onAdd({
+    setIsSaving(true);
+    const wasSaved = await onAdd({
       created_at: new Date().toISOString(),
       amount: Math.abs(amountNumber),
       description: finalDescription,
@@ -70,19 +98,25 @@ export function AddTransactionForm({ onAdd, categories, accounts }: { onAdd: (t:
       is_pet_related: isPetRelated,
       date: new Date().toISOString(),
     });
-    resetForm();
-    setIsOpen(false);
+    setIsSaving(false);
+
+    if (wasSaved) {
+      resetForm();
+      onClose();
+    } else {
+      setSaveError('No se pudo guardar la transacción. Inténtalo nuevamente.');
+    }
   };
 
   return (
-    <>
-      <Modal isOpen={isOpen} onClose={() => { setIsOpen(false); setSubmitAttempted(false); }} title="Nueva Transacción">
+      <Modal isOpen={isOpen} onClose={() => { if (!isSaving) { onClose(); setSubmitAttempted(false); setSaveError(''); } }} title={title}>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-1">
             <label className={cn("text-[10px] font-bold uppercase ml-1", submitAttempted && accountError ? "text-red-500" : "text-slate-400")}>Cuenta de Origen / Destino</label>
             <div className="relative">
               <button
                 type="button"
+                disabled={isSaving}
                 onClick={() => setIsAccountPickerOpen(prev => !prev)}
                 className={cn(
                   "w-full flex items-center justify-between gap-3 rounded-xl border px-4 py-3 text-sm transition",
@@ -120,6 +154,7 @@ export function AddTransactionForm({ onAdd, categories, accounts }: { onAdd: (t:
                       <button
                         key={acc.id}
                         type="button"
+                        disabled={isSaving}
                         onClick={() => {
                           setAccountId(acc.id);
                           setIsAccountPickerOpen(false);
@@ -161,6 +196,7 @@ export function AddTransactionForm({ onAdd, categories, accounts }: { onAdd: (t:
             <div className="grid grid-cols-2 gap-2">
               <button
                 type="button"
+                disabled={isSaving}
                 onClick={() => setType('income')}
                 className={cn(
                   "py-2 rounded-xl text-xs font-bold border transition-all",
@@ -171,6 +207,7 @@ export function AddTransactionForm({ onAdd, categories, accounts }: { onAdd: (t:
               </button>
               <button
                 type="button"
+                disabled={isSaving}
                 onClick={() => setType('expense')}
                 className={cn(
                   "py-2 rounded-xl text-xs font-bold border transition-all",
@@ -195,6 +232,7 @@ export function AddTransactionForm({ onAdd, categories, accounts }: { onAdd: (t:
               placeholder="Monto (ej: 50 o 100)"
               className={inputClassName(submitAttempted && amountError)}
               value={amount}
+              disabled={isSaving}
               onChange={e => {
                 const sanitized = e.target.value
                   .replace(/,/g, '.')
@@ -217,6 +255,7 @@ export function AddTransactionForm({ onAdd, categories, accounts }: { onAdd: (t:
                 placeholder="¿En qué se usó?"
                 className={inputClassName(submitAttempted && descriptionError)}
                 value={description}
+                disabled={isSaving}
                 onChange={e => setDescription(e.target.value)}
                 aria-invalid={submitAttempted && descriptionError}
               />
@@ -231,6 +270,7 @@ export function AddTransactionForm({ onAdd, categories, accounts }: { onAdd: (t:
             <select
               className="w-full p-3 bg-slate-50 rounded-xl border-none text-sm focus:ring-2 focus:ring-primary-500"
               value={categoryId}
+              disabled={isSaving}
               onChange={e => setCategoryId(e.target.value)}
             >
               {filteredCategories.map(c => (
@@ -239,11 +279,30 @@ export function AddTransactionForm({ onAdd, categories, accounts }: { onAdd: (t:
             </select>
           </div>
           
-          <button type="submit" className="w-full py-4 bg-primary-600 text-white rounded-2xl font-bold text-sm shadow-lg shadow-primary-100 mt-4">
-            Guardar Transacción
+          {saveError && (
+            <p className="text-xs text-red-500 ml-1">{saveError}</p>
+          )}
+
+          <button type="submit" disabled={isSaving} className="w-full py-4 bg-primary-600 text-white rounded-2xl font-bold text-sm shadow-lg shadow-primary-100 mt-4 disabled:opacity-60 disabled:cursor-not-allowed">
+            {isSaving ? 'Guardando...' : 'Guardar Transacción'}
           </button>
         </form>
       </Modal>
+  );
+}
+
+export function AddTransactionForm({ onAdd, categories, accounts }: { onAdd: (t: Omit<Transaction, 'id' | 'household_id' | 'created_by'>) => Promise<boolean>, categories: Category[], accounts: Account[] }) {
+  const [isOpen, setIsOpen] = useState(false);
+
+  return (
+    <>
+      <TransactionModal
+        isOpen={isOpen}
+        onClose={() => setIsOpen(false)}
+        onAdd={onAdd}
+        categories={categories}
+        accounts={accounts}
+      />
 
       <button
         type="button"
