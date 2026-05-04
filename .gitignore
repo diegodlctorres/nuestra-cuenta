@@ -6,6 +6,11 @@ coverage/
 *.log
 .env*
 !.env.example
+vite.config.ts.timestamp-*
 
-# Supabase SQL scripts (local only)
-supabase/*.sql
+# Optional local scratch space
+tmp/
+temp/
+.cache/
+supabase/.temp/
+supabase/tmp/
