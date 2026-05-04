@@ -1,7 +1,7 @@
 import React, { useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { PawPrint, Clock, Calendar, History, CheckCircle2, Trash2, Plus, RotateCcw } from 'lucide-react';
-import { format, parseISO } from 'date-fns';
+import { differenceInMonths, format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { AddPetTaskForm } from '../components/pets/AddPetTaskForm';
 import { Modal } from '../components/ui/Modal';
@@ -15,6 +15,23 @@ interface PetsViewProps {
   completePetTask: (id: string) => Promise<boolean>;
   reopenPetTask: (id: string) => Promise<boolean>;
   deletePetTask: (id: string) => Promise<boolean>;
+}
+
+function formatPetAge(birthDate: string) {
+  const totalMonths = Math.max(0, differenceInMonths(new Date(), parseISO(birthDate)));
+
+  if (totalMonths < 12) {
+    return `${totalMonths} ${totalMonths === 1 ? 'mes' : 'meses'}`;
+  }
+
+  const years = Math.floor(totalMonths / 12);
+  const months = totalMonths % 12;
+
+  if (months === 0) {
+    return `${years} ${years === 1 ? 'año' : 'años'}`;
+  }
+
+  return `${years} ${years === 1 ? 'año' : 'años'} y ${months} ${months === 1 ? 'mes' : 'meses'}`;
 }
 
 function PendingPetTaskItem({
@@ -240,14 +257,15 @@ export function PetsView({
                       <PawPrint className="w-6 h-6 text-secondary-500" />
                     )}
                   </div>
-                  <div>
-                    <h3 className="text-lg font-bold text-slate-800">{pet.name}</h3>
-                    <p className="text-xs text-slate-500">
-                      {pet.species} {pet.breed ? `• ${pet.breed}` : ''}
-                      {pet.birth_date && ` • 🎂 ${format(parseISO(pet.birth_date), 'dd MMM', { locale: es })}`}
-                    </p>
+                    <div>
+                      <h3 className="text-lg font-bold text-slate-800">{pet.name}</h3>
+                      <p className="text-xs text-slate-500">
+                        {pet.birth_date
+                          ? `🎂 ${format(parseISO(pet.birth_date), 'dd MMM', { locale: es })} • ${formatPetAge(pet.birth_date)}`
+                          : pet.breed || ''}
+                      </p>
+                    </div>
                   </div>
-                </div>
               </div>
 
               <div className="p-5 space-y-4">
