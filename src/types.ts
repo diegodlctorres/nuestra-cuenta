@@ -114,8 +114,10 @@ export interface PetTask {
   scheduled_date: string;
   scheduled_time?: string;
   completed_date?: string;
+  completed_by?: string;
   completed: boolean;
   notes?: string;
+  completedByMember?: HouseholdMember;
 }
 
 export interface PetTaskInput {

@@ -1,26 +1,64 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
-import { Pet, PetTask, PetTaskInput } from '../types';
+import { HouseholdMember, Pet, PetTask, PetTaskInput, Profile } from '../types';
+
+interface HouseholdMemberProfileRow {
+  member_id: string;
+  profile_id: string;
+  name: string;
+  nickname?: string | null;
+  gender?: string | null;
+  birth_date?: string | null;
+  avatar_url?: string | null;
+}
 
 export function usePets() {
-  const { householdId } = useAuth();
+  const { householdId, memberId } = useAuth();
   const [pets, setPets] = useState<Pet[]>([]);
   const [petTasks, setPetTasks] = useState<PetTask[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+
+  const mapMemberProfile = useCallback((row: HouseholdMemberProfileRow): Profile => ({
+    id: row.profile_id,
+    name: row.name,
+    nickname: row.nickname || undefined,
+    gender: row.gender || undefined,
+    birth_date: row.birth_date || undefined,
+    avatar_url: row.avatar_url || undefined
+  }), []);
 
   const loadData = useCallback(async () => {
     if (!householdId) return;
     setIsLoading(true);
     try {
       // Load Pets
-      const { data: petsData, error: petsError } = await supabase
-        .from('pets')
-        .select('*')
-        .eq('household_id', householdId)
-        .order('name');
+      const [{ data: petsData, error: petsError }, { data: memberProfiles, error: memberProfilesError }] = await Promise.all([
+        supabase
+          .from('pets')
+          .select('*')
+          .eq('household_id', householdId)
+          .order('name'),
+        supabase.rpc('get_household_member_profiles')
+      ]);
 
       if (petsError) throw petsError;
+      if (memberProfilesError) console.error('Error loading household member profiles:', memberProfilesError);
+
+      const completedByMemberMap = new Map(
+        ((memberProfiles || []) as HouseholdMemberProfileRow[]).map(row => [
+          row.member_id,
+          {
+            id: row.member_id,
+            household_id: householdId,
+            profile_id: row.profile_id,
+            role: 'member',
+            status: 'active',
+            joined_at: '',
+            profile: mapMemberProfile(row)
+          } as HouseholdMember
+        ])
+      );
 
       // Load Pet Tasks
       // Note: We need a complex join if we want the Pet info with the task, 
@@ -34,9 +72,12 @@ export function usePets() {
           .select('*')
           .in('pet_id', petIds)
           .order('scheduled_date', { ascending: true });
-          
+
         if (tasksError) throw tasksError;
-        tasksData = data || [];
+        tasksData = ((data || []) as PetTask[]).map(task => ({
+          ...task,
+          completedByMember: task.completed_by ? completedByMemberMap.get(task.completed_by) : undefined
+        }));
       }
 
       setPets(petsData || []);
@@ -46,7 +87,7 @@ export function usePets() {
     } finally {
       setIsLoading(false);
     }
-  }, [householdId]);
+  }, [householdId, mapMemberProfile]);
 
   useEffect(() => {
     loadData();
@@ -118,8 +159,12 @@ export function usePets() {
 
   const addPetTask = async (task: PetTaskInput) => {
     const { petIds, ...taskData } = task; // Front-end format with plural petIds
+    const currentPetIds = new Set(pets.map(pet => pet.id));
+    const validPetIds = petIds.filter(petId => currentPetIds.has(petId));
+
+    if (validPetIds.length === 0) return false;
     
-    const dbTasks = petIds.map((pid: string) => ({
+    const dbTasks = validPetIds.map((pid: string) => ({
       pet_id: pid,
       title: taskData.title,
       scheduled_date: taskData.scheduled_date,
@@ -135,26 +180,52 @@ export function usePets() {
         .select();
 
       if (error) throw error;
-      if (data) setPetTasks([...data, ...petTasks]);
+      if (data) setPetTasks(currentPetTasks => [...data, ...currentPetTasks]);
+      return true;
     } catch (error) {
       console.error('Error adding pet tasks:', error);
+      return false;
     }
   };
 
   const completePetTask = async (id: string) => {
+    if (!memberId) return false;
     const completedDate = new Date().toISOString();
     try {
       const { error } = await supabase
         .from('pet_tasks')
-        .update({ completed: true, completed_date: completedDate })
+        .update({ completed: true, completed_date: completedDate, completed_by: memberId })
         .eq('id', id);
 
       if (error) throw error;
-      setPetTasks(petTasks.map(t =>
-        t.id === id ? { ...t, completed: true, completed_date: completedDate } : t
+      setPetTasks(currentPetTasks => currentPetTasks.map(t =>
+        t.id === id ? { ...t, completed: true, completed_date: completedDate, completed_by: memberId } : t
       ));
+      await loadData();
+      return true;
     } catch (error) {
       console.error('Error completing pet task:', error);
+      return false;
+    }
+  };
+
+  const reopenPetTask = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from('pet_tasks')
+        .update({ completed: false, completed_date: null, completed_by: null })
+        .eq('id', id);
+
+      if (error) throw error;
+      setPetTasks(currentPetTasks => currentPetTasks.map(t =>
+        t.id === id
+          ? { ...t, completed: false, completed_date: undefined, completed_by: undefined, completedByMember: undefined }
+          : t
+      ));
+      return true;
+    } catch (error) {
+      console.error('Error reopening pet task:', error);
+      return false;
     }
   };
 
@@ -168,6 +239,7 @@ export function usePets() {
     deletePet, 
     addPetTask, 
     completePetTask,
+    reopenPetTask,
     isLoading 
   };
 }

@@ -180,7 +180,11 @@ export function DashboardView({
         </div>
       </Modal>
 
-      <div className="bg-secondary-50 rounded-3xl p-6 border border-secondary-100">
+      <button
+        type="button"
+        onClick={() => setActiveTab('pets')}
+        className="w-full text-left bg-secondary-50 rounded-3xl p-6 border border-secondary-100 transition-all active:scale-[0.98] hover:bg-secondary-100"
+      >
         <div className="flex items-center gap-3 mb-4">
           <div className="p-2 bg-secondary-500 rounded-xl">
             <PawPrint className="w-5 h-5 text-white" />
@@ -191,7 +195,7 @@ export function DashboardView({
           </div>
         </div>
         <div className="text-2xl font-bold text-secondary-900">{pendingPetTasksCount} tareas</div>
-      </div>
+      </button>
 
       {/* Recent Activity */}
       <div>

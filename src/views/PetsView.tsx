@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { PawPrint, Clock, Calendar, History, CheckCircle2, Trash2, Plus } from 'lucide-react';
+import { PawPrint, Clock, Calendar, History, CheckCircle2, Trash2, Plus, RotateCcw } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { AddPetTaskForm } from '../components/pets/AddPetTaskForm';
@@ -10,8 +10,9 @@ interface PetsViewProps {
   pets: Pet[];
   petTasks: PetTask[];
   setPetTasks: (tasks: PetTask[]) => void;
-  addPetTask: (task: PetTaskInput) => void;
-  completePetTask: (id: string) => void;
+  addPetTask: (task: PetTaskInput) => Promise<boolean>;
+  completePetTask: (id: string) => Promise<boolean>;
+  reopenPetTask: (id: string) => Promise<boolean>;
 }
 
 export function PetsView({
@@ -20,9 +21,14 @@ export function PetsView({
   setPetTasks,
   addPetTask,
   completePetTask,
+  reopenPetTask,
 }: PetsViewProps) {
   const [selectedTask, setSelectedTask] = useState<PetTask | null>(null);
   const [historyPet, setHistoryPet] = useState<Pet | null>(null);
+
+  const activeSelectedTask = selectedTask
+    ? petTasks.find(task => task.id === selectedTask.id) || selectedTask
+    : null;
 
   return (
     <motion.div
@@ -47,8 +53,8 @@ export function PetsView({
         {pets.map(pet => {
           const tasksForPet = petTasks.filter(t => t.pet_id === pet.id && !t.completed);
           const historyForPet = petTasks.filter(t => t.pet_id === pet.id && t.completed);
-          const displayHistory = historyForPet
-            .sort((a, b) => b.completed_date!.localeCompare(a.completed_date!))
+          const displayHistory = [...historyForPet]
+            .sort((a, b) => (b.completed_date || '').localeCompare(a.completed_date || ''))
             .slice(0, 3);
 
           return (
@@ -150,7 +156,7 @@ export function PetsView({
 
       {/* Task Detail Modal */}
       <AnimatePresence>
-        {selectedTask && (
+        {activeSelectedTask && (
           <div className="fixed inset-0 z-50 flex items-center justify-center px-6">
             <motion.div
               initial={{ opacity: 0 }}
@@ -170,40 +176,61 @@ export function PetsView({
                   <PawPrint className="w-6 h-6 text-secondary-500" />
                 </div>
                 <button onClick={() => {
-                  setPetTasks(petTasks.filter(t => t.id !== selectedTask.id));
+                  setPetTasks(petTasks.filter(t => t.id !== activeSelectedTask.id));
                   setSelectedTask(null);
                 }} className="p-2 text-slate-400 hover:text-secondary-600 transition-colors">
                   <Trash2 className="w-5 h-5" />
                 </button>
               </div>
 
-              <h3 className="text-xl font-bold text-slate-800 mb-2">{selectedTask.title}</h3>
+              <h3 className="text-xl font-bold text-slate-800 mb-2">{activeSelectedTask.title}</h3>
 
               <div className="space-y-4 mb-6">
                 <div className="flex items-center gap-3 text-sm text-slate-600">
                   <Calendar className="w-4 h-4 text-slate-400" />
-                  <span>Programado: {format(parseISO(selectedTask.scheduled_date), 'dd MMMM yyyy', { locale: es })} {selectedTask.scheduled_time}</span>
+                  <span>Programado: {format(parseISO(activeSelectedTask.scheduled_date), 'dd MMMM yyyy', { locale: es })} {activeSelectedTask.scheduled_time}</span>
                 </div>
 
-                {selectedTask.completed && (
-                  <div className="flex items-center gap-3 text-sm text-emerald-600 font-medium">
-                    <CheckCircle2 className="w-4 h-4" />
-                    <span>Completado el: {format(parseISO(selectedTask.completed_date!), 'dd MMMM yyyy, HH:mm', { locale: es })}</span>
-                  </div>
+                {activeSelectedTask.completed && activeSelectedTask.completed_date && (
+                  <>
+                    <div className="flex items-center gap-3 text-sm text-emerald-600 font-medium">
+                      <CheckCircle2 className="w-4 h-4" />
+                      <span>Completado el: {format(parseISO(activeSelectedTask.completed_date), 'dd MMMM yyyy, HH:mm', { locale: es })}</span>
+                    </div>
+                    <div className="flex items-center gap-3 text-sm text-slate-600">
+                      <CheckCircle2 className="w-4 h-4 text-slate-400" />
+                      <span>
+                        Marcado por: {activeSelectedTask.completedByMember?.profile?.nickname || activeSelectedTask.completedByMember?.profile?.name || 'Miembro del hogar'}
+                      </span>
+                    </div>
+                  </>
                 )}
 
                 <div className="flex items-center gap-3 text-sm text-slate-600">
                   <PawPrint className="w-4 h-4 text-slate-400" />
-                  <span>Mascota: {pets.find(p => p.id === selectedTask.pet_id)?.name || 'Sin asignar'}</span>
+                  <span>Mascota: {pets.find(p => p.id === activeSelectedTask.pet_id)?.name || 'Sin asignar'}</span>
                 </div>
 
-                {selectedTask.notes && (
+                {activeSelectedTask.notes && (
                   <div className="p-4 bg-slate-50 rounded-2xl text-sm text-slate-600">
                     <div className="font-bold text-[10px] uppercase tracking-wider text-slate-400 mb-1">Notas</div>
-                    {selectedTask.notes}
+                    {activeSelectedTask.notes}
                   </div>
                 )}
               </div>
+
+              {activeSelectedTask.completed && (
+                <button
+                  onClick={async () => {
+                    const wasReopened = await reopenPetTask(activeSelectedTask.id);
+                    if (wasReopened) setSelectedTask(null);
+                  }}
+                  className="w-full py-3 bg-secondary-50 text-secondary-700 rounded-xl font-bold text-sm mb-3 flex items-center justify-center gap-2"
+                >
+                  <RotateCcw className="w-4 h-4" />
+                  Revertir completado
+                </button>
+              )}
 
               <button
                 onClick={() => setSelectedTask(null)}
@@ -251,7 +278,7 @@ export function PetsView({
               <div className="flex-1 overflow-y-auto space-y-3 pr-2">
                 {petTasks
                   .filter(t => t.pet_id === historyPet.id && t.completed)
-                  .sort((a, b) => b.completed_date!.localeCompare(a.completed_date!))
+                  .sort((a, b) => (b.completed_date || '').localeCompare(a.completed_date || ''))
                   .map(task => (
                     <button
                       key={task.id}
