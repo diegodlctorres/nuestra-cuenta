@@ -93,9 +93,11 @@ export function useTasks() {
     try {
       const { error } = await supabase.from('tasks').delete().eq('id', id);
       if (error) throw error;
-      setTasks(tasks.filter(t => t.id !== id));
+      setTasks(currentTasks => currentTasks.filter(t => t.id !== id));
+      return true;
     } catch (error) {
       console.error('Error deleting task:', error);
+      return false;
     }
   };
 

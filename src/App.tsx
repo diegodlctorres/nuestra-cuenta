@@ -42,7 +42,7 @@ export default function App() {
     addAccount, updateAccount, deleteAccount, deleteTransaction
   } = useTransactions();
   const { pets, petTasks, pendingPetTasksCount, addPet, updatePet, deletePet, addPetTask, completePetTask, reopenPetTask, deletePetTask } = usePets();
-  const { tasks, addTask, toggleTask, downloadICS } = useTasks();
+  const { tasks, addTask, toggleTask, deleteTask, downloadICS } = useTasks();
 
   useEffect(() => {
     const updateRecoveryMode = () => {
@@ -150,6 +150,7 @@ export default function App() {
               tasks={tasks}
               addTask={addTask}
               toggleTask={toggleTask}
+              deleteTask={deleteTask}
               downloadICS={downloadICS}
               addTransaction={addTransaction}
               categories={categories}
