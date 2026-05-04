@@ -1,11 +1,12 @@
 import React, { useMemo, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { TrendingDown, Clock, Wallet, PiggyBank } from 'lucide-react';
+import { TrendingDown, Clock, Wallet } from 'lucide-react';
 import { parseISO } from 'date-fns';
 import { MonthlyBalanceButton } from '../components/transactions/MonthlyBalanceButton';
 import { TransactionItem } from '../components/transactions/TransactionItem';
 import { cn, formatCurrency } from '../lib/utils';
 import { Transaction, Account, CoupleSettings } from '../types';
+import { getAccountEmoji } from '../lib/accountEmojis';
 
 interface DetailViewProps {
   selectedAccountId: string | null;
@@ -108,7 +109,7 @@ export function DetailView({
                   : "bg-white text-slate-500 border-slate-200 hover:border-slate-300"
               )}
             >
-              {acc.type === 'savings' ? <PiggyBank className="w-4 h-4" /> : <Wallet className="w-4 h-4" />}
+              <span className="text-base leading-none">{getAccountEmoji(acc)}</span>
               {acc.name}
             </button>
           );
@@ -120,7 +121,7 @@ export function DetailView({
         <div className="flex justify-between items-center mb-2">
            <span className="text-xs font-bold uppercase tracking-widest text-slate-400">Saldo Actual</span>
            <div className="flex items-center gap-1.5 px-2 py-1 bg-white/10 rounded-lg">
-              {currentAccount?.type === 'savings' ? <PiggyBank className="w-3 h-3 text-primary-400" /> : <Wallet className="w-3 h-3 text-slate-400" />}
+              <span className="text-sm leading-none">{getAccountEmoji(currentAccount)}</span>
               <span className="text-[10px] font-bold uppercase">{currentAccount?.name}</span>
            </div>
         </div>

@@ -8,7 +8,7 @@ import { EditPetModal } from '../components/pets/EditPetModal';
 import { AddPetForm } from '../components/pets/AddPetForm';
 import { InvitePartnerModal } from '../components/settings/InvitePartnerModal';
 import { useAuth } from '../contexts/AuthContext';
-import { CoupleSettings, Pet, PetTask, Category, Account, AccountType } from '../types';
+import { CoupleSettings, Pet, PetTask, Category, Account } from '../types';
 import { Modal } from '../components/ui/Modal';
 
 interface SettingsViewProps {
@@ -23,7 +23,7 @@ interface SettingsViewProps {
   addCategory: (name: string, kind: 'income' | 'expense') => void;
   deleteCategory: (id: string) => void;
   accounts: Account[];
-  addAccount: (name: string, type: AccountType) => void;
+  addAccount: (name: string, emoji: string) => void;
   updateAccount: (id: string, updates: Partial<Account>) => void;
   deleteAccount: (id: string) => void;
 }

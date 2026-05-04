@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
-import { Transaction, Account, Category, AccountType, Profile } from '../types';
+import { Transaction, Account, Category, Profile } from '../types';
+import { getDefaultAccountEmoji } from '../lib/accountEmojis';
 
 type TransactionWithCreatorMember = Transaction & {
   creator_member?: {
@@ -204,12 +205,16 @@ export function useTransactions() {
     }
   };
 
-  const addAccount = async (name: string, type: AccountType) => {
+  const addAccount = async (name: string, emoji?: string) => {
     if (!householdId) return;
     try {
       const { data, error } = await supabase
         .from('accounts')
-        .insert({ name, type, household_id: householdId })
+        .insert({
+          name,
+          household_id: householdId,
+          emoji: emoji || getDefaultAccountEmoji('checking')
+        })
         .select()
         .single();
       if (error) throw error;
@@ -223,7 +228,10 @@ export function useTransactions() {
     try {
       const { data, error } = await supabase
         .from('accounts')
-        .update(updates)
+        .update({
+          name: updates.name,
+          emoji: updates.emoji
+        })
         .eq('id', id)
         .select()
         .single();

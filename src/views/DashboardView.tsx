@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { PiggyBank, Wallet, PawPrint, Layers3, ChevronRight } from 'lucide-react';
+import { PawPrint, Layers3, ChevronRight } from 'lucide-react';
 import { AddTransactionForm } from '../components/transactions/AddTransactionForm';
 import { TransactionItem } from '../components/transactions/TransactionItem';
 import { Modal } from '../components/ui/Modal';
 import { Transaction, Category, CoupleSettings, Account } from '../types';
 import { cn, formatCurrency } from '../lib/utils';
+import { getAccountEmoji } from '../lib/accountEmojis';
 
 interface DashboardViewProps {
   pendingPetTasksCount: number;
@@ -70,22 +71,12 @@ export function DashboardView({
                   : "bg-white text-slate-900 border-slate-200 shadow-slate-100"
               )}
             >
-              <div className="flex justify-between items-start mb-4">
-                <div className={cn("p-2 rounded-xl", isPrimary ? "bg-white/20" : "bg-slate-100")}>
-                  {acc.type === 'savings' ? (
-                    <PiggyBank className={cn("w-6 h-6", isPrimary ? "text-white" : "text-primary-600")} />
-                  ) : (
-                    <Wallet className={cn("w-6 h-6", isPrimary ? "text-white" : "text-slate-600")} />
-                  )}
+              <div className="flex items-center gap-3 mb-4">
+                <div className={cn("flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-2xl", isPrimary ? "bg-white/20" : "bg-slate-100")}>
+                  {getAccountEmoji(acc)}
                 </div>
-                <span className={cn(
-                  "text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-full",
-                  isPrimary ? "bg-white/20 text-white" : "bg-slate-100 text-slate-500"
-                )}>
-                  {acc.type === 'savings' ? 'Ahorros / Metas' : 'Día a Día'}
-                </span>
+                <div className="min-w-0 text-[10px] uppercase font-bold tracking-widest opacity-70 truncate">{acc.name}</div>
               </div>
-              <div className="text-[10px] uppercase font-bold tracking-widest opacity-70 mb-1">{acc.name}</div>
               <div className="text-3xl font-bold mb-1">{formatCurrency(balance)}</div>
               <div className={cn("text-sm", isPrimary ? "text-primary-100" : "text-slate-500")}>
                 Haz clic para ver el detalle
@@ -156,17 +147,10 @@ export function DashboardView({
                 <div className="flex items-center justify-between gap-3">
                   <div className="flex items-center gap-3 min-w-0">
                     <div className="p-2 bg-white rounded-xl shadow-sm">
-                      {account.type === 'savings' ? (
-                        <PiggyBank className="w-5 h-5 text-primary-500" />
-                      ) : (
-                        <Wallet className="w-5 h-5 text-slate-500" />
-                      )}
+                      <span className="text-xl">{getAccountEmoji(account)}</span>
                     </div>
                     <div className="min-w-0">
                       <div className="font-bold text-slate-700 text-sm truncate">{account.name}</div>
-                      <div className="text-[10px] uppercase font-bold text-slate-400 mt-1">
-                        {account.type === 'savings' ? 'Ahorros / Metas' : 'Día a Día'}
-                      </div>
                     </div>
                   </div>
                   <div className="text-right shrink-0">

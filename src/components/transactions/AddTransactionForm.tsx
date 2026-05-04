@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, ChevronDown, Check, PiggyBank, Wallet } from 'lucide-react';
+import { Plus, ChevronDown, Check } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { Transaction, Category, Account, TransactionType } from '../../types';
 import { Modal } from '../ui/Modal';
+import { getAccountEmoji } from '../../lib/accountEmojis';
 
 interface TransactionModalProps {
   isOpen: boolean;
@@ -141,24 +142,15 @@ export function TransactionModal({
                     ? "border-red-300 bg-red-50 text-red-600"
                     : "border-transparent bg-slate-50 text-slate-900"
                 )}
-              >
+                >
                 <div className="flex items-center gap-3 min-w-0">
-                  <div className="p-2 bg-white rounded-lg shadow-sm">
-                    {selectedAccount?.type === 'savings' ? (
-                      <PiggyBank className="w-4 h-4 text-primary-500" />
-                    ) : (
-                      <Wallet className="w-4 h-4 text-slate-500" />
-                    )}
+                  <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-white shadow-sm text-lg">
+                    {getAccountEmoji(selectedAccount)}
                   </div>
                   <div className="min-w-0 text-left">
                     <div className="font-bold truncate">
                       {selectedAccount?.name || 'Selecciona una cuenta'}
                     </div>
-                    {selectedAccount && (
-                      <div className="text-[10px] uppercase font-bold text-slate-400 mt-1">
-                        {selectedAccount.type === 'savings' ? 'Ahorros / Metas' : 'Día a Día'}
-                      </div>
-                    )}
                   </div>
                 </div>
                 <ChevronDown className={cn("w-4 h-4 shrink-0 text-slate-400 transition-transform", isAccountPickerOpen && "rotate-180")} />
@@ -182,18 +174,11 @@ export function TransactionModal({
                         )}
                       >
                         <div className="flex items-center gap-3 min-w-0">
-                          <div className="p-2 bg-slate-50 rounded-lg">
-                            {acc.type === 'savings' ? (
-                              <PiggyBank className="w-4 h-4 text-primary-500" />
-                            ) : (
-                              <Wallet className="w-4 h-4 text-slate-500" />
-                            )}
+                          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-slate-50 text-lg">
+                            {getAccountEmoji(acc)}
                           </div>
                           <div className="min-w-0">
                             <div className="font-bold text-sm text-slate-700 truncate">{acc.name}</div>
-                            <div className="text-[10px] uppercase font-bold text-slate-400 mt-1">
-                              {acc.type === 'savings' ? 'Ahorros / Metas' : 'Día a Día'}
-                            </div>
                           </div>
                         </div>
                         {accountId === acc.id && <Check className="w-4 h-4 text-primary-600 shrink-0" />}

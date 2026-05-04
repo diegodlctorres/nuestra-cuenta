@@ -1,30 +1,93 @@
 import React, { useState } from 'react';
-import { Plus, Trash2, Wallet, PiggyBank, Pencil, Check, X } from 'lucide-react';
-import { Account, AccountType } from '../../types';
+import { Plus, Trash2, Pencil, Check, X } from 'lucide-react';
+import { Account } from '../../types';
 import { Modal } from '../ui/Modal';
 import { cn } from '../../lib/utils';
+import { ACCOUNT_EMOJI_OPTIONS, getAccountEmoji, getDefaultAccountEmoji } from '../../lib/accountEmojis';
 
 interface AccountManagerProps {
   accounts: Account[];
-  onAdd: (name: string, type: AccountType) => void;
+  onAdd: (name: string, emoji: string) => void;
   onDelete: (id: string) => void;
   onUpdate: (id: string, updates: Partial<Account>) => void;
 }
 
+function EmojiPickerGrid({
+  selectedEmoji,
+  onSelect
+}: {
+  selectedEmoji: string;
+  onSelect: (emoji: string) => void;
+}) {
+  return (
+    <div className="grid grid-cols-6 gap-2">
+      {ACCOUNT_EMOJI_OPTIONS.map(emoji => (
+        <button
+          key={emoji}
+          type="button"
+          onClick={() => onSelect(emoji)}
+          className={cn(
+            'flex h-11 items-center justify-center rounded-xl border text-xl transition-colors',
+            selectedEmoji === emoji
+              ? 'border-primary-300 bg-primary-50'
+              : 'border-slate-200 bg-white hover:bg-slate-50'
+          )}
+        >
+          <span>{emoji}</span>
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function EmojiPickerModal({
+  isOpen,
+  selectedEmoji,
+  title,
+  onClose,
+  onSelect
+}: {
+  isOpen: boolean;
+  selectedEmoji: string;
+  title: string;
+  onClose: () => void;
+  onSelect: (emoji: string) => void;
+}) {
+  return (
+    <Modal isOpen={isOpen} onClose={onClose} title={title}>
+      <div className="space-y-4">
+        <div className="text-sm text-slate-500">
+          Elige el emoji que mejor represente esta cuenta.
+        </div>
+        <EmojiPickerGrid
+          selectedEmoji={selectedEmoji}
+          onSelect={(emoji) => {
+            onSelect(emoji);
+            onClose();
+          }}
+        />
+      </div>
+    </Modal>
+  );
+}
+
 export function AccountManager({ accounts, onAdd, onDelete, onUpdate }: AccountManagerProps) {
   const [newName, setNewName] = useState('');
-  const [newType, setNewType] = useState<AccountType>('checking');
+  const [newEmoji, setNewEmoji] = useState(getDefaultAccountEmoji('checking'));
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [accountToDelete, setAccountToDelete] = useState<Account | null>(null);
   const [editingAccountId, setEditingAccountId] = useState<string | null>(null);
   const [editingName, setEditingName] = useState('');
-  const [editingType, setEditingType] = useState<AccountType>('checking');
+  const [editingEmoji, setEditingEmoji] = useState(getDefaultAccountEmoji('checking'));
+  const [isNewEmojiModalOpen, setIsNewEmojiModalOpen] = useState(false);
+  const [isEditingEmojiModalOpen, setIsEditingEmojiModalOpen] = useState(false);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (newName.trim()) {
-      onAdd(newName.trim(), newType);
+      onAdd(newName.trim(), newEmoji);
       setNewName('');
+      setNewEmoji(getDefaultAccountEmoji('checking'));
     }
   };
 
@@ -37,23 +100,23 @@ export function AccountManager({ accounts, onAdd, onDelete, onUpdate }: AccountM
   const startEditing = (account: Account) => {
     setEditingAccountId(account.id);
     setEditingName(account.name);
-    setEditingType(account.type);
+    setEditingEmoji(getAccountEmoji(account));
   };
 
   const cancelEditing = () => {
     setEditingAccountId(null);
     setEditingName('');
-    setEditingType('checking');
+    setEditingEmoji(getDefaultAccountEmoji('checking'));
   };
 
   const saveEditing = (account: Account) => {
     const trimmedName = editingName.trim();
     if (!trimmedName) return;
 
-    if (trimmedName !== account.name || editingType !== account.type) {
+    if (trimmedName !== account.name || editingEmoji !== getAccountEmoji(account)) {
       onUpdate(account.id, {
         name: trimmedName,
-        type: editingType
+        emoji: editingEmoji
       });
     }
 
@@ -74,6 +137,14 @@ export function AccountManager({ accounts, onAdd, onDelete, onUpdate }: AccountM
 
       <form onSubmit={handleSubmit} className="space-y-3">
         <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={() => setIsNewEmojiModalOpen(true)}
+            className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-slate-50 text-2xl transition-colors hover:bg-slate-100"
+            aria-label="Elegir emoji para nueva cuenta"
+          >
+            {newEmoji}
+          </button>
           <input
             type="text"
             placeholder="Nombre (ej: BCP, BBVA, Efectivo)"
@@ -89,41 +160,16 @@ export function AccountManager({ accounts, onAdd, onDelete, onUpdate }: AccountM
             <Plus className="w-5 h-5" />
           </button>
         </div>
-        
-        <div className="flex gap-2">
-          <button
-            type="button"
-            onClick={() => setNewType('checking')}
-            className={cn(
-              "flex-1 flex items-center justify-center gap-2 p-2 rounded-xl text-xs font-bold border transition-all",
-              newType === 'checking' ? "bg-primary-50 border-primary-200 text-primary-700" : "bg-white border-slate-100 text-slate-500"
-            )}
-          >
-            <Wallet className="w-4 h-4" />
-            Corriente/Día
-          </button>
-          <button
-            type="button"
-            onClick={() => setNewType('savings')}
-            className={cn(
-              "flex-1 flex items-center justify-center gap-2 p-2 rounded-xl text-xs font-bold border transition-all",
-              newType === 'savings' ? "bg-primary-50 border-primary-200 text-primary-700" : "bg-white border-slate-100 text-slate-500"
-            )}
-          >
-            <PiggyBank className="w-4 h-4" />
-            Ahorros/Metas
-          </button>
-        </div>
       </form>
 
       <div className="space-y-2">
         {accounts.slice(0, 3).map(acc => (
           <div key={acc.id} className="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-100">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-white rounded-lg shadow-sm">
-                {acc.type === 'savings' ? <PiggyBank className="w-4 h-4 text-primary-500" /> : <Wallet className="w-4 h-4 text-slate-500" />}
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-white shadow-sm text-xl">
+                {getAccountEmoji(acc)}
               </div>
-              <span className="text-sm font-bold text-slate-700">{acc.name}</span>
+              <span className="text-sm font-bold text-slate-700 truncate">{acc.name}</span>
             </div>
             <button
               onClick={() => setAccountToDelete(acc)}
@@ -140,48 +186,32 @@ export function AccountManager({ accounts, onAdd, onDelete, onUpdate }: AccountM
           {accounts.map(acc => (
             <div key={acc.id} className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100">
               <div className="flex items-center gap-4 flex-1 min-w-0">
-                <div className="p-2 bg-white rounded-xl shadow-sm">
-                  {acc.type === 'savings' ? <PiggyBank className="w-5 h-5 text-primary-500" /> : <Wallet className="w-5 h-5 text-slate-500" />}
+                <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-white shadow-sm text-xl">
+                  {editingAccountId === acc.id ? (
+                    <button
+                      type="button"
+                      onClick={() => setIsEditingEmojiModalOpen(true)}
+                      className="flex h-full w-full items-center justify-center rounded-xl transition-colors hover:bg-slate-50"
+                      aria-label="Cambiar emoji de cuenta"
+                    >
+                      {editingEmoji}
+                    </button>
+                  ) : (
+                    getAccountEmoji(acc)
+                  )}
                 </div>
                 {editingAccountId === acc.id ? (
-                  <div className="flex-1 space-y-3 min-w-0">
+                  <div className="flex-1 min-w-0">
                     <input
                       type="text"
                       value={editingName}
                       onChange={(e) => setEditingName(e.target.value)}
                       className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 font-bold text-slate-700 text-sm focus:ring-2 focus:ring-primary-500 outline-none"
                     />
-                    <div className="flex gap-2">
-                      <button
-                        type="button"
-                        onClick={() => setEditingType('checking')}
-                        className={cn(
-                          "flex-1 flex items-center justify-center gap-2 p-2 rounded-xl text-xs font-bold border transition-all",
-                          editingType === 'checking' ? "bg-primary-50 border-primary-200 text-primary-700" : "bg-white border-slate-200 text-slate-500"
-                        )}
-                      >
-                        <Wallet className="w-4 h-4" />
-                        Corriente/Día
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setEditingType('savings')}
-                        className={cn(
-                          "flex-1 flex items-center justify-center gap-2 p-2 rounded-xl text-xs font-bold border transition-all",
-                          editingType === 'savings' ? "bg-primary-50 border-primary-200 text-primary-700" : "bg-white border-slate-200 text-slate-500"
-                        )}
-                      >
-                        <PiggyBank className="w-4 h-4" />
-                        Ahorros/Metas
-                      </button>
-                    </div>
                   </div>
                 ) : (
                   <div className="min-w-0">
                     <div className="font-bold text-slate-700 text-sm truncate">{acc.name}</div>
-                    <div className="text-[10px] uppercase font-bold text-slate-400 mt-1">
-                      {acc.type === 'savings' ? 'Ahorros/Metas' : 'Corriente/Día'}
-                    </div>
                   </div>
                 )}
               </div>
@@ -229,6 +259,22 @@ export function AccountManager({ accounts, onAdd, onDelete, onUpdate }: AccountM
           )}
         </div>
       </Modal>
+
+      <EmojiPickerModal
+        isOpen={isNewEmojiModalOpen}
+        selectedEmoji={newEmoji}
+        title="Elegir emoji"
+        onClose={() => setIsNewEmojiModalOpen(false)}
+        onSelect={setNewEmoji}
+      />
+
+      <EmojiPickerModal
+        isOpen={isEditingEmojiModalOpen}
+        selectedEmoji={editingEmoji}
+        title="Cambiar emoji"
+        onClose={() => setIsEditingEmojiModalOpen(false)}
+        onSelect={setEditingEmoji}
+      />
 
       <Modal
         isOpen={!!accountToDelete}
