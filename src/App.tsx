@@ -199,7 +199,7 @@ export default function App() {
             active={activeTab === 'tasks'}
             onClick={() => setActiveTab('tasks')}
             icon={<CheckSquare className="w-5 h-5" />}
-            label="Tareas"
+            label="Por hacer"
           />
           <NavButton
             active={activeTab === 'settings'}

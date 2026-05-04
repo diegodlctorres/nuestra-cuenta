@@ -3,6 +3,11 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { Task } from '../types';
 
+export interface TaskMutationResult {
+  success: boolean;
+  error?: string;
+}
+
 export function useTasks() {
   const { householdId } = useAuth();
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -34,23 +39,32 @@ export function useTasks() {
     return () => window.removeEventListener('focus', handleFocus);
   }, [loadTasks]);
 
-  const addTask = async (task: Omit<Task, 'id' | 'household_id' | 'completed'>) => {
-    if (!householdId) return;
+  const addTask = async (task: Omit<Task, 'id' | 'household_id' | 'completed'>): Promise<TaskMutationResult> => {
+    if (!householdId) return { success: false, error: 'No se encontró un hogar activo.' };
     try {
+      const insertPayload = {
+        title: task.title,
+        deadline: task.deadline,
+        ...(task.due_time ? { due_time: task.due_time } : {}),
+        household_id: householdId,
+        completed: false
+      };
+
       const { data, error } = await supabase
         .from('tasks')
-        .insert({
-          ...task,
-          household_id: householdId,
-          completed: false
-        })
+        .insert(insertPayload)
         .select()
         .single();
 
       if (error) throw error;
-      if (data) setTasks([data, ...tasks]);
+      if (data) setTasks(currentTasks => [data, ...currentTasks]);
+      return { success: true };
     } catch (error) {
       console.error('Error adding task:', error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'No se pudo guardar el por hacer.'
+      };
     }
   };
 
@@ -83,6 +97,13 @@ export function useTasks() {
 
   const downloadICS = (task: Task) => {
     const dateIso = task.deadline.replace(/-/g, '');
+    const timeIso = task.due_time?.replace(':', '').slice(0, 4);
+    const dtStart = timeIso
+      ? `DTSTART:${dateIso}T${timeIso}00`
+      : `DTSTART;VALUE=DATE:${dateIso}`;
+    const dtEnd = timeIso
+      ? `DTEND:${dateIso}T${timeIso}00`
+      : `DTEND;VALUE=DATE:${dateIso}`;
     const icsData = [
       'BEGIN:VCALENDAR',
       'VERSION:2.0',
@@ -90,8 +111,8 @@ export function useTasks() {
       'BEGIN:VEVENT',
       `UID:${task.id}@nuestracuenta.app`,
       `DTSTAMP:${new Date().toISOString().replace(/[-:]/g, '').split('.')[0]}Z`,
-      `DTSTART;VALUE=DATE:${dateIso}`,
-      `DTEND;VALUE=DATE:${dateIso}`,
+      dtStart,
+      dtEnd,
       `SUMMARY:${task.title}`,
       `DESCRIPTION:Recordatorio de Nuestra Cuenta\\nGenerado de forma automática.`,
       'END:VEVENT',

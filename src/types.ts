@@ -133,6 +133,6 @@ export interface Task {
   household_id: string;
   title: string;
   deadline: string;
+  due_time?: string;
   completed: boolean;
-  isDebt?: boolean;
 }

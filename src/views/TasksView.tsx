@@ -6,10 +6,11 @@ import { es } from 'date-fns/locale';
 import { cn } from '../lib/utils';
 import { AddTaskForm } from '../components/tasks/AddTaskForm';
 import { Task } from '../types';
+import { TaskMutationResult } from '../hooks/useTasks';
 
 interface TasksViewProps {
   tasks: Task[];
-  addTask: (t: Omit<Task, 'id' | 'household_id' | 'completed'>) => void;
+  addTask: (t: Omit<Task, 'id' | 'household_id' | 'completed'>) => Promise<TaskMutationResult>;
   toggleTask: (id: string) => void;
   downloadICS: (task: Task) => void;
 }
@@ -28,7 +29,7 @@ export function TasksView({
       exit={{ opacity: 0, x: -20 }}
       className="space-y-6"
     >
-      <h2 className="text-2xl font-bold">Recordatorios</h2>
+      <h2 className="text-2xl font-bold">Por hacer</h2>
 
       <AddTaskForm onAdd={addTask} />
 
@@ -67,15 +68,11 @@ export function TasksView({
                 )}>
                   <Calendar className="w-3 h-3" />
                   {format(parseISO(task.deadline), 'dd MMM yyyy', { locale: es })}
+                  {task.due_time && ` • ${task.due_time.slice(0, 5)}`}
                   {isOverdue && !task.completed && " (Vencido)"}
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                {task.isDebt && (
-                  <div className="px-2 py-1 bg-amber-100 text-amber-700 text-[10px] font-bold rounded-md uppercase">
-                    Deuda
-                  </div>
-                )}
                 {!task.completed && (
                   <button
                     onClick={() => downloadICS(task)}
