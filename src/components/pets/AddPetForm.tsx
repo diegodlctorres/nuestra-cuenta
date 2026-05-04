@@ -3,6 +3,7 @@ import { UserPlus, ChevronRight } from 'lucide-react';
 import { Pet } from '../../types';
 import { Modal } from '../ui/Modal';
 import { cn, processImageUpload } from '../../lib/utils';
+import { getActionErrorMessage } from '../../lib/networkStatus';
 
 export function AddPetForm({ onAdd }: { onAdd: (pet: Omit<Pet, 'id' | 'household_id'>) => Promise<boolean> }) {
   const [isOpen, setIsOpen] = useState(false);
@@ -57,7 +58,7 @@ export function AddPetForm({ onAdd }: { onAdd: (pet: Omit<Pet, 'id' | 'household
       resetForm();
       setIsOpen(false);
     } else {
-      setSaveError('No se pudo registrar la mascota. Inténtalo nuevamente.');
+      setSaveError(getActionErrorMessage('No se pudo registrar la mascota. Inténtalo nuevamente.'));
     }
   };
 

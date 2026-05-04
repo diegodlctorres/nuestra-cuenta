@@ -3,6 +3,7 @@ import { Plus } from 'lucide-react';
 import { Pet, PetTaskInput } from '../../types';
 import { Modal } from '../ui/Modal';
 import { cn } from '../../lib/utils';
+import { getActionErrorMessage } from '../../lib/networkStatus';
 
 const getTodayDateString = () => {
   const now = new Date();
@@ -94,7 +95,7 @@ export function AddPetTaskForm({ pets, onAdd }: { pets: Pet[], onAdd: (t: PetTas
       resetForm();
       setIsOpen(false);
     } else {
-      setSaveError('No se pudo programar la tarea. Inténtalo nuevamente.');
+      setSaveError(getActionErrorMessage('No se pudo programar la tarea. Inténtalo nuevamente.'));
     }
   };
 

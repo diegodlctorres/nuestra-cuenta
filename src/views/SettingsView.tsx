@@ -13,6 +13,8 @@ import { Modal } from '../components/ui/Modal';
 import { useSettingsContext } from '../contexts/SettingsContext';
 import { usePetsContext } from '../contexts/PetsContext';
 import { useFinance } from '../contexts/FinanceContext';
+import { InlineFeedback } from '../components/ui/InlineFeedback';
+import { getActionErrorMessage } from '../lib/networkStatus';
 
 export function SettingsView() {
   const { coupleSettings, setCoupleSettings } = useSettingsContext();
@@ -29,6 +31,7 @@ export function SettingsView() {
   const [isInviteOpen, setIsInviteOpen] = useState(false);
   const [petToDelete, setPetToDelete] = useState<Pet | null>(null);
   const [isDeletingPet, setIsDeletingPet] = useState(false);
+  const [actionError, setActionError] = useState('');
 
   const selectedPetTasks = petToDelete
     ? petTasks.filter(task => task.pet_id === petToDelete.id)
@@ -40,11 +43,14 @@ export function SettingsView() {
     if (!petToDelete || isDeletingPet) return;
 
     setIsDeletingPet(true);
+    setActionError('');
     const wasDeleted = await deletePet(petToDelete.id);
     setIsDeletingPet(false);
 
     if (wasDeleted) {
       setPetToDelete(null);
+    } else {
+      setActionError(getActionErrorMessage('No se pudo eliminar la mascota.'));
     }
   };
 
@@ -62,6 +68,10 @@ export function SettingsView() {
         </div>
         <h2 className="text-2xl font-bold">Configuración</h2>
       </div>
+
+      {actionError && (
+        <InlineFeedback message={actionError} />
+      )}
 
       <div className="space-y-6">
         <CoupleSettingsModal coupleSettings={coupleSettings} setCoupleSettings={setCoupleSettings} />
@@ -151,7 +161,13 @@ export function SettingsView() {
               return (
                 <button
                   key={theme.id}
-                  onClick={() => setCoupleSettings({ ...coupleSettings, theme: theme.id })}
+                  onClick={async () => {
+                    setActionError('');
+                    const wasSaved = await setCoupleSettings({ ...coupleSettings, theme: theme.id });
+                    if (!wasSaved) {
+                      setActionError(getActionErrorMessage('No se pudo actualizar el tema visual.'));
+                    }
+                  }}
                   className={`flex items-center gap-3 p-3 rounded-xl border transition-all ${
                     isActive 
                       ? 'bg-white border-primary-500 shadow-sm ring-1 ring-primary-500' 

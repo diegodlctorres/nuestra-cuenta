@@ -8,6 +8,8 @@ import { Modal } from '../components/ui/Modal';
 import { Pet, PetTask } from '../types';
 import { cn } from '../lib/utils';
 import { usePetsContext } from '../contexts/PetsContext';
+import { InlineFeedback } from '../components/ui/InlineFeedback';
+import { getActionErrorMessage } from '../lib/networkStatus';
 
 function formatPetAge(birthDate: string) {
   const totalMonths = Math.max(0, differenceInMonths(new Date(), parseISO(birthDate)));
@@ -200,6 +202,7 @@ export function PetsView() {
   const { pets, petTasks, addPetTask, completePetTask, reopenPetTask, deletePetTask } = usePetsContext();
   const [selectedTask, setSelectedTask] = useState<PetTask | null>(null);
   const [historyPet, setHistoryPet] = useState<Pet | null>(null);
+  const [actionError, setActionError] = useState('');
 
   const activeSelectedTask = selectedTask
     ? petTasks.find(task => task.id === selectedTask.id) || selectedTask
@@ -219,6 +222,10 @@ export function PetsView() {
         </div>
         <h2 className="text-2xl font-bold">Mascotas</h2>
       </div>
+
+      {actionError && (
+        <InlineFeedback message={actionError} />
+      )}
 
       {pets.length > 0 && (
         <AddPetTaskForm pets={pets} onAdd={addPetTask} />
@@ -266,8 +273,21 @@ export function PetsView() {
                         key={task.id}
                         task={task}
                         onOpen={() => setSelectedTask(task)}
-                        onComplete={() => completePetTask(task.id)}
-                        onDelete={() => deletePetTask(task.id)}
+                        onComplete={async () => {
+                          setActionError('');
+                          const wasCompleted = await completePetTask(task.id);
+                          if (!wasCompleted) {
+                            setActionError(getActionErrorMessage('No se pudo completar la tarea de mascota.'));
+                          }
+                        }}
+                        onDelete={async () => {
+                          setActionError('');
+                          const wasDeleted = await deletePetTask(task.id);
+                          if (!wasDeleted) {
+                            setActionError(getActionErrorMessage('No se pudo eliminar la tarea de mascota.'));
+                          }
+                          return wasDeleted;
+                        }}
                       />
                     ))}
                     {tasksForPet.length === 0 && (
@@ -340,8 +360,12 @@ export function PetsView() {
                   <PawPrint className="w-6 h-6 text-secondary-500" />
                 </div>
                 <button onClick={() => {
+                  setActionError('');
                   deletePetTask(activeSelectedTask.id).then(wasDeleted => {
                     if (wasDeleted) setSelectedTask(null);
+                    if (!wasDeleted) {
+                      setActionError(getActionErrorMessage('No se pudo eliminar la tarea de mascota.'));
+                    }
                   });
                 }} className="p-2 text-slate-400 hover:text-secondary-600 transition-colors">
                   <Trash2 className="w-5 h-5" />
@@ -387,8 +411,13 @@ export function PetsView() {
               {activeSelectedTask.completed && (
                 <button
                   onClick={async () => {
+                    setActionError('');
                     const wasReopened = await reopenPetTask(activeSelectedTask.id);
-                    if (wasReopened) setSelectedTask(null);
+                    if (wasReopened) {
+                      setSelectedTask(null);
+                    } else {
+                      setActionError(getActionErrorMessage('No se pudo reabrir la tarea de mascota.'));
+                    }
                   }}
                   className="w-full py-3 bg-secondary-50 text-secondary-700 rounded-xl font-bold text-sm mb-3 flex items-center justify-center gap-2"
                 >

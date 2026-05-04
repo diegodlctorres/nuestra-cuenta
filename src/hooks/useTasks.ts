@@ -15,6 +15,7 @@ import {
   loadTaskReminders,
   reopenReminderRecord
 } from '../lib/tasksData';
+import { isOffline, OFFLINE_MUTATION_MESSAGE } from '../lib/networkStatus';
 import { queryKeys } from '../lib/queryKeys';
 
 export interface TaskMutationResult {
@@ -72,6 +73,9 @@ export function useTasks() {
   });
 
   const addTask = async (task: TaskInput): Promise<TaskMutationResult> => {
+    if (isOffline()) {
+      return { success: false, error: OFFLINE_MUTATION_MESSAGE };
+    }
     if (!householdId) return { success: false, error: 'No se encontró un hogar activo.' };
 
     try {
@@ -92,6 +96,9 @@ export function useTasks() {
   });
 
   const updateTask = async (taskId: string, task: TaskInput): Promise<TaskMutationResult> => {
+    if (isOffline()) {
+      return { success: false, error: OFFLINE_MUTATION_MESSAGE };
+    }
     try {
       await updateTaskMutation.mutateAsync({ taskId, task });
       return { success: true };
@@ -132,6 +139,10 @@ export function useTasks() {
   });
 
   const completeReminder = async (reminder: RenderableTaskReminder) => {
+    if (isOffline()) {
+      console.warn(OFFLINE_MUTATION_MESSAGE);
+      return false;
+    }
     try {
       await completeReminderMutation.mutateAsync(reminder);
       return true;
@@ -169,6 +180,10 @@ export function useTasks() {
   });
 
   const reopenReminder = async (reminder: RenderableTaskReminder) => {
+    if (isOffline()) {
+      console.warn(OFFLINE_MUTATION_MESSAGE);
+      return false;
+    }
     try {
       await reopenReminderMutation.mutateAsync(reminder);
       return true;
@@ -197,6 +212,10 @@ export function useTasks() {
   });
 
   const deleteReminder = async (reminder: RenderableTaskReminder) => {
+    if (isOffline()) {
+      console.warn(OFFLINE_MUTATION_MESSAGE);
+      return false;
+    }
     try {
       await deleteReminderMutation.mutateAsync(reminder);
       return true;
@@ -225,6 +244,10 @@ export function useTasks() {
   });
 
   const archiveTaskSeries = async (taskId: string) => {
+    if (isOffline()) {
+      console.warn(OFFLINE_MUTATION_MESSAGE);
+      return false;
+    }
     try {
       await archiveTaskSeriesMutation.mutateAsync(taskId);
       return true;
@@ -253,6 +276,10 @@ export function useTasks() {
   });
 
   const deleteSeriesFromReminder = async (reminder: RenderableTaskReminder) => {
+    if (isOffline()) {
+      console.warn(OFFLINE_MUTATION_MESSAGE);
+      return false;
+    }
     try {
       await deleteSeriesFromReminderMutation.mutateAsync(reminder);
       return true;

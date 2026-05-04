@@ -13,6 +13,7 @@ import {
   ArrowRightLeft
 } from 'lucide-react';
 import { AnimatePresence } from 'motion/react';
+import { ConnectivityBanner } from './components/ui/ConnectivityBanner';
 import { NavButton } from './components/ui/NavButton';
 import { useAuth } from './contexts/AuthContext';
 import { AppNavigationProvider, useAppNavigation } from './contexts/AppNavigationContext';
@@ -40,6 +41,15 @@ function AppShellFallback() {
   );
 }
 
+function AppFrame({ children }: { children: React.ReactNode }) {
+  return (
+    <>
+      <ConnectivityBanner />
+      {children}
+    </>
+  );
+}
+
 function HouseholdShell() {
   const { activeTab, setActiveTab } = useAppNavigation();
   const { coupleSettings } = useSettingsContext();
@@ -47,6 +57,7 @@ function HouseholdShell() {
   return (
     <div className="min-h-[100dvh] bg-slate-50 text-slate-900 font-sans pb-[calc(6rem+env(safe-area-inset-bottom,0px))]">
       <header className="sticky top-0 z-10 border-b border-slate-200 bg-white/95 px-safe pt-safe backdrop-blur">
+        <ConnectivityBanner />
         <div className="px-6 py-4">
           <div className="max-w-md mx-auto flex justify-between items-center">
             <h1 className="text-xl font-bold tracking-tight text-primary-600 flex items-center gap-2">
@@ -146,31 +157,37 @@ export default function App() {
 
   if (isRecoveryMode) {
     return (
-      <Suspense fallback={<AppShellFallback />}>
-        <AuthView
-          recoveryMode
-          onRecoveryComplete={() => {
-            window.history.replaceState({}, document.title, window.location.pathname);
-            setIsRecoveryMode(false);
-          }}
-        />
-      </Suspense>
+      <AppFrame>
+        <Suspense fallback={<AppShellFallback />}>
+          <AuthView
+            recoveryMode
+            onRecoveryComplete={() => {
+              window.history.replaceState({}, document.title, window.location.pathname);
+              setIsRecoveryMode(false);
+            }}
+          />
+        </Suspense>
+      </AppFrame>
     );
   }
 
   if (!session) {
     return (
-      <Suspense fallback={<AppShellFallback />}>
-        <AuthView />
-      </Suspense>
+      <AppFrame>
+        <Suspense fallback={<AppShellFallback />}>
+          <AuthView />
+        </Suspense>
+      </AppFrame>
     );
   }
 
   if (!householdId) {
     return (
-      <Suspense fallback={<AppShellFallback />}>
-        <OnboardingView />
-      </Suspense>
+      <AppFrame>
+        <Suspense fallback={<AppShellFallback />}>
+          <OnboardingView />
+        </Suspense>
+      </AppFrame>
     );
   }
 

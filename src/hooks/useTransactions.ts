@@ -14,6 +14,7 @@ import {
   removeCategory,
   removeTransaction
 } from '../lib/financeData';
+import { isOffline, OFFLINE_MUTATION_MESSAGE } from '../lib/networkStatus';
 import { queryKeys } from '../lib/queryKeys';
 
 export function useTransactions() {
@@ -66,6 +67,10 @@ export function useTransactions() {
   });
 
   const addTransaction = useCallback(async (t: Omit<Transaction, 'id' | 'household_id' | 'created_by'>) => {
+    if (isOffline()) {
+      console.warn(OFFLINE_MUTATION_MESSAGE);
+      return false;
+    }
     if (!householdId || !memberId) {
       console.error("No se puede agregar transacción sin householdId o memberId");
       return false;
@@ -101,6 +106,10 @@ export function useTransactions() {
   });
 
   const deleteTransaction = async (id: string) => {
+    if (isOffline()) {
+      console.warn(OFFLINE_MUTATION_MESSAGE);
+      return;
+    }
     try {
       await deleteTransactionMutation.mutateAsync(id);
     } catch (error) {
@@ -119,6 +128,10 @@ export function useTransactions() {
   });
 
   const addCategory = async (name: string, kind: 'income' | 'expense') => {
+    if (isOffline()) {
+      console.warn(OFFLINE_MUTATION_MESSAGE);
+      return;
+    }
     if (!householdId) return;
     try {
       await addCategoryMutation.mutateAsync({ name, kind });
@@ -149,6 +162,10 @@ export function useTransactions() {
   });
 
   const deleteCategory = async (id: string) => {
+    if (isOffline()) {
+      console.warn(OFFLINE_MUTATION_MESSAGE);
+      return;
+    }
     try {
       await deleteCategoryMutation.mutateAsync(id);
     } catch (error) {
@@ -167,6 +184,10 @@ export function useTransactions() {
   });
 
   const addAccount = async (name: string, emoji?: string) => {
+    if (isOffline()) {
+      console.warn(OFFLINE_MUTATION_MESSAGE);
+      return;
+    }
     if (!householdId) return;
     try {
       await addAccountMutation.mutateAsync({ name, emoji });
@@ -188,6 +209,10 @@ export function useTransactions() {
   });
 
   const updateAccount = async (id: string, updates: Partial<Account>) => {
+    if (isOffline()) {
+      console.warn(OFFLINE_MUTATION_MESSAGE);
+      return;
+    }
     try {
       await updateAccountMutation.mutateAsync({ id, updates });
     } catch (error) {
@@ -218,6 +243,10 @@ export function useTransactions() {
   });
 
   const deleteAccount = async (id: string) => {
+    if (isOffline()) {
+      console.warn(OFFLINE_MUTATION_MESSAGE);
+      return false;
+    }
     try {
       await deleteAccountMutation.mutateAsync(id);
       return true;

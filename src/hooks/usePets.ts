@@ -13,6 +13,7 @@ import {
   removePetTask,
   reopenPetTaskRecord
 } from '../lib/petsData';
+import { isOffline, OFFLINE_MUTATION_MESSAGE } from '../lib/networkStatus';
 import { queryKeys } from '../lib/queryKeys';
 
 export function usePets() {
@@ -56,6 +57,10 @@ export function usePets() {
   });
 
   const addPet = async (pet: Omit<Pet, 'id' | 'household_id'>) => {
+    if (isOffline()) {
+      console.warn(OFFLINE_MUTATION_MESSAGE);
+      return false;
+    }
     if (!householdId) return false;
     try {
       await addPetMutation.mutateAsync(pet);
@@ -79,6 +84,10 @@ export function usePets() {
   });
 
   const updatePet = async (updatedPet: Pet) => {
+    if (isOffline()) {
+      console.warn(OFFLINE_MUTATION_MESSAGE);
+      return;
+    }
     if (!householdId) return;
     try {
       await updatePetMutation.mutateAsync(updatedPet);
@@ -108,6 +117,10 @@ export function usePets() {
   });
 
   const deletePet = async (id: string) => {
+    if (isOffline()) {
+      console.warn(OFFLINE_MUTATION_MESSAGE);
+      return false;
+    }
     if (!householdId) return false;
     
     try {
@@ -134,6 +147,10 @@ export function usePets() {
   });
 
   const addPetTask = async (task: PetTaskInput) => {
+    if (isOffline()) {
+      console.warn(OFFLINE_MUTATION_MESSAGE);
+      return false;
+    }
     try {
       const tasks = await addPetTaskMutation.mutateAsync(task);
       if (tasks.length === 0) return false;
@@ -187,6 +204,10 @@ export function usePets() {
   });
 
   const completePetTask = async (id: string) => {
+    if (isOffline()) {
+      console.warn(OFFLINE_MUTATION_MESSAGE);
+      return false;
+    }
     if (!memberId || !householdId) return false;
     try {
       await completePetTaskMutation.mutateAsync({ id, memberId, householdId });
@@ -226,6 +247,10 @@ export function usePets() {
   });
 
   const reopenPetTask = async (id: string) => {
+    if (isOffline()) {
+      console.warn(OFFLINE_MUTATION_MESSAGE);
+      return false;
+    }
     try {
       await reopenPetTaskMutation.mutateAsync(id);
       return true;
@@ -256,6 +281,10 @@ export function usePets() {
   });
 
   const deletePetTask = async (id: string) => {
+    if (isOffline()) {
+      console.warn(OFFLINE_MUTATION_MESSAGE);
+      return false;
+    }
     try {
       await deletePetTaskMutation.mutateAsync(id);
       return true;

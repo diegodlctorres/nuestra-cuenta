@@ -3,28 +3,37 @@ import { UserPlus, ChevronRight } from 'lucide-react';
 import { CoupleSettings } from '../../types';
 import { PartnerForm } from './PartnerForm';
 import { Modal } from '../ui/Modal';
+import { InlineFeedback } from '../ui/InlineFeedback';
+import { getActionErrorMessage } from '../../lib/networkStatus';
 
 export function CoupleSettingsModal({
   coupleSettings,
   setCoupleSettings
 }: {
   coupleSettings: CoupleSettings,
-  setCoupleSettings: (s: CoupleSettings) => Promise<void>
+  setCoupleSettings: (s: CoupleSettings) => Promise<boolean>
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const [draftSettings, setDraftSettings] = useState<CoupleSettings>(coupleSettings);
   const [isSaving, setIsSaving] = useState(false);
+  const [saveError, setSaveError] = useState('');
 
   const handleOpen = () => {
     setDraftSettings(coupleSettings);
+    setSaveError('');
     setIsOpen(true);
   };
 
   const handleSave = async () => {
     setIsSaving(true);
     try {
-      await setCoupleSettings(draftSettings);
-      setIsOpen(false);
+      setSaveError('');
+      const wasSaved = await setCoupleSettings(draftSettings);
+      if (wasSaved) {
+        setIsOpen(false);
+      } else {
+        setSaveError(getActionErrorMessage('No se pudieron guardar los cambios de la pareja.'));
+      }
     } finally {
       setIsSaving(false);
     }
@@ -53,6 +62,10 @@ export function CoupleSettingsModal({
             onChange={(p) => setDraftSettings({ ...draftSettings, partner2: p })}
             disabled
           />
+
+          {saveError && (
+            <InlineFeedback message={saveError} />
+          )}
           
           <button onClick={handleSave} disabled={isSaving} className="w-full py-4 bg-primary-600 text-white rounded-2xl font-bold text-sm shadow-lg shadow-primary-100 mt-4 disabled:opacity-60">
             {isSaving ? 'Guardando...' : 'Guardar Cambios'}

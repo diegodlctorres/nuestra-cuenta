@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { Plus, Trash2 } from 'lucide-react';
 import { Category } from '../../types';
 import { Modal } from '../ui/Modal';
+import { InlineFeedback } from '../ui/InlineFeedback';
+import { getActionErrorMessage, isOffline } from '../../lib/networkStatus';
 
 export function CategoryManager({ title, type, categories, onAdd, onDelete }: {
   title: string,
@@ -12,9 +14,33 @@ export function CategoryManager({ title, type, categories, onAdd, onDelete }: {
 }) {
   const [newName, setNewName] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [actionError, setActionError] = useState('');
 
   const displayCategories = categories.slice(0, 3);
   const hasMore = categories.length > 3;
+
+  const handleAdd = () => {
+    if (!newName) return;
+
+    if (isOffline()) {
+      setActionError(getActionErrorMessage('No se pudo crear la categoría.'));
+      return;
+    }
+
+    setActionError('');
+    onAdd(newName);
+    setNewName('');
+  };
+
+  const handleDelete = (id: string) => {
+    if (isOffline()) {
+      setActionError(getActionErrorMessage('No se pudo eliminar la categoría.'));
+      return;
+    }
+
+    setActionError('');
+    onDelete(id);
+  };
 
   return (
     <div className="bg-white rounded-3xl border border-slate-200 p-6 shadow-sm">
@@ -38,22 +64,22 @@ export function CategoryManager({ title, type, categories, onAdd, onDelete }: {
           onChange={e => setNewName(e.target.value)}
         />
         <button
-          onClick={() => {
-            if (newName) {
-              onAdd(newName);
-              setNewName('');
-            }
-          }}
+          onClick={handleAdd}
           className="p-3 bg-primary-600 text-white rounded-xl"
         >
           <Plus className="w-5 h-5" />
         </button>
       </div>
+      {actionError && (
+        <div className="mb-4">
+          <InlineFeedback message={actionError} />
+        </div>
+      )}
       <div className="flex flex-wrap gap-2">
         {displayCategories.map(c => (
           <div key={c.id} className="flex items-center gap-2 bg-slate-50 px-3 py-2 rounded-xl border border-slate-100">
             <span className="text-sm font-medium text-slate-600">{c.name}</span>
-            <button onClick={() => onDelete(c.id)} className="text-slate-400 hover:text-secondary-500">
+            <button onClick={() => handleDelete(c.id)} className="text-slate-400 hover:text-secondary-500">
               <Trash2 className="w-3 h-3" />
             </button>
           </div>
@@ -71,22 +97,20 @@ export function CategoryManager({ title, type, categories, onAdd, onDelete }: {
               onChange={e => setNewName(e.target.value)}
             />
             <button
-              onClick={() => {
-                if (newName) {
-                  onAdd(newName);
-                  setNewName('');
-                }
-              }}
+              onClick={handleAdd}
               className="p-3 bg-primary-600 text-white rounded-xl"
             >
               <Plus className="w-5 h-5" />
             </button>
           </div>
+          {actionError && (
+            <InlineFeedback message={actionError} />
+          )}
           <div className="flex flex-wrap gap-2">
             {categories.map(c => (
               <div key={c.id} className="flex items-center gap-2 bg-slate-50 px-3 py-2 rounded-xl border border-slate-100">
                 <span className="text-sm font-medium text-slate-600">{c.name}</span>
-                <button onClick={() => onDelete(c.id)} className="text-slate-400 hover:text-secondary-500">
+                <button onClick={() => handleDelete(c.id)} className="text-slate-400 hover:text-secondary-500">
                   <Trash2 className="w-3 h-3" />
                 </button>
               </div>
