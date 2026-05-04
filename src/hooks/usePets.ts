@@ -144,16 +144,30 @@ export function usePets() {
   };
 
   const deletePet = async (id: string) => {
-    if (!window.confirm("¿Estás seguro de que deseas eliminar esta mascota? Sus tareas asociadas también se eliminarán.")) return;
+    if (!householdId) return false;
     
     try {
-      const { error } = await supabase.from('pets').delete().eq('id', id);
-      if (error) throw error;
+      const { error: tasksError } = await supabase
+        .from('pet_tasks')
+        .delete()
+        .eq('pet_id', id);
+
+      if (tasksError) throw tasksError;
+
+      const { error: petError } = await supabase
+        .from('pets')
+        .delete()
+        .eq('id', id)
+        .eq('household_id', householdId);
+
+      if (petError) throw petError;
       
-      setPets(pets.filter(p => p.id !== id));
-      setPetTasks(petTasks.filter(pt => pt.pet_id !== id));
+      setPets(currentPets => currentPets.filter(p => p.id !== id));
+      setPetTasks(currentPetTasks => currentPetTasks.filter(pt => pt.pet_id !== id));
+      return true;
     } catch (error) {
       console.error('Error deleting pet:', error);
+      return false;
     }
   };
 

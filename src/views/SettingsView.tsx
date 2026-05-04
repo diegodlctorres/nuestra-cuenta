@@ -8,14 +8,16 @@ import { EditPetModal } from '../components/pets/EditPetModal';
 import { AddPetForm } from '../components/pets/AddPetForm';
 import { InvitePartnerModal } from '../components/settings/InvitePartnerModal';
 import { useAuth } from '../contexts/AuthContext';
-import { CoupleSettings, Pet, Category, Account, AccountType } from '../types';
+import { CoupleSettings, Pet, PetTask, Category, Account, AccountType } from '../types';
+import { Modal } from '../components/ui/Modal';
 
 interface SettingsViewProps {
   coupleSettings: CoupleSettings;
   setCoupleSettings: (s: CoupleSettings) => Promise<void>;
   pets: Pet[];
+  petTasks: PetTask[];
   updatePet: (pet: Pet) => void;
-  deletePet: (id: string) => void;
+  deletePet: (id: string) => Promise<boolean>;
   addPet: (pet: Omit<Pet, 'id' | 'household_id'>) => Promise<boolean>;
   categories: Category[];
   addCategory: (name: string, kind: 'income' | 'expense') => void;
@@ -30,6 +32,7 @@ export function SettingsView({
   coupleSettings,
   setCoupleSettings,
   pets,
+  petTasks,
   updatePet,
   deletePet,
   addPet,
@@ -50,6 +53,26 @@ export function SettingsView({
 
   const { signOut } = useAuth();
   const [isInviteOpen, setIsInviteOpen] = useState(false);
+  const [petToDelete, setPetToDelete] = useState<Pet | null>(null);
+  const [isDeletingPet, setIsDeletingPet] = useState(false);
+
+  const selectedPetTasks = petToDelete
+    ? petTasks.filter(task => task.pet_id === petToDelete.id)
+    : [];
+  const selectedPetPendingTasks = selectedPetTasks.filter(task => !task.completed).length;
+  const selectedPetHistoryTasks = selectedPetTasks.filter(task => task.completed).length;
+
+  const handleConfirmDeletePet = async () => {
+    if (!petToDelete || isDeletingPet) return;
+
+    setIsDeletingPet(true);
+    const wasDeleted = await deletePet(petToDelete.id);
+    setIsDeletingPet(false);
+
+    if (wasDeleted) {
+      setPetToDelete(null);
+    }
+  };
 
   return (
     <motion.div
@@ -107,7 +130,7 @@ export function SettingsView({
                   </div>
                   <div className="flex gap-1">
                     <EditPetModal pet={pet} onUpdate={updatePet} />
-                    <button onClick={() => deletePet(pet.id)} className="p-2 text-slate-400 hover:text-secondary-500 transition-colors rounded-lg hover:bg-secondary-50 border border-transparent">
+                    <button onClick={() => setPetToDelete(pet)} className="p-2 text-slate-400 hover:text-secondary-500 transition-colors rounded-lg hover:bg-secondary-50 border border-transparent">
                       <Trash2 className="w-4 h-4" />
                     </button>
                   </div>
@@ -193,6 +216,53 @@ export function SettingsView({
       </div>
       
       <InvitePartnerModal isOpen={isInviteOpen} onClose={() => setIsInviteOpen(false)} />
+
+      <Modal
+        isOpen={!!petToDelete}
+        onClose={() => {
+          if (!isDeletingPet) setPetToDelete(null);
+        }}
+        title="Confirmar eliminación"
+      >
+        <div className="space-y-5">
+          <div className="rounded-2xl border border-secondary-100 bg-secondary-50 p-4">
+            <p className="text-sm font-semibold text-secondary-700">
+              Vas a eliminar a {petToDelete ? `"${petToDelete.name}"` : 'esta mascota'}.
+            </p>
+            <p className="mt-2 text-sm text-secondary-600">
+              También se eliminarán sus tareas pendientes y su historial. Esta acción no se puede deshacer.
+            </p>
+          </div>
+
+          {petToDelete && (
+            <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
+              <div className="text-sm font-bold text-slate-800">{petToDelete.name}</div>
+              <div className="mt-2 text-xs text-slate-500">
+                {selectedPetPendingTasks} pendiente{selectedPetPendingTasks === 1 ? '' : 's'} · {selectedPetHistoryTasks} en historial
+              </div>
+            </div>
+          )}
+
+          <div className="flex gap-3">
+            <button
+              type="button"
+              onClick={() => setPetToDelete(null)}
+              disabled={isDeletingPet}
+              className="flex-1 rounded-2xl border border-slate-200 bg-white py-3 text-sm font-bold text-slate-600 transition-colors hover:bg-slate-50 disabled:opacity-60"
+            >
+              Cancelar
+            </button>
+            <button
+              type="button"
+              onClick={handleConfirmDeletePet}
+              disabled={isDeletingPet}
+              className="flex-1 rounded-2xl bg-secondary-600 py-3 text-sm font-bold text-white shadow-lg shadow-secondary-100 transition-colors hover:bg-secondary-700 disabled:opacity-60"
+            >
+              {isDeletingPet ? 'Eliminando...' : 'Eliminar mascota'}
+            </button>
+          </div>
+        </div>
+      </Modal>
     </motion.div>
   );
 }

@@ -158,6 +158,7 @@ export default function App() {
               coupleSettings={coupleSettings}
               setCoupleSettings={setCoupleSettings}
               pets={pets}
+              petTasks={petTasks}
               updatePet={updatePet}
               deletePet={deletePet}
               addPet={addPet}
