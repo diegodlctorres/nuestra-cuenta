@@ -4,7 +4,6 @@
 
 export type ThemeType = 'default' | 'oceanic' | 'nature' | 'sunset';
 export type TransactionType = 'income' | 'expense' | 'transfer';
-export type AccountType = 'savings' | 'checking'; // Deprecated: kept only for DB compatibility during transition.
 export type CategoryKind = 'income' | 'expense';
 export type MemberRole = 'admin' | 'member';
 export type MemberStatus = 'active' | 'inactive';
@@ -70,7 +69,6 @@ export interface Account {
   id: string;
   household_id: string;
   name: string; // e.g. "Fondo Común", "Bolsillo Mascotas"
-  type: AccountType; // Deprecated: legacy label with no active UI semantics.
   emoji?: string;
   is_active: boolean;
 }

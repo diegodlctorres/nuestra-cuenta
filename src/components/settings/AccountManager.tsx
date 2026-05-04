@@ -8,7 +8,7 @@ import { ACCOUNT_EMOJI_OPTIONS, getAccountEmoji, getDefaultAccountEmoji } from '
 interface AccountManagerProps {
   accounts: Account[];
   onAdd: (name: string, emoji: string) => void;
-  onDelete: (id: string) => void;
+  onDelete: (id: string) => Promise<boolean>;
   onUpdate: (id: string, updates: Partial<Account>) => void;
 }
 
@@ -73,28 +73,33 @@ function EmojiPickerModal({
 
 export function AccountManager({ accounts, onAdd, onDelete, onUpdate }: AccountManagerProps) {
   const [newName, setNewName] = useState('');
-  const [newEmoji, setNewEmoji] = useState(getDefaultAccountEmoji('checking'));
+  const [newEmoji, setNewEmoji] = useState(getDefaultAccountEmoji());
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [accountToDelete, setAccountToDelete] = useState<Account | null>(null);
   const [editingAccountId, setEditingAccountId] = useState<string | null>(null);
   const [editingName, setEditingName] = useState('');
-  const [editingEmoji, setEditingEmoji] = useState(getDefaultAccountEmoji('checking'));
+  const [editingEmoji, setEditingEmoji] = useState(getDefaultAccountEmoji());
   const [isNewEmojiModalOpen, setIsNewEmojiModalOpen] = useState(false);
   const [isEditingEmojiModalOpen, setIsEditingEmojiModalOpen] = useState(false);
+  const [isDeletingAccount, setIsDeletingAccount] = useState(false);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (newName.trim()) {
       onAdd(newName.trim(), newEmoji);
       setNewName('');
-      setNewEmoji(getDefaultAccountEmoji('checking'));
+      setNewEmoji(getDefaultAccountEmoji());
     }
   };
 
-  const handleConfirmDelete = () => {
-    if (!accountToDelete) return;
-    onDelete(accountToDelete.id);
-    setAccountToDelete(null);
+  const handleConfirmDelete = async () => {
+    if (!accountToDelete || isDeletingAccount) return;
+    setIsDeletingAccount(true);
+    const wasDeleted = await onDelete(accountToDelete.id);
+    setIsDeletingAccount(false);
+    if (wasDeleted) {
+      setAccountToDelete(null);
+    }
   };
 
   const startEditing = (account: Account) => {
@@ -106,7 +111,7 @@ export function AccountManager({ accounts, onAdd, onDelete, onUpdate }: AccountM
   const cancelEditing = () => {
     setEditingAccountId(null);
     setEditingName('');
-    setEditingEmoji(getDefaultAccountEmoji('checking'));
+    setEditingEmoji(getDefaultAccountEmoji());
   };
 
   const saveEditing = (account: Account) => {
@@ -295,6 +300,7 @@ export function AccountManager({ accounts, onAdd, onDelete, onUpdate }: AccountM
             <button
               type="button"
               onClick={() => setAccountToDelete(null)}
+              disabled={isDeletingAccount}
               className="flex-1 rounded-2xl border border-slate-200 bg-white py-3 text-sm font-bold text-slate-600 transition-colors hover:bg-slate-50"
             >
               Cancelar
@@ -302,9 +308,10 @@ export function AccountManager({ accounts, onAdd, onDelete, onUpdate }: AccountM
             <button
               type="button"
               onClick={handleConfirmDelete}
-              className="flex-1 rounded-2xl bg-secondary-600 py-3 text-sm font-bold text-white shadow-lg shadow-secondary-100 transition-colors hover:bg-secondary-700"
+              disabled={isDeletingAccount}
+              className="flex-1 rounded-2xl bg-secondary-600 py-3 text-sm font-bold text-white shadow-lg shadow-secondary-100 transition-colors hover:bg-secondary-700 disabled:opacity-60"
             >
-              Eliminar cuenta
+              {isDeletingAccount ? 'Eliminando...' : 'Eliminar cuenta'}
             </button>
           </div>
         </div>

@@ -213,7 +213,7 @@ export function useTransactions() {
         .insert({
           name,
           household_id: householdId,
-          emoji: emoji || getDefaultAccountEmoji('checking')
+          emoji: emoji || getDefaultAccountEmoji()
         })
         .select()
         .single();
@@ -244,14 +244,27 @@ export function useTransactions() {
 
   const deleteAccount = async (id: string) => {
     try {
-      // Nota: El backend borrará las transacciones en cascada si así está configurado el FK.
-      const { error } = await supabase.from('accounts').delete().eq('id', id);
-      if (error) throw error;
+      // Fallback defensivo mientras la base puede seguir sin ON DELETE CASCADE.
+      const { error: deleteTransactionsError } = await supabase
+        .from('transactions')
+        .delete()
+        .eq('account_id', id);
+
+      if (deleteTransactionsError) throw deleteTransactionsError;
+
+      const { error: deleteAccountError } = await supabase
+        .from('accounts')
+        .delete()
+        .eq('id', id);
+
+      if (deleteAccountError) throw deleteAccountError;
+
       setAccounts(accounts.filter(a => a.id !== id));
-      // También filtramos las transacciones locales para consistencia inmediata
       setTransactions(transactions.filter(t => t.account_id !== id));
+      return true;
     } catch (error) {
       console.error('Error deleting account:', error);
+      return false;
     }
   };
 

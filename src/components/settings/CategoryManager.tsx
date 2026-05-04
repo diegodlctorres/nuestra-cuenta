@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
 import { Plus, Trash2 } from 'lucide-react';
-import { Category, AccountType } from '../../types';
+import { Category } from '../../types';
 import { Modal } from '../ui/Modal';
 
 export function CategoryManager({ title, type, categories, onAdd, onDelete }: {
   title: string,
-  type: AccountType,
+  type: 'checking' | 'savings',
   categories: Category[],
   onAdd: (name: string) => void,
   onDelete: (id: string) => void

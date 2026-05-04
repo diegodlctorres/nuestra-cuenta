@@ -75,7 +75,7 @@ export function DashboardView({
                 <div className={cn("flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-2xl", isPrimary ? "bg-white/20" : "bg-slate-100")}>
                   {getAccountEmoji(acc)}
                 </div>
-                <div className="min-w-0 text-[10px] uppercase font-bold tracking-widest opacity-70 truncate">{acc.name}</div>
+                <div className="min-w-0 text-sm font-bold tracking-tight truncate">{acc.name}</div>
               </div>
               <div className="text-3xl font-bold mb-1">{formatCurrency(balance)}</div>
               <div className={cn("text-sm", isPrimary ? "text-primary-100" : "text-slate-500")}>

@@ -25,7 +25,7 @@ interface SettingsViewProps {
   accounts: Account[];
   addAccount: (name: string, emoji: string) => void;
   updateAccount: (id: string, updates: Partial<Account>) => void;
-  deleteAccount: (id: string) => void;
+  deleteAccount: (id: string) => Promise<boolean>;
 }
 
 export function SettingsView({
