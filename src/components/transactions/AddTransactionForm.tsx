@@ -23,8 +23,10 @@ export function TransactionModal({
   initialDescription = '',
   title = 'Nueva Transacción'
 }: TransactionModalProps) {
+  const MAX_DESCRIPTION_LENGTH = 256;
   const [isAccountPickerOpen, setIsAccountPickerOpen] = useState(false);
-  const [amount, setAmount] = useState('');
+  const [amountDigits, setAmountDigits] = useState('');
+  const [amountLimitError, setAmountLimitError] = useState(false);
   const [description, setDescription] = useState(initialDescription);
   const [submitAttempted, setSubmitAttempted] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -37,12 +39,26 @@ export function TransactionModal({
   const [isPetRelated, setIsPetRelated] = useState(false);
 
   // Filtrar categorías según tipo (income / expense)
+  const MAX_AMOUNT_CENTS = '9007199254740991';
   const filteredCategories = categories.filter(c => c.kind === type);
-  const amountNumber = Number(amount);
-  const amountError = !amount || Number.isNaN(amountNumber) || amountNumber <= 0;
+  const formatAmountFromDigits = (digits: string) => {
+    if (!digits) return '';
+
+    const normalizedDigits = digits.replace(/^0+(?=\d)/, '') || '0';
+    const integerPart = normalizedDigits.slice(0, -2) || '0';
+    const decimalPart = normalizedDigits.slice(-2).padStart(2, '0');
+    const formattedInteger = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+
+    return `${formattedInteger}.${decimalPart}`;
+  };
+  const amount = formatAmountFromDigits(amountDigits);
+  const normalizedAmount = amount.replace(/,/g, '');
+  const amountNumber = Number(normalizedAmount);
+  const amountError = !amountDigits || Number.isNaN(amountNumber) || amountNumber <= 0 || amountLimitError;
   const descriptionError = type === 'expense' && description.trim().length === 0;
+  const descriptionLimitError = description.length > MAX_DESCRIPTION_LENGTH;
   const accountError = accountId.length === 0;
-  const hasErrors = amountError || descriptionError || accountError;
+  const hasErrors = amountError || descriptionError || descriptionLimitError || accountError;
   const selectedAccount = accounts.find(acc => acc.id === accountId);
 
   const inputClassName = (hasError: boolean) => cn(
@@ -53,7 +69,8 @@ export function TransactionModal({
   );
 
   const resetForm = () => {
-    setAmount('');
+    setAmountDigits('');
+    setAmountLimitError(false);
     setDescription(initialDescription);
     setIsPetRelated(false);
     setSubmitAttempted(false);
@@ -113,7 +130,7 @@ export function TransactionModal({
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-1">
             <label className={cn("text-[10px] font-bold uppercase ml-1", submitAttempted && accountError ? "text-red-500" : "text-slate-400")}>Cuenta de Origen / Destino</label>
-            <div className="relative">
+            <div className="relative z-20">
               <button
                 type="button"
                 disabled={isSaving}
@@ -148,7 +165,7 @@ export function TransactionModal({
               </button>
 
               {isAccountPickerOpen && (
-                <div className="mt-2 rounded-2xl border border-slate-200 bg-white p-2 shadow-lg">
+                <div className="absolute left-0 right-0 top-[calc(100%+0.5rem)] rounded-2xl border border-slate-200 bg-white p-2 shadow-lg">
                   <div className="space-y-1">
                     {accounts.map(acc => (
                       <button
@@ -225,59 +242,89 @@ export function TransactionModal({
           */}
 
           <div className="space-y-1">
-            <label className={cn("text-[10px] font-bold uppercase ml-1", submitAttempted && amountError ? "text-red-500" : "text-slate-400")}>Monto</label>
-            <input
-              type="text"
-              inputMode="decimal"
-              placeholder="Monto (ej: 50 o 100)"
-              className={inputClassName(submitAttempted && amountError)}
-              value={amount}
-              disabled={isSaving}
-              onChange={e => {
-                const sanitized = e.target.value
-                  .replace(/,/g, '.')
-                  .replace(/[^0-9.]/g, '')
-                  .replace(/(\..*)\./g, '$1');
-                setAmount(sanitized);
-              }}
-              aria-invalid={submitAttempted && amountError}
-            />
-            {submitAttempted && amountError && (
+            <div className="flex items-center gap-3">
+              <label className={cn("w-20 shrink-0 text-[10px] font-bold uppercase ml-1", submitAttempted && amountError ? "text-red-500" : "text-slate-400")}>Monto</label>
+              <input
+                type="text"
+                inputMode="numeric"
+                placeholder="0.00"
+                className={cn(inputClassName(submitAttempted && amountError), "text-right tabular-nums")}
+                value={amount}
+                disabled={isSaving}
+                onChange={e => {
+                  const digitsOnly = e.target.value.replace(/\D/g, '');
+                  const normalizedDigits = digitsOnly.replace(/^0+(?=\d)/, '') || digitsOnly;
+                  const exceedsMax =
+                    normalizedDigits.length > MAX_AMOUNT_CENTS.length
+                    || (
+                      normalizedDigits.length === MAX_AMOUNT_CENTS.length
+                      && normalizedDigits > MAX_AMOUNT_CENTS
+                    );
+
+                  if (exceedsMax) {
+                    setAmountLimitError(true);
+                    return;
+                  }
+
+                  setAmountLimitError(false);
+                  setAmountDigits(normalizedDigits);
+                }}
+                aria-invalid={submitAttempted && amountError}
+              />
+            </div>
+            {submitAttempted && !amountLimitError && amountError && (
               <p className="text-xs text-red-500 ml-1">Ingresa un monto mayor a 0.</p>
             )}
+            {submitAttempted && amountLimitError && (
+              <p className="text-xs text-red-500 ml-1">El monto excede el máximo soportado por la app.</p>
+            )}
+          </div>
+
+          <div className="space-y-1">
+            <div className="flex items-center gap-3">
+              <label className="w-20 shrink-0 text-[10px] font-bold text-slate-400 uppercase ml-1">Categoría</label>
+              <select
+                className="w-full p-3 bg-slate-50 rounded-xl border-none text-sm focus:ring-2 focus:ring-primary-500"
+                value={categoryId}
+                disabled={isSaving}
+                onChange={e => setCategoryId(e.target.value)}
+              >
+                {filteredCategories.map(c => (
+                  <option key={c.id} value={c.id}>{c.name}</option>
+                ))}
+              </select>
+            </div>
           </div>
 
           {type === 'expense' && (
             <div className="space-y-1">
-              <label className={cn("text-[10px] font-bold uppercase ml-1", submitAttempted && descriptionError ? "text-red-500" : "text-slate-400")}>Descripción</label>
-              <input
-                type="text"
+              <div className="flex items-center justify-between gap-3">
+                <label className={cn("text-[10px] font-bold uppercase ml-1", submitAttempted && (descriptionError || descriptionLimitError) ? "text-red-500" : "text-slate-400")}>Descripción</label>
+                <span className={cn("text-[10px] font-bold", submitAttempted && descriptionLimitError ? "text-red-500" : "text-slate-400")}>
+                  {description.length}/{MAX_DESCRIPTION_LENGTH}
+                </span>
+              </div>
+              <textarea
                 placeholder="¿En qué se usó?"
-                className={inputClassName(submitAttempted && descriptionError)}
+                className={cn(
+                  inputClassName(submitAttempted && (descriptionError || descriptionLimitError)),
+                  "min-h-[84px] max-h-[84px] resize-none"
+                )}
                 value={description}
                 disabled={isSaving}
+                maxLength={MAX_DESCRIPTION_LENGTH}
                 onChange={e => setDescription(e.target.value)}
-                aria-invalid={submitAttempted && descriptionError}
+                aria-invalid={submitAttempted && (descriptionError || descriptionLimitError)}
+                rows={3}
               />
               {submitAttempted && descriptionError && (
                 <p className="text-xs text-red-500 ml-1">La descripción es obligatoria.</p>
               )}
+              {submitAttempted && descriptionLimitError && (
+                <p className="text-xs text-red-500 ml-1">La descripción no puede superar los 256 caracteres.</p>
+              )}
             </div>
           )}
-
-          <div className="space-y-1">
-            <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Categoría</label>
-            <select
-              className="w-full p-3 bg-slate-50 rounded-xl border-none text-sm focus:ring-2 focus:ring-primary-500"
-              value={categoryId}
-              disabled={isSaving}
-              onChange={e => setCategoryId(e.target.value)}
-            >
-              {filteredCategories.map(c => (
-                <option key={c.id} value={c.id}>{c.name}</option>
-              ))}
-            </select>
-          </div>
           
           {saveError && (
             <p className="text-xs text-red-500 ml-1">{saveError}</p>

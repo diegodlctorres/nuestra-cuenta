@@ -18,7 +18,7 @@ export function Modal({ isOpen, onClose, title, children }: { isOpen: boolean, o
         initial={{ opacity: 0, scale: 0.95, y: 20 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.95, y: 20 }}
-        className="relative w-full max-w-md bg-white rounded-[32px] shadow-2xl overflow-hidden"
+        className="relative w-full max-w-[25.2rem] bg-white rounded-[32px] shadow-2xl overflow-hidden"
       >
         <div className="p-6 border-b border-slate-100 flex justify-between items-center">
           <h3 className="text-xl font-bold text-slate-900">{title}</h3>
