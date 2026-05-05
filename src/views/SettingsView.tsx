@@ -16,7 +16,7 @@ import { useFinance } from '../contexts/FinanceContext';
 import { InlineFeedback } from '../components/ui/InlineFeedback';
 
 export function SettingsView() {
-  const { coupleSettings, setCoupleSettings } = useSettingsContext();
+  const { coupleSettings, setCoupleSettings, isLoading: isSettingsLoading } = useSettingsContext();
   const { pets, petTasks, updatePet, deletePet, addPet } = usePetsContext();
   const { categories, addCategory, deleteCategory, accounts, addAccount, updateAccount, deleteAccount } = useFinance();
   const THEMES = [
@@ -73,7 +73,11 @@ export function SettingsView() {
       )}
 
       <div className="space-y-6">
-        <CoupleSettingsModal coupleSettings={coupleSettings} setCoupleSettings={setCoupleSettings} />
+        <CoupleSettingsModal
+          coupleSettings={coupleSettings}
+          setCoupleSettings={setCoupleSettings}
+          disabled={isSettingsLoading}
+        />
 
         <div className="bg-white rounded-3xl border border-slate-200 p-6 shadow-sm space-y-4">
           <div className="flex items-center justify-between">
@@ -156,10 +160,11 @@ export function SettingsView() {
           </div>
           <div className="grid grid-cols-2 gap-3">
             {THEMES.map(theme => {
-              const isActive = (coupleSettings.theme || 'default') === theme.id;
+              const isActive = coupleSettings.theme === theme.id;
               return (
                 <button
                   key={theme.id}
+                  disabled={isSettingsLoading}
                   onClick={async () => {
                     setActionError('');
                     const result = await setCoupleSettings({ ...coupleSettings, theme: theme.id });
@@ -171,7 +176,7 @@ export function SettingsView() {
                     isActive 
                       ? 'bg-white border-primary-500 shadow-sm ring-1 ring-primary-500' 
                       : 'bg-white border-slate-200 hover:border-slate-300'
-                  }`}
+                  } disabled:cursor-not-allowed disabled:opacity-60`}
                 >
                   <div className="flex -space-x-1.5">
                     <div className="w-5 h-5 rounded-full border-2 border-white shadow-sm z-10" style={{ backgroundColor: theme.color1 }} />

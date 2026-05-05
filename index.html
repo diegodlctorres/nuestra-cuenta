@@ -12,6 +12,18 @@
     <meta name="apple-mobile-web-app-title" content="Nuestra Cuenta" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="format-detection" content="telephone=no" />
+    <script>
+      (function () {
+        try {
+          var theme = localStorage.getItem('nuestra-cuenta.theme');
+          if (['default', 'oceanic', 'nature', 'sunset'].indexOf(theme) !== -1) {
+            document.documentElement.setAttribute('data-theme', theme);
+          }
+        } catch (error) {
+          // Use CSS defaults when storage is unavailable.
+        }
+      })();
+    </script>
     <title>Nuestra Cuenta</title>
   </head>
   <body>

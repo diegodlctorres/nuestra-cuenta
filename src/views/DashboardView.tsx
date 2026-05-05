@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { PawPrint, Layers3, ChevronRight } from 'lucide-react';
 import { TransactionItem } from '../components/transactions/TransactionItem';
+import { DashboardSkeleton } from '../components/ui/DashboardSkeleton';
 import { Modal } from '../components/ui/Modal';
 import { cn, formatCurrency } from '../lib/utils';
 import { getAccountEmoji } from '../lib/accountEmojis';
@@ -11,8 +12,8 @@ import { useSettingsContext } from '../contexts/SettingsContext';
 import { useAppNavigation } from '../contexts/AppNavigationContext';
 
 export function DashboardView() {
-  const { transactions, accounts, accountBalances } = useFinance();
-  const { pendingPetTasksCount } = usePetsContext();
+  const { transactions, accounts, accountBalances, isLoading: isFinanceLoading } = useFinance();
+  const { pendingPetTasksCount, isLoading: isPetsLoading } = usePetsContext();
   const { coupleSettings } = useSettingsContext();
   const { setActiveTab, setSelectedAccountId } = useAppNavigation();
   const [isAccountsModalOpen, setIsAccountsModalOpen] = useState(false);
@@ -24,6 +25,10 @@ export function DashboardView() {
     setActiveTab('detail');
     setIsAccountsModalOpen(false);
   };
+
+  if (isFinanceLoading || isPetsLoading) {
+    return <DashboardSkeleton />;
+  }
 
   return (
     <motion.div

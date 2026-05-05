@@ -5,7 +5,10 @@ import App from './App.tsx';
 import { AuthProvider } from './contexts/AuthContext.tsx';
 import { NetworkStatusProvider } from './contexts/NetworkStatusContext.tsx';
 import { queryClient } from './lib/queryClient';
+import { applyStoredTheme } from './lib/theme';
 import './index.css';
+
+applyStoredTheme();
 
 if ('serviceWorker' in navigator) {
   if (import.meta.env.PROD) {

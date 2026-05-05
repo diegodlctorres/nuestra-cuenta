@@ -6,28 +6,28 @@ import { MutationResult, mutationError, mutationMessage, mutationOk } from '../l
 import { isOffline, OFFLINE_MUTATION_MESSAGE } from '../lib/networkStatus';
 import { loadSettingsSnapshot, persistCoupleSettings } from '../lib/settingsData';
 import { queryKeys } from '../lib/queryKeys';
+import { applyTheme, persistTheme } from '../lib/theme';
 
 export function useSettings() {
   const { user, profile, householdId, refreshProfile } = useAuth();
   const queryClient = useQueryClient();
   const fallbackSettings: CoupleSettings = {
     partner1: { name: '' },
-    partner2: { name: '' },
-    theme: 'default'
+    partner2: { name: '' }
   };
   const settingsQuery = useQuery({
     queryKey: queryKeys.settings(householdId, user?.id || null),
     queryFn: async () => loadSettingsSnapshot(user!.id, profile ?? null, householdId),
-    enabled: Boolean(user && profile),
-    initialData: fallbackSettings
+    enabled: Boolean(user && profile)
   });
   const coupleSettings = settingsQuery.data ?? fallbackSettings;
 
   useEffect(() => {
-    if (coupleSettings.theme) {
-      document.documentElement.setAttribute('data-theme', coupleSettings.theme);
+    if (settingsQuery.data?.theme) {
+      applyTheme(settingsQuery.data.theme);
+      persistTheme(settingsQuery.data.theme);
     }
-  }, [coupleSettings.theme]);
+  }, [settingsQuery.data?.theme]);
 
   const setCoupleSettingsMutation = useMutation({
     mutationFn: async (nextSettings: CoupleSettings) => {
@@ -64,6 +64,8 @@ export function useSettings() {
       queryClient.setQueryData<CoupleSettings>(queryKey, (current) => {
         const baseSettings = current || fallbackSettings;
         const normalizedTheme = result?.nextTheme || nextSettings.theme || 'default';
+        applyTheme(normalizedTheme);
+        persistTheme(normalizedTheme);
 
         if (!result?.editablePartner || !user) {
           return {
@@ -101,5 +103,5 @@ export function useSettings() {
     }
   }, [setCoupleSettingsMutation]);
 
-  return { coupleSettings, setCoupleSettings };
+  return { coupleSettings, setCoupleSettings, isLoading: settingsQuery.isLoading };
 }

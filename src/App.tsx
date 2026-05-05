@@ -18,6 +18,7 @@ import { AddPetTaskForm } from './components/pets/AddPetTaskForm';
 import { AddTaskForm } from './components/tasks/AddTaskForm';
 import { AddTransactionForm } from './components/transactions/AddTransactionForm';
 import { ConnectivityBanner } from './components/ui/ConnectivityBanner';
+import { DashboardSkeleton } from './components/ui/DashboardSkeleton';
 import { NavButton } from './components/ui/NavButton';
 import { useAuth } from './contexts/AuthContext';
 import { AppNavigationProvider, useAppNavigation } from './contexts/AppNavigationContext';
@@ -48,6 +49,51 @@ function AppShellFallback() {
   );
 }
 
+function SkeletonBlock({ className }: { className: string }) {
+  return <div className={`animate-pulse rounded bg-slate-200 ${className}`} />;
+}
+
+function AppStartupSkeleton() {
+  return (
+    <div
+      className="min-h-[100dvh] bg-slate-50 text-slate-900 font-sans pb-[calc(6rem+env(safe-area-inset-bottom,0px))]"
+      aria-busy="true"
+      aria-label="Cargando Nuestra Cuenta"
+    >
+      <header className="sticky top-0 z-10 border-b border-slate-200 bg-white/95 px-safe pt-safe backdrop-blur">
+        <ConnectivityBanner />
+        <div className="px-6 py-4">
+          <div className="max-w-md mx-auto flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <SkeletonBlock className="h-6 w-6 rounded-md bg-slate-200" />
+              <SkeletonBlock className="h-5 w-36 bg-slate-200" />
+            </div>
+            <div className="flex gap-2">
+              <SkeletonBlock className="h-8 w-8 rounded-full" />
+              <SkeletonBlock className="h-8 w-8 rounded-full" />
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <main className="max-w-md mx-auto px-6 py-8">
+        <DashboardSkeleton />
+      </main>
+
+      <nav className="fixed bottom-0 left-0 right-0 z-20 border-t border-slate-200 bg-white/95 px-safe backdrop-blur">
+        <div className="max-w-md mx-auto flex items-center justify-between px-6 py-3 pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))]">
+          {[0, 1, 2, 3, 4].map(item => (
+            <div key={item} className="flex w-14 flex-col items-center gap-2">
+              <SkeletonBlock className="h-5 w-5 rounded-md" />
+              <SkeletonBlock className="h-3 w-10" />
+            </div>
+          ))}
+        </div>
+      </nav>
+    </div>
+  );
+}
+
 function AppFrame({ children }: { children: React.ReactNode }) {
   return (
     <>
@@ -59,7 +105,11 @@ function AppFrame({ children }: { children: React.ReactNode }) {
 
 function HouseholdShell() {
   const { activeTab, setActiveTab } = useAppNavigation();
-  const { coupleSettings } = useSettingsContext();
+  const { coupleSettings, isLoading: isSettingsLoading } = useSettingsContext();
+
+  if (isSettingsLoading) {
+    return <AppStartupSkeleton />;
+  }
 
   return (
     <div className="min-h-[100dvh] bg-slate-50 text-slate-900 font-sans pb-[calc(6rem+env(safe-area-inset-bottom,0px))]">
@@ -238,11 +288,7 @@ export default function App() {
   }, []);
 
   if (isLoading) {
-    return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-6 text-slate-900">
-        <div className="animate-spin text-primary-500"><ArrowRightLeft className="w-8 h-8" /></div>
-      </div>
-    );
+    return <AppStartupSkeleton />;
   }
 
   if (isRecoveryMode) {

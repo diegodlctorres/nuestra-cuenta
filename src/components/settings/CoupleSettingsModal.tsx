@@ -8,10 +8,12 @@ import { MutationResult } from '../../lib/errors';
 
 export function CoupleSettingsModal({
   coupleSettings,
-  setCoupleSettings
+  setCoupleSettings,
+  disabled = false
 }: {
   coupleSettings: CoupleSettings,
-  setCoupleSettings: (s: CoupleSettings) => Promise<MutationResult>
+  setCoupleSettings: (s: CoupleSettings) => Promise<MutationResult>,
+  disabled?: boolean
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const [draftSettings, setDraftSettings] = useState<CoupleSettings>(coupleSettings);
@@ -41,7 +43,11 @@ export function CoupleSettingsModal({
 
   return (
     <>
-      <button onClick={handleOpen} className="w-full p-6 bg-white rounded-3xl border border-slate-200 flex justify-between items-center font-bold text-slate-700 shadow-sm hover:bg-slate-50 transition-colors">
+      <button
+        onClick={handleOpen}
+        disabled={disabled}
+        className="w-full p-6 bg-white rounded-3xl border border-slate-200 flex justify-between items-center font-bold text-slate-700 shadow-sm hover:bg-slate-50 transition-colors disabled:cursor-not-allowed disabled:opacity-60"
+      >
         <span className="flex items-center gap-3">
           <div className="p-2 bg-primary-50 rounded-xl"><UserPlus className="w-6 h-6 text-primary-600" /></div>
           Detalles de la Pareja
