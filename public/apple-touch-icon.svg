@@ -1,14 +1,24 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 180">
+<svg width="180" height="180" viewBox="0 0 180 180" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Fondo sólido sin transparencia (Requisito de Apple) -->
+  <rect width="180" height="180" fill="#4F46E5"/>
+  
+  <!-- Icono de Nuestra Cuenta centrado -->
+  <path 
+    d="M90 42L135 76V132C135 134.982 133.815 137.842 131.704 139.953C129.593 142.064 126.733 143.25 123.75 143.25H56.25C53.2674 143.25 50.4075 142.064 48.2967 139.953C46.1859 137.842 45 134.982 45 132V76L90 42Z" 
+    stroke="white" 
+    stroke-width="10" 
+    stroke-linecap="round" 
+    stroke-linejoin="round"
+  />
+  <circle cx="90" cy="98" r="17" stroke="white" stroke-width="10"/>
+
+  <!-- Sutil degradado de iluminación superior para estética iOS -->
+  <rect width="180" height="180" fill="url(#apple_gradient)" style="mix-blend-mode:overlay"/>
+
   <defs>
-    <linearGradient id="bg" x1="0%" x2="100%" y1="0%" y2="100%">
-      <stop offset="0%" stop-color="#6366f1" />
-      <stop offset="100%" stop-color="#f43f5e" />
+    <linearGradient id="apple_gradient" x1="90" y1="0" x2="90" y2="180" gradientUnits="userSpaceOnUse">
+      <stop stop-color="white" stop-opacity="0.1"/>
+      <stop offset="1" stop-opacity="0"/>
     </linearGradient>
   </defs>
-  <rect width="180" height="180" rx="42" fill="url(#bg)" />
-  <circle cx="90" cy="95" r="40" fill="#fff" opacity=".96" />
-  <path d="M65 76c0-10 7-17 17-17h16c10 0 17 7 17 17s-7 17-17 17H82c-10 0-17-7-17-17Z" fill="#fff" opacity=".98" />
-  <path d="M73 64c0-8 5-13 13-13s13 5 13 13v4H73v-4Zm15 40c-9 0-16-7-16-16h32c0 9-7 16-16 16Z" fill="#4f46e5" />
-  <path d="M111 48h20v20" fill="none" stroke="#fff" stroke-linecap="round" stroke-linejoin="round" stroke-width="10" />
-  <path d="m87 92 43-43" fill="none" stroke="#fff" stroke-linecap="round" stroke-width="10" />
 </svg>

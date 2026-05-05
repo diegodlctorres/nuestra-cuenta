@@ -1,14 +1,34 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Fondo con degradado profundo -->
+  <rect width="512" height="512" rx="100" fill="url(#paint0_linear_512)"/>
+  
+  <!-- Icono Central Escalado -->
+  <g filter="url(#dropShadow_512)">
+    <path 
+      d="M256 120L384 216V376C384 384.487 380.629 392.626 374.627 398.627C368.626 404.629 360.487 408 352 408H160C151.513 408 143.374 404.629 137.373 398.627C131.371 392.626 128 384.487 128 376V216L256 120Z" 
+      stroke="white" 
+      stroke-width="24" 
+      stroke-linecap="round" 
+      stroke-linejoin="round"
+    />
+    <circle cx="256" cy="280" r="48" stroke="white" stroke-width="24"/>
+  </g>
+
   <defs>
-    <linearGradient id="bg" x1="0%" x2="100%" y1="0%" y2="100%">
-      <stop offset="0%" stop-color="#6366f1" />
-      <stop offset="100%" stop-color="#f43f5e" />
+    <linearGradient id="paint0_linear_512" x1="0" y1="0" x2="512" y2="512" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#6366F1"/>
+      <stop offset="1" stop-color="#4F46E5"/>
     </linearGradient>
+    
+    <filter id="dropShadow_512" x="110" y="110" width="292" height="318" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feFlood flood-opacity="0" result="BackgroundImageFix"/>
+      <feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha"/>
+      <feOffset dy="10"/>
+      <feGaussianBlur stdDeviation="5"/>
+      <feComposite in2="hardAlpha" operator="out"/>
+      <feColorMatrix type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.15 0"/>
+      <feBlend mode="normal" in2="BackgroundImageFix" result="effect1_dropShadow"/>
+      <feBlend mode="normal" in="SourceGraphic" in2="effect1_dropShadow" result="shape"/>
+    </filter>
   </defs>
-  <rect width="512" height="512" rx="120" fill="url(#bg)" />
-  <circle cx="256" cy="272" r="124" fill="#fff" opacity=".96" />
-  <path d="M180 220c0-32 21-54 54-54h44c33 0 54 22 54 54s-21 54-54 54h-44c-33 0-54-22-54-54Z" fill="#fff" opacity=".98" />
-  <path d="M204 184c0-24 16-40 40-40s40 16 40 40v12H204v-12Zm48 124c-29 0-52-23-52-52h104c0 29-23 52-52 52Z" fill="#4f46e5" />
-  <path d="M316 128h72v72" fill="none" stroke="#fff" stroke-linecap="round" stroke-linejoin="round" stroke-width="26" />
-  <path d="m248 252 142-142" fill="none" stroke="#fff" stroke-linecap="round" stroke-width="26" />
 </svg>
