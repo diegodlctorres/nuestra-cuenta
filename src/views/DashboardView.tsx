@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { PawPrint, Layers3, ChevronRight } from 'lucide-react';
-import { AddTransactionForm } from '../components/transactions/AddTransactionForm';
 import { TransactionItem } from '../components/transactions/TransactionItem';
 import { Modal } from '../components/ui/Modal';
 import { cn, formatCurrency } from '../lib/utils';
@@ -12,7 +11,7 @@ import { useSettingsContext } from '../contexts/SettingsContext';
 import { useAppNavigation } from '../contexts/AppNavigationContext';
 
 export function DashboardView() {
-  const { transactions, categories, accounts, accountBalances, addTransaction } = useFinance();
+  const { transactions, accounts, accountBalances } = useFinance();
   const { pendingPetTasksCount } = usePetsContext();
   const { coupleSettings } = useSettingsContext();
   const { setActiveTab, setSelectedAccountId } = useAppNavigation();
@@ -34,8 +33,6 @@ export function DashboardView() {
       exit={{ opacity: 0, y: -10 }}
       className="space-y-6"
     >
-      <AddTransactionForm onAdd={addTransaction} categories={categories} accounts={accounts} />
-
       {/* Dynamic Account Cards */}
       <div className="grid grid-cols-1 gap-4">
         {featuredAccounts.map((acc, index) => {

@@ -26,7 +26,7 @@ import {
     subWeeks,
 } from "date-fns";
 import { es } from "date-fns/locale";
-import { AddTaskForm, TaskFormModal } from "../components/tasks/AddTaskForm";
+import { TaskFormModal } from "../components/tasks/AddTaskForm";
 import { TransactionModal } from "../components/transactions/AddTransactionForm";
 import { Modal } from "../components/ui/Modal";
 import { cn } from "../lib/utils";
@@ -596,8 +596,6 @@ export function TasksView() {
                     </div>
                 </div>
             </div>
-
-            <AddTaskForm onAdd={addTask} />
 
             {tasks.length === 0 ? (
                 <div className="rounded-3xl border border-dashed border-slate-200 bg-white p-8 text-center shadow-sm">

@@ -377,19 +377,42 @@ export function TaskFormModal({
   );
 }
 
-export function AddTaskForm({ onAdd }: { onAdd: (task: TaskInput) => Promise<TaskMutationResult> }) {
-  const [isOpen, setIsOpen] = useState(false);
+interface AddTaskFormProps {
+  onAdd: (task: TaskInput) => Promise<TaskMutationResult>;
+  isOpen?: boolean;
+  onOpenChange?: (isOpen: boolean) => void;
+  hideTrigger?: boolean;
+}
+
+export function AddTaskForm({
+  onAdd,
+  isOpen: controlledIsOpen,
+  onOpenChange,
+  hideTrigger = false
+}: AddTaskFormProps) {
+  const [internalIsOpen, setInternalIsOpen] = useState(false);
+  const isOpen = controlledIsOpen ?? internalIsOpen;
+
+  const setIsOpen = (nextIsOpen: boolean) => {
+    if (controlledIsOpen === undefined) {
+      setInternalIsOpen(nextIsOpen);
+    }
+
+    onOpenChange?.(nextIsOpen);
+  };
 
   return (
     <>
-      <button
-        type="button"
-        onClick={() => setIsOpen(true)}
-        className="fixed bottom-28 right-6 z-30 flex h-14 w-14 items-center justify-center rounded-full bg-primary-600 text-white shadow-2xl shadow-primary-200 transition-colors hover:bg-primary-700 active:scale-95"
-        aria-label="Nuevo recordatorio"
-      >
-        <Plus className="w-6 h-6" />
-      </button>
+      {!hideTrigger && (
+        <button
+          type="button"
+          onClick={() => setIsOpen(true)}
+          className="fixed bottom-28 right-6 z-30 flex h-14 w-14 items-center justify-center rounded-full bg-primary-600 text-white shadow-2xl shadow-primary-200 transition-colors hover:bg-primary-700 active:scale-95"
+          aria-label="Nuevo recordatorio"
+        >
+          <Plus className="w-6 h-6" />
+        </button>
+      )}
 
       <TaskFormModal
         isOpen={isOpen}

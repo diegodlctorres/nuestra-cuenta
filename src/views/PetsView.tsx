@@ -292,10 +292,6 @@ export function PetsView() {
 
             {actionError && <InlineFeedback message={actionError} />}
 
-            {pets.length > 0 && (
-                <AddPetTaskForm pets={pets} onAdd={addPetTask} />
-            )}
-
             <div className="space-y-8">
                 {pets.map((pet) => {
                     const tasksForPet = petTasks.filter(

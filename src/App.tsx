@@ -10,17 +10,24 @@ import {
   PawPrint,
   CheckSquare,
   Settings,
-  ArrowRightLeft
+  ArrowRightLeft,
+  Plus
 } from 'lucide-react';
 import { AnimatePresence } from 'motion/react';
+import { AddPetTaskForm } from './components/pets/AddPetTaskForm';
+import { AddTaskForm } from './components/tasks/AddTaskForm';
+import { AddTransactionForm } from './components/transactions/AddTransactionForm';
 import { ConnectivityBanner } from './components/ui/ConnectivityBanner';
 import { NavButton } from './components/ui/NavButton';
 import { useAuth } from './contexts/AuthContext';
 import { AppNavigationProvider, useAppNavigation } from './contexts/AppNavigationContext';
 import { FinanceProvider } from './contexts/FinanceContext';
+import { useFinance } from './contexts/FinanceContext';
 import { PetsProvider } from './contexts/PetsContext';
+import { usePetsContext } from './contexts/PetsContext';
 import { SettingsProvider, useSettingsContext } from './contexts/SettingsContext';
 import { TasksProvider } from './contexts/TasksContext';
+import { useTasksContext } from './contexts/TasksContext';
 
 const AuthView = lazy(() => import('./views/AuthView').then(module => ({ default: module.AuthView })));
 const OnboardingView = lazy(() => import('./views/OnboardingView').then(module => ({ default: module.OnboardingView })));
@@ -90,6 +97,8 @@ function HouseholdShell() {
         </Suspense>
       </main>
 
+      <HouseholdFloatingAction />
+
       <nav className="fixed bottom-0 left-0 right-0 z-20 border-t border-slate-200 bg-white/95 px-safe backdrop-blur">
         <div className="max-w-md mx-auto flex justify-between items-center px-6 py-3 pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))]">
           <NavButton
@@ -125,6 +134,87 @@ function HouseholdShell() {
         </div>
       </nav>
     </div>
+  );
+}
+
+function HouseholdFloatingAction() {
+  const { activeTab } = useAppNavigation();
+  const { categories, accounts, addTransaction } = useFinance();
+  const { pets, addPetTask } = usePetsContext();
+  const { addTask } = useTasksContext();
+  const [isTransactionOpen, setIsTransactionOpen] = useState(false);
+  const [isPetTaskOpen, setIsPetTaskOpen] = useState(false);
+  const [isTaskOpen, setIsTaskOpen] = useState(false);
+
+  useEffect(() => {
+    setIsTransactionOpen(false);
+    setIsPetTaskOpen(false);
+    setIsTaskOpen(false);
+  }, [activeTab]);
+
+  const fabConfig = (() => {
+    if (activeTab === 'dashboard') {
+      return {
+        label: 'Nueva transacción',
+        className: 'bg-primary-600 shadow-primary-200 hover:bg-primary-700',
+        onClick: () => setIsTransactionOpen(true)
+      };
+    }
+
+    if (activeTab === 'pets' && pets.length > 0) {
+      return {
+        label: 'Nueva tarea de mascota',
+        className: 'bg-secondary-500 shadow-secondary-200 hover:bg-secondary-600',
+        onClick: () => setIsPetTaskOpen(true)
+      };
+    }
+
+    if (activeTab === 'tasks') {
+      return {
+        label: 'Nuevo recordatorio',
+        className: 'bg-primary-600 shadow-primary-200 hover:bg-primary-700',
+        onClick: () => setIsTaskOpen(true)
+      };
+    }
+
+    return null;
+  })();
+
+  return (
+    <>
+      <AddTransactionForm
+        onAdd={addTransaction}
+        categories={categories}
+        accounts={accounts}
+        isOpen={isTransactionOpen}
+        onOpenChange={setIsTransactionOpen}
+        hideTrigger
+      />
+      <AddPetTaskForm
+        pets={pets}
+        onAdd={addPetTask}
+        isOpen={isPetTaskOpen}
+        onOpenChange={setIsPetTaskOpen}
+        hideTrigger
+      />
+      <AddTaskForm
+        onAdd={addTask}
+        isOpen={isTaskOpen}
+        onOpenChange={setIsTaskOpen}
+        hideTrigger
+      />
+
+      {fabConfig && (
+        <button
+          type="button"
+          onClick={fabConfig.onClick}
+          className={`fixed bottom-[calc(7rem+env(safe-area-inset-bottom,0px))] right-6 z-30 flex h-14 w-14 items-center justify-center rounded-full text-white shadow-2xl transition-colors active:scale-95 ${fabConfig.className}`}
+          aria-label={fabConfig.label}
+        >
+          <Plus className="w-6 h-6" />
+        </button>
+      )}
+    </>
   );
 }
 

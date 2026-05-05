@@ -15,8 +15,23 @@ const getTodayDateString = () => {
 
 const getCurrentTimeString = () => new Date().toTimeString().slice(0, 5);
 
-export function AddPetTaskForm({ pets, onAdd }: { pets: Pet[], onAdd: (t: PetTaskInput) => Promise<boolean> }) {
-  const [isOpen, setIsOpen] = useState(false);
+interface AddPetTaskFormProps {
+  pets: Pet[];
+  onAdd: (t: PetTaskInput) => Promise<boolean>;
+  isOpen?: boolean;
+  onOpenChange?: (isOpen: boolean) => void;
+  hideTrigger?: boolean;
+}
+
+export function AddPetTaskForm({
+  pets,
+  onAdd,
+  isOpen: controlledIsOpen,
+  onOpenChange,
+  hideTrigger = false
+}: AddPetTaskFormProps) {
+  const [internalIsOpen, setInternalIsOpen] = useState(false);
+  const isOpen = controlledIsOpen ?? internalIsOpen;
   const [selectedPetIds, setSelectedPetIds] = useState<string[]>([]);
   const [title, setTitle] = useState('');
   const [date, setDate] = useState('');
@@ -42,6 +57,14 @@ export function AddPetTaskForm({ pets, onAdd }: { pets: Pet[], onAdd: (t: PetTas
       ? "border-red-300 bg-red-50 text-slate-900 focus:ring-2 focus:ring-red-200"
       : "border-transparent bg-slate-50 text-slate-900 focus:ring-2 focus:ring-secondary-500"
   );
+
+  const setIsOpen = (nextIsOpen: boolean) => {
+    if (controlledIsOpen === undefined) {
+      setInternalIsOpen(nextIsOpen);
+    }
+
+    onOpenChange?.(nextIsOpen);
+  };
 
   const togglePet = (id: string) => {
     setSelectedPetIds(prev => {
@@ -101,14 +124,16 @@ export function AddPetTaskForm({ pets, onAdd }: { pets: Pet[], onAdd: (t: PetTas
 
   return (
     <>
-      <button
-        type="button"
-        onClick={() => setIsOpen(true)}
-        className="fixed bottom-[calc(7rem+env(safe-area-inset-bottom,0px))] right-6 z-30 flex h-14 w-14 items-center justify-center rounded-full bg-secondary-500 text-white shadow-2xl shadow-secondary-200 transition-colors hover:bg-secondary-600 active:scale-95"
-        aria-label="Nueva tarea de mascota"
-      >
-        <Plus className="w-6 h-6" />
-      </button>
+      {!hideTrigger && (
+        <button
+          type="button"
+          onClick={() => setIsOpen(true)}
+          className="fixed bottom-[calc(7rem+env(safe-area-inset-bottom,0px))] right-6 z-30 flex h-14 w-14 items-center justify-center rounded-full bg-secondary-500 text-white shadow-2xl shadow-secondary-200 transition-colors hover:bg-secondary-600 active:scale-95"
+          aria-label="Nueva tarea de mascota"
+        >
+          <Plus className="w-6 h-6" />
+        </button>
+      )}
 
       <Modal isOpen={isOpen} onClose={() => { if (!isSaving) { setIsOpen(false); setSubmitAttempted(false); setSaveError(''); } }} title="Nueva Tarea Mascota">
         <form onSubmit={handleSubmit} className="space-y-4">

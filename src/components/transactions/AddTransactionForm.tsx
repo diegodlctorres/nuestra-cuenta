@@ -323,8 +323,33 @@ export function TransactionModal({
   );
 }
 
-export function AddTransactionForm({ onAdd, categories, accounts }: { onAdd: (t: Omit<Transaction, 'id' | 'household_id' | 'created_by'>) => Promise<boolean>, categories: Category[], accounts: Account[] }) {
-  const [isOpen, setIsOpen] = useState(false);
+interface AddTransactionFormProps {
+  onAdd: (t: Omit<Transaction, 'id' | 'household_id' | 'created_by'>) => Promise<boolean>;
+  categories: Category[];
+  accounts: Account[];
+  isOpen?: boolean;
+  onOpenChange?: (isOpen: boolean) => void;
+  hideTrigger?: boolean;
+}
+
+export function AddTransactionForm({
+  onAdd,
+  categories,
+  accounts,
+  isOpen: controlledIsOpen,
+  onOpenChange,
+  hideTrigger = false
+}: AddTransactionFormProps) {
+  const [internalIsOpen, setInternalIsOpen] = useState(false);
+  const isOpen = controlledIsOpen ?? internalIsOpen;
+
+  const setIsOpen = (nextIsOpen: boolean) => {
+    if (controlledIsOpen === undefined) {
+      setInternalIsOpen(nextIsOpen);
+    }
+
+    onOpenChange?.(nextIsOpen);
+  };
 
   return (
     <>
@@ -336,14 +361,16 @@ export function AddTransactionForm({ onAdd, categories, accounts }: { onAdd: (t:
         accounts={accounts}
       />
 
-      <button
-        type="button"
-        onClick={() => setIsOpen(true)}
-        className="fixed bottom-[calc(7rem+env(safe-area-inset-bottom,0px))] right-6 z-30 flex h-14 w-14 items-center justify-center rounded-full bg-primary-600 text-white shadow-2xl shadow-primary-200 transition-colors hover:bg-primary-700 active:scale-95"
-        aria-label="Nueva transacción"
-      >
-        <Plus className="w-6 h-6" />
-      </button>
+      {!hideTrigger && (
+        <button
+          type="button"
+          onClick={() => setIsOpen(true)}
+          className="fixed bottom-[calc(7rem+env(safe-area-inset-bottom,0px))] right-6 z-30 flex h-14 w-14 items-center justify-center rounded-full bg-primary-600 text-white shadow-2xl shadow-primary-200 transition-colors hover:bg-primary-700 active:scale-95"
+          aria-label="Nueva transacción"
+        >
+          <Plus className="w-6 h-6" />
+        </button>
+      )}
     </>
   );
 }
