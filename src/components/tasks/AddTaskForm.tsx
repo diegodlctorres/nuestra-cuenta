@@ -89,7 +89,7 @@ export function TaskFormModal({
   const titleError = formData.title.trim().length === 0;
   const missingDeadlineError = formData.deadline.length === 0;
   const pastDeadlineError = Boolean(formData.deadline) && formData.deadline < earliestAllowedDate;
-  const pastTimeError = Boolean(formData.deadline && formData.due_time) && formData.deadline === today && formData.due_time < currentTime;
+  const pastTimeError = !!formData.deadline && !!formData.due_time && formData.deadline === today && formData.due_time < currentTime;
   const recurrenceIntervalError = formData.is_recurring && (!formData.recurrence_interval || formData.recurrence_interval < 1);
   const recurrenceUntilError = formData.is_recurring
     && formData.recurrence_end_type === 'until'
@@ -145,7 +145,7 @@ export function TaskFormModal({
       ? initialTask.deadline
       : submitToday;
     const submitDeadlineError = formData.deadline.length === 0 || formData.deadline < submitEarliestAllowedDate;
-    const submitTimeError = Boolean(formData.deadline && formData.due_time) && formData.deadline === submitToday && formData.due_time < submitCurrentTime;
+    const submitTimeError = !!formData.deadline && !!formData.due_time && formData.deadline === submitToday && formData.due_time < submitCurrentTime;
     const submitIntervalError = formData.is_recurring && (!formData.recurrence_interval || formData.recurrence_interval < 1);
     const submitRecurrenceUntilError = formData.is_recurring
       && formData.recurrence_end_type === 'until'
