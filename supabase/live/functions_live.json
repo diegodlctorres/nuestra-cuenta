@@ -21,8 +21,38 @@
   },
   {
     "schema_name": "public",
+    "function_name": "create_household_account",
+    "definition": "CREATE OR REPLACE FUNCTION public.create_household_account(p_household_id uuid, p_name text, p_emoji text DEFAULT NULL::text)\n RETURNS accounts\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$\r\nDECLARE\r\n  v_member_id uuid;\r\n  v_account public.accounts;\r\nBEGIN\r\n  v_member_id := public.assert_active_household_member(p_household_id);\r\n\r\n  IF v_member_id IS NULL THEN\r\n    RAISE EXCEPTION 'No active household member found.';\r\n  END IF;\r\n\r\n  IF nullif(trim(p_name), '') IS NULL THEN\r\n    RAISE EXCEPTION 'Account name is required.';\r\n  END IF;\r\n\r\n  INSERT INTO public.accounts (household_id, name, emoji)\r\n  VALUES (p_household_id, trim(p_name), nullif(trim(coalesce(p_emoji, '')), ''))\r\n  RETURNING * INTO v_account;\r\n\r\n  RETURN v_account;\r\nEND;\r\n$function$\n"
+  },
+  {
+    "schema_name": "public",
     "function_name": "create_household_and_insert_admin",
     "definition": "CREATE OR REPLACE FUNCTION public.create_household_and_insert_admin(p_theme theme_type DEFAULT 'default'::theme_type)\n RETURNS uuid\n LANGUAGE plpgsql\n SECURITY DEFINER\nAS $function$\r\nDECLARE\r\n  v_household_id UUID;\r\nBEGIN\r\n  -- 1. Insert the new household\r\n  INSERT INTO households (theme)\r\n  VALUES (p_theme)\r\n  RETURNING id INTO v_household_id;\r\n\r\n  -- 2. Insert the calling user as the explicit admin of this new household\r\n  INSERT INTO household_members (profile_id, household_id, role, status)\r\n  VALUES (auth.uid(), v_household_id, 'admin', 'active');\r\n\r\n  RETURN v_household_id;\r\nEND;\r\n$function$\n"
+  },
+  {
+    "schema_name": "public",
+    "function_name": "create_household_category",
+    "definition": "CREATE OR REPLACE FUNCTION public.create_household_category(p_household_id uuid, p_name text, p_kind category_kind)\n RETURNS categories\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$\r\nDECLARE\r\n  v_member_id uuid;\r\n  v_category public.categories;\r\nBEGIN\r\n  v_member_id := public.assert_active_household_member(p_household_id);\r\n\r\n  IF v_member_id IS NULL THEN\r\n    RAISE EXCEPTION 'No active household member found.';\r\n  END IF;\r\n\r\n  IF nullif(trim(p_name), '') IS NULL THEN\r\n    RAISE EXCEPTION 'Category name is required.';\r\n  END IF;\r\n\r\n  INSERT INTO public.categories (household_id, name, kind)\r\n  VALUES (p_household_id, trim(p_name), p_kind)\r\n  RETURNING * INTO v_category;\r\n\r\n  RETURN v_category;\r\nEND;\r\n$function$\n"
+  },
+  {
+    "schema_name": "public",
+    "function_name": "create_household_transaction",
+    "definition": "CREATE OR REPLACE FUNCTION public.create_household_transaction(p_household_id uuid, p_account_id uuid, p_category_id uuid, p_amount numeric, p_description text, p_date date, p_type transaction_type, p_is_pet_related boolean DEFAULT false)\n RETURNS transactions\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$\r\nDECLARE\r\n  v_member_id uuid;\r\n  v_category_kind public.category_kind;\r\n  v_transaction public.transactions;\r\nBEGIN\r\n  v_member_id := public.assert_active_household_member(p_household_id);\r\n\r\n  IF v_member_id IS NULL THEN\r\n    RAISE EXCEPTION 'No active household member found.';\r\n  END IF;\r\n\r\n  IF p_amount IS NULL OR p_amount <= 0 THEN\r\n    RAISE EXCEPTION 'Transaction amount must be greater than zero.';\r\n  END IF;\r\n\r\n  IF nullif(trim(p_description), '') IS NULL THEN\r\n    RAISE EXCEPTION 'Transaction description is required.';\r\n  END IF;\r\n\r\n  IF NOT EXISTS (\r\n    SELECT 1\r\n    FROM public.accounts a\r\n    WHERE a.id = p_account_id\r\n      AND a.household_id = p_household_id\r\n  ) THEN\r\n    RAISE EXCEPTION 'Account was not found for this household.';\r\n  END IF;\r\n\r\n  IF p_category_id IS NOT NULL THEN\r\n    SELECT c.kind INTO v_category_kind\r\n    FROM public.categories c\r\n    WHERE c.id = p_category_id\r\n      AND c.household_id = p_household_id;\r\n\r\n    IF v_category_kind IS NULL THEN\r\n      RAISE EXCEPTION 'Category was not found for this household.';\r\n    END IF;\r\n\r\n    IF p_type IN ('income'::public.transaction_type, 'expense'::public.transaction_type)\r\n      AND v_category_kind::text <> p_type::text THEN\r\n      RAISE EXCEPTION 'Category kind does not match transaction type.';\r\n    END IF;\r\n  END IF;\r\n\r\n  INSERT INTO public.transactions (\r\n    household_id,\r\n    created_by,\r\n    account_id,\r\n    category_id,\r\n    amount,\r\n    description,\r\n    date,\r\n    type,\r\n    is_pet_related\r\n  )\r\n  VALUES (\r\n    p_household_id,\r\n    v_member_id,\r\n    p_account_id,\r\n    p_category_id,\r\n    p_amount,\r\n    trim(p_description),\r\n    p_date,\r\n    p_type,\r\n    coalesce(p_is_pet_related, false)\r\n  )\r\n  RETURNING * INTO v_transaction;\r\n\r\n  RETURN v_transaction;\r\nEND;\r\n$function$\n"
+  },
+  {
+    "schema_name": "public",
+    "function_name": "delete_household_account",
+    "definition": "CREATE OR REPLACE FUNCTION public.delete_household_account(p_household_id uuid, p_account_id uuid)\n RETURNS void\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$\r\nDECLARE\r\n  v_member_id uuid;\r\n  v_deleted_count integer;\r\nBEGIN\r\n  v_member_id := public.assert_active_household_member(p_household_id);\r\n\r\n  IF v_member_id IS NULL THEN\r\n    RAISE EXCEPTION 'No active household member found.';\r\n  END IF;\r\n\r\n  DELETE FROM public.accounts a\r\n  WHERE a.id = p_account_id\r\n    AND a.household_id = p_household_id;\r\n\r\n  GET DIAGNOSTICS v_deleted_count = ROW_COUNT;\r\n\r\n  IF v_deleted_count = 0 THEN\r\n    RAISE EXCEPTION 'Account was not found for this household.';\r\n  END IF;\r\nEND;\r\n$function$\n"
+  },
+  {
+    "schema_name": "public",
+    "function_name": "delete_household_category",
+    "definition": "CREATE OR REPLACE FUNCTION public.delete_household_category(p_household_id uuid, p_category_id uuid)\n RETURNS void\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$\r\nDECLARE\r\n  v_member_id uuid;\r\n  v_deleted_count integer;\r\nBEGIN\r\n  v_member_id := public.assert_active_household_member(p_household_id);\r\n\r\n  IF v_member_id IS NULL THEN\r\n    RAISE EXCEPTION 'No active household member found.';\r\n  END IF;\r\n\r\n  DELETE FROM public.categories c\r\n  WHERE c.id = p_category_id\r\n    AND c.household_id = p_household_id;\r\n\r\n  GET DIAGNOSTICS v_deleted_count = ROW_COUNT;\r\n\r\n  IF v_deleted_count = 0 THEN\r\n    RAISE EXCEPTION 'Category was not found for this household.';\r\n  END IF;\r\nEND;\r\n$function$\n"
+  },
+  {
+    "schema_name": "public",
+    "function_name": "delete_household_transaction",
+    "definition": "CREATE OR REPLACE FUNCTION public.delete_household_transaction(p_household_id uuid, p_transaction_id uuid)\n RETURNS void\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$\r\nDECLARE\r\n  v_member_id uuid;\r\n  v_deleted_count integer;\r\nBEGIN\r\n  v_member_id := public.assert_active_household_member(p_household_id);\r\n\r\n  IF v_member_id IS NULL THEN\r\n    RAISE EXCEPTION 'No active household member found.';\r\n  END IF;\r\n\r\n  DELETE FROM public.transactions t\r\n  WHERE t.id = p_transaction_id\r\n    AND t.household_id = p_household_id;\r\n\r\n  GET DIAGNOSTICS v_deleted_count = ROW_COUNT;\r\n\r\n  IF v_deleted_count = 0 THEN\r\n    RAISE EXCEPTION 'Transaction was not found for this household.';\r\n  END IF;\r\nEND;\r\n$function$\n"
   },
   {
     "schema_name": "public",
@@ -48,6 +78,11 @@
     "schema_name": "public",
     "function_name": "reopen_pet_task",
     "definition": "CREATE OR REPLACE FUNCTION public.reopen_pet_task(p_household_id uuid, p_pet_task_id uuid)\n RETURNS void\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$\r\nDECLARE\r\n  v_member_id uuid;\r\n  v_updated_count integer;\r\nBEGIN\r\n  v_member_id := public.assert_active_household_member(p_household_id);\r\n\r\n  IF v_member_id IS NULL THEN\r\n    RAISE EXCEPTION 'No active household member found.';\r\n  END IF;\r\n\r\n  UPDATE public.pet_tasks pt\r\n  SET completed = false,\r\n      completed_date = null,\r\n      completed_by = null\r\n  FROM public.pets p\r\n  WHERE pt.id = p_pet_task_id\r\n    AND pt.pet_id = p.id\r\n    AND p.household_id = p_household_id;\r\n\r\n  GET DIAGNOSTICS v_updated_count = ROW_COUNT;\r\n\r\n  IF v_updated_count = 0 THEN\r\n    RAISE EXCEPTION 'Pet task was not found for this household.';\r\n  END IF;\r\nEND;\r\n$function$\n"
+  },
+  {
+    "schema_name": "public",
+    "function_name": "update_household_account",
+    "definition": "CREATE OR REPLACE FUNCTION public.update_household_account(p_household_id uuid, p_account_id uuid, p_name text, p_emoji text DEFAULT NULL::text)\n RETURNS accounts\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$\r\nDECLARE\r\n  v_member_id uuid;\r\n  v_account public.accounts;\r\nBEGIN\r\n  v_member_id := public.assert_active_household_member(p_household_id);\r\n\r\n  IF v_member_id IS NULL THEN\r\n    RAISE EXCEPTION 'No active household member found.';\r\n  END IF;\r\n\r\n  IF nullif(trim(p_name), '') IS NULL THEN\r\n    RAISE EXCEPTION 'Account name is required.';\r\n  END IF;\r\n\r\n  UPDATE public.accounts a\r\n  SET name = trim(p_name),\r\n      emoji = nullif(trim(coalesce(p_emoji, '')), '')\r\n  WHERE a.id = p_account_id\r\n    AND a.household_id = p_household_id\r\n  RETURNING * INTO v_account;\r\n\r\n  IF v_account.id IS NULL THEN\r\n    RAISE EXCEPTION 'Account was not found for this household.';\r\n  END IF;\r\n\r\n  RETURN v_account;\r\nEND;\r\n$function$\n"
   },
   {
     "schema_name": "public",

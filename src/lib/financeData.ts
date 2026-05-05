@@ -77,6 +77,37 @@ export async function fetchTransactions(householdId: string) {
   })) as Transaction[];
 }
 
+async function fetchTransactionById(householdId: string, transactionId: string) {
+  const response = await supabase
+    .from('transactions')
+    .select(`
+      *,
+      account:accounts(*),
+      category:categories(*),
+      creator_member:household_members(
+        profile:profiles(*)
+      )
+    `)
+    .eq('household_id', householdId)
+    .eq('id', transactionId)
+    .single();
+
+  if (response.error) {
+    throw response.error;
+  }
+
+  const transaction = response.data as TransactionWithCreatorMember;
+  const memberProfiles = await fetchHouseholdMemberProfiles();
+  const creatorMap = new Map(
+    memberProfiles.map(row => [row.member_id, mapMemberProfile(row)])
+  );
+
+  return {
+    ...transaction,
+    creator: creatorMap.get(transaction.created_by) || transaction.creator_member?.profile
+  } as Transaction;
+}
+
 export async function loadFinanceSnapshot(householdId: string): Promise<FinanceSnapshot> {
   const { error } = await bootstrapHouseholdFinance(householdId);
   if (error) {
@@ -101,44 +132,31 @@ export async function createTransaction(
   memberId: string,
   transaction: Omit<Transaction, 'id' | 'household_id' | 'created_by'>
 ) {
-  const response = await supabase
-    .from('transactions')
-    .insert({
-      ...transaction,
-      household_id: householdId,
-      created_by: memberId
-    })
-    .select(`
-      *,
-      account:accounts(*),
-      category:categories(*),
-      creator_member:household_members(
-        profile:profiles(*)
-      )
-    `)
-    .single();
+  const response = await supabase.rpc('create_household_transaction', {
+    p_household_id: householdId,
+    p_account_id: transaction.account_id,
+    p_category_id: transaction.category_id || null,
+    p_amount: transaction.amount,
+    p_description: transaction.description,
+    p_date: transaction.date.slice(0, 10),
+    p_type: transaction.type,
+    p_is_pet_related: transaction.is_pet_related
+  });
 
   if (response.error) {
     throw response.error;
   }
 
-  const memberProfiles = await fetchHouseholdMemberProfiles();
-  const creatorMap = new Map(
-    memberProfiles.map(row => [row.member_id, mapMemberProfile(row)])
-  );
-
-  return {
-    ...response.data,
-    creator: creatorMap.get(memberId) || (response.data as TransactionWithCreatorMember).creator_member?.profile
-  } as Transaction;
+  const createdTransaction = response.data as Transaction;
+  return fetchTransactionById(householdId, createdTransaction.id);
 }
 
 export async function createCategory(householdId: string, name: string, kind: 'income' | 'expense') {
-  const response = await supabase
-    .from('categories')
-    .insert({ name, kind, household_id: householdId })
-    .select()
-    .single();
+  const response = await supabase.rpc('create_household_category', {
+    p_household_id: householdId,
+    p_name: name,
+    p_kind: kind
+  });
 
   if (response.error) {
     throw response.error;
@@ -148,26 +166,21 @@ export async function createCategory(householdId: string, name: string, kind: 'i
 }
 
 export async function removeCategory(householdId: string, id: string) {
-  const response = await supabase
-    .from('categories')
-    .delete()
-    .eq('household_id', householdId)
-    .eq('id', id);
+  const response = await supabase.rpc('delete_household_category', {
+    p_household_id: householdId,
+    p_category_id: id
+  });
   if (response.error) {
     throw response.error;
   }
 }
 
 export async function createAccount(householdId: string, name: string, emoji?: string) {
-  const response = await supabase
-    .from('accounts')
-    .insert({
-      name,
-      household_id: householdId,
-      emoji: emoji || getDefaultAccountEmoji()
-    })
-    .select()
-    .single();
+  const response = await supabase.rpc('create_household_account', {
+    p_household_id: householdId,
+    p_name: name,
+    p_emoji: emoji || getDefaultAccountEmoji()
+  });
 
   if (response.error) {
     throw response.error;
@@ -177,16 +190,12 @@ export async function createAccount(householdId: string, name: string, emoji?: s
 }
 
 export async function editAccount(householdId: string, id: string, updates: Partial<Account>) {
-  const response = await supabase
-    .from('accounts')
-    .update({
-      name: updates.name,
-      emoji: updates.emoji
-    })
-    .eq('household_id', householdId)
-    .eq('id', id)
-    .select()
-    .single();
+  const response = await supabase.rpc('update_household_account', {
+    p_household_id: householdId,
+    p_account_id: id,
+    p_name: updates.name || '',
+    p_emoji: updates.emoji || null
+  });
 
   if (response.error) {
     throw response.error;
@@ -196,11 +205,10 @@ export async function editAccount(householdId: string, id: string, updates: Part
 }
 
 export async function removeAccount(householdId: string, id: string) {
-  const response = await supabase
-    .from('accounts')
-    .delete()
-    .eq('household_id', householdId)
-    .eq('id', id);
+  const response = await supabase.rpc('delete_household_account', {
+    p_household_id: householdId,
+    p_account_id: id
+  });
 
   if (response.error) {
     throw response.error;
@@ -208,11 +216,10 @@ export async function removeAccount(householdId: string, id: string) {
 }
 
 export async function removeTransaction(householdId: string, id: string) {
-  const response = await supabase
-    .from('transactions')
-    .delete()
-    .eq('household_id', householdId)
-    .eq('id', id);
+  const response = await supabase.rpc('delete_household_transaction', {
+    p_household_id: householdId,
+    p_transaction_id: id
+  });
   if (response.error) {
     throw response.error;
   }
