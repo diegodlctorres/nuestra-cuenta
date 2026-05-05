@@ -153,14 +153,15 @@ export function AuthView({
               <div>
                 <label className="block text-xs font-bold text-slate-600 uppercase mb-1">Nueva Contraseña</label>
                 <div className="relative">
-                  <input
-                    type="password"
-                    required
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="w-full pl-4 pr-10 py-3 bg-slate-50 border border-slate-200 rounded-xl font-medium focus:ring-2 focus:ring-primary-500 outline-none"
-                    placeholder="••••••••"
-                    minLength={6}
+                <input
+                  type="password"
+                  required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  autoComplete="new-password"
+                  className="w-full pl-4 pr-10 py-3 bg-slate-50 border border-slate-200 rounded-xl font-medium focus:ring-2 focus:ring-primary-500 outline-none"
+                  placeholder="••••••••"
+                  minLength={6}
                   />
                   <Lock className="absolute right-3 top-3.5 w-5 h-5 text-slate-400" />
                 </div>
@@ -169,14 +170,15 @@ export function AuthView({
               <div>
                 <label className="block text-xs font-bold text-slate-600 uppercase mb-1">Confirmar Contraseña</label>
                 <div className="relative">
-                  <input
-                    type="password"
-                    required
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    className="w-full pl-4 pr-10 py-3 bg-slate-50 border border-slate-200 rounded-xl font-medium focus:ring-2 focus:ring-primary-500 outline-none"
-                    placeholder="••••••••"
-                    minLength={6}
+                <input
+                  type="password"
+                  required
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  autoComplete="new-password"
+                  className="w-full pl-4 pr-10 py-3 bg-slate-50 border border-slate-200 rounded-xl font-medium focus:ring-2 focus:ring-primary-500 outline-none"
+                  placeholder="••••••••"
+                  minLength={6}
                   />
                   <Lock className="absolute right-3 top-3.5 w-5 h-5 text-slate-400" />
                 </div>
@@ -229,6 +231,7 @@ export function AuthView({
                   required
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
+                  autoComplete="name"
                   className="w-full pl-4 pr-10 py-3 bg-slate-50 border border-slate-200 rounded-xl font-medium focus:ring-2 focus:ring-primary-500 outline-none"
                   placeholder="Ej. Ana Pérez"
                 />
@@ -244,6 +247,7 @@ export function AuthView({
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
+                autoComplete="email"
                 className="w-full pl-4 pr-10 py-3 bg-slate-50 border border-slate-200 rounded-xl font-medium focus:ring-2 focus:ring-primary-500 outline-none"
                 placeholder="tu@correo.com"
               />
@@ -259,6 +263,7 @@ export function AuthView({
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                autoComplete={isLogin ? 'current-password' : 'new-password'}
                 className="w-full pl-4 pr-10 py-3 bg-slate-50 border border-slate-200 rounded-xl font-medium focus:ring-2 focus:ring-primary-500 outline-none"
                 placeholder="••••••••"
                 minLength={6}
@@ -348,6 +353,7 @@ export function AuthView({
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
+                autoComplete="email"
                 className="w-full pl-4 pr-10 py-3 bg-slate-50 border border-slate-200 rounded-xl font-medium focus:ring-2 focus:ring-primary-500 outline-none"
                 placeholder="tu@correo.com"
               />
