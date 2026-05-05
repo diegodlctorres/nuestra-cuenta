@@ -147,8 +147,12 @@ export async function createCategory(householdId: string, name: string, kind: 'i
   return response.data as Category;
 }
 
-export async function removeCategory(id: string) {
-  const response = await supabase.from('categories').delete().eq('id', id);
+export async function removeCategory(householdId: string, id: string) {
+  const response = await supabase
+    .from('categories')
+    .delete()
+    .eq('household_id', householdId)
+    .eq('id', id);
   if (response.error) {
     throw response.error;
   }
@@ -172,13 +176,14 @@ export async function createAccount(householdId: string, name: string, emoji?: s
   return response.data as Account;
 }
 
-export async function editAccount(id: string, updates: Partial<Account>) {
+export async function editAccount(householdId: string, id: string, updates: Partial<Account>) {
   const response = await supabase
     .from('accounts')
     .update({
       name: updates.name,
       emoji: updates.emoji
     })
+    .eq('household_id', householdId)
     .eq('id', id)
     .select()
     .single();
@@ -190,10 +195,11 @@ export async function editAccount(id: string, updates: Partial<Account>) {
   return response.data as Account;
 }
 
-export async function removeAccount(id: string) {
+export async function removeAccount(householdId: string, id: string) {
   const response = await supabase
     .from('accounts')
     .delete()
+    .eq('household_id', householdId)
     .eq('id', id);
 
   if (response.error) {
@@ -201,8 +207,12 @@ export async function removeAccount(id: string) {
   }
 }
 
-export async function removeTransaction(id: string) {
-  const response = await supabase.from('transactions').delete().eq('id', id);
+export async function removeTransaction(householdId: string, id: string) {
+  const response = await supabase
+    .from('transactions')
+    .delete()
+    .eq('household_id', householdId)
+    .eq('id', id);
   if (response.error) {
     throw response.error;
   }
@@ -216,9 +226,10 @@ export function calculateAccountBalances(accounts: Account[], transactions: Tran
   });
 
   transactions.forEach(transaction => {
-    if (transaction.account_id && balances[transaction.account_id] !== undefined) {
+    const currentBalance = balances[transaction.account_id];
+    if (transaction.account_id && currentBalance !== undefined) {
       const amount = Number(transaction.amount);
-      balances[transaction.account_id] += transaction.type === 'income' ? amount : -amount;
+      balances[transaction.account_id] = currentBalance + (transaction.type === 'income' ? amount : -amount);
     }
   });
 

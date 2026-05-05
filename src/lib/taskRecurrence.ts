@@ -137,7 +137,7 @@ export function fromStoredOccurrenceTime(occurrenceDueTime?: string | null) {
 
 function createRenderableReminder(task: Task, occurrence: {
   date: string;
-  dueTime?: string | null;
+  dueTime?: string | null | undefined;
   status: 'pending' | 'completed';
   completedAt?: string | null;
 }): RenderableTaskReminder {

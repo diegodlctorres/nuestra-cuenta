@@ -3,14 +3,14 @@ import { Plus, Trash2 } from 'lucide-react';
 import { Category } from '../../types';
 import { Modal } from '../ui/Modal';
 import { InlineFeedback } from '../ui/InlineFeedback';
-import { getActionErrorMessage, isOffline } from '../../lib/networkStatus';
+import { MutationResult } from '../../lib/errors';
 
 export function CategoryManager({ title, type, categories, onAdd, onDelete }: {
   title: string,
   type: 'checking' | 'savings',
   categories: Category[],
-  onAdd: (name: string) => void,
-  onDelete: (id: string) => void
+  onAdd: (name: string) => Promise<MutationResult>,
+  onDelete: (id: string) => Promise<MutationResult>
 }) {
   const [newName, setNewName] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -19,27 +19,24 @@ export function CategoryManager({ title, type, categories, onAdd, onDelete }: {
   const displayCategories = categories.slice(0, 3);
   const hasMore = categories.length > 3;
 
-  const handleAdd = () => {
+  const handleAdd = async () => {
     if (!newName) return;
 
-    if (isOffline()) {
-      setActionError(getActionErrorMessage('No se pudo crear la categoría.'));
-      return;
-    }
-
     setActionError('');
-    onAdd(newName);
-    setNewName('');
+    const result = await onAdd(newName);
+    if (result.ok) {
+      setNewName('');
+    } else {
+      setActionError(result.message);
+    }
   };
 
-  const handleDelete = (id: string) => {
-    if (isOffline()) {
-      setActionError(getActionErrorMessage('No se pudo eliminar la categoría.'));
-      return;
-    }
-
+  const handleDelete = async (id: string) => {
     setActionError('');
-    onDelete(id);
+    const result = await onDelete(id);
+    if (!result.ok) {
+      setActionError(result.message);
+    }
   };
 
   return (

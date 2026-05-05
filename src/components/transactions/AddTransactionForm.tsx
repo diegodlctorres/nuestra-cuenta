@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, ChevronDown, Check } from 'lucide-react';
 import { cn } from '../../lib/utils';
+import { MutationResult } from '../../lib/errors';
 import { Transaction, Category, Account, TransactionType } from '../../types';
 import { Modal } from '../ui/Modal';
 import { getAccountEmoji } from '../../lib/accountEmojis';
@@ -8,7 +9,7 @@ import { getAccountEmoji } from '../../lib/accountEmojis';
 interface TransactionModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onAdd: (t: Omit<Transaction, 'id' | 'household_id' | 'created_by'>) => Promise<boolean>;
+  onAdd: (t: Omit<Transaction, 'id' | 'household_id' | 'created_by'>) => Promise<MutationResult>;
   categories: Category[];
   accounts: Account[];
   initialDescription?: string;
@@ -80,11 +81,13 @@ export function TransactionModal({
   };
 
   useEffect(() => {
-    if (filteredCategories.length > 0 && !filteredCategories.find(c => c.id === categoryId)) {
-      setCategoryId(filteredCategories[0].id);
+    const firstCategory = filteredCategories[0];
+    if (firstCategory && !filteredCategories.find(c => c.id === categoryId)) {
+      setCategoryId(firstCategory.id);
     }
-    if (accounts.length > 0 && !accounts.find(a => a.id === accountId)) {
-      setAccountId(accounts[0].id);
+    const firstAccount = accounts[0];
+    if (firstAccount && !accounts.find(a => a.id === accountId)) {
+      setAccountId(firstAccount.id);
     }
   }, [type, filteredCategories, accounts, categoryId, accountId]);
 
@@ -106,7 +109,7 @@ export function TransactionModal({
         : description.trim();
 
     setIsSaving(true);
-    const wasSaved = await onAdd({
+    const result = await onAdd({
       created_at: new Date().toISOString(),
       amount: Math.abs(amountNumber),
       description: finalDescription,
@@ -118,11 +121,11 @@ export function TransactionModal({
     });
     setIsSaving(false);
 
-    if (wasSaved) {
+    if (result.ok) {
       resetForm();
       onClose();
     } else {
-      setSaveError('No se pudo guardar la transacción. Inténtalo nuevamente.');
+      setSaveError(result.message);
     }
   };
 
@@ -324,7 +327,7 @@ export function TransactionModal({
 }
 
 interface AddTransactionFormProps {
-  onAdd: (t: Omit<Transaction, 'id' | 'household_id' | 'created_by'>) => Promise<boolean>;
+  onAdd: (t: Omit<Transaction, 'id' | 'household_id' | 'created_by'>) => Promise<MutationResult>;
   categories: Category[];
   accounts: Account[];
   isOpen?: boolean;

@@ -2,14 +2,16 @@ import React, { useState } from 'react';
 import { Plus, Trash2, Pencil, Check, X } from 'lucide-react';
 import { Account } from '../../types';
 import { Modal } from '../ui/Modal';
+import { InlineFeedback } from '../ui/InlineFeedback';
 import { cn } from '../../lib/utils';
+import { MutationResult } from '../../lib/errors';
 import { ACCOUNT_EMOJI_OPTIONS, getAccountEmoji, getDefaultAccountEmoji } from '../../lib/accountEmojis';
 
 interface AccountManagerProps {
   accounts: Account[];
-  onAdd: (name: string, emoji: string) => void;
-  onDelete: (id: string) => Promise<boolean>;
-  onUpdate: (id: string, updates: Partial<Account>) => void;
+  onAdd: (name: string, emoji: string) => Promise<MutationResult>;
+  onDelete: (id: string) => Promise<MutationResult>;
+  onUpdate: (id: string, updates: Partial<Account>) => Promise<MutationResult>;
 }
 
 function EmojiPickerGrid({
@@ -82,23 +84,32 @@ export function AccountManager({ accounts, onAdd, onDelete, onUpdate }: AccountM
   const [isNewEmojiModalOpen, setIsNewEmojiModalOpen] = useState(false);
   const [isEditingEmojiModalOpen, setIsEditingEmojiModalOpen] = useState(false);
   const [isDeletingAccount, setIsDeletingAccount] = useState(false);
+  const [actionError, setActionError] = useState('');
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (newName.trim()) {
-      onAdd(newName.trim(), newEmoji);
-      setNewName('');
-      setNewEmoji(getDefaultAccountEmoji());
+      setActionError('');
+      const result = await onAdd(newName.trim(), newEmoji);
+      if (result.ok) {
+        setNewName('');
+        setNewEmoji(getDefaultAccountEmoji());
+      } else {
+        setActionError(result.message);
+      }
     }
   };
 
   const handleConfirmDelete = async () => {
     if (!accountToDelete || isDeletingAccount) return;
     setIsDeletingAccount(true);
-    const wasDeleted = await onDelete(accountToDelete.id);
+    const result = await onDelete(accountToDelete.id);
     setIsDeletingAccount(false);
-    if (wasDeleted) {
+    if (result.ok) {
       setAccountToDelete(null);
+      setActionError('');
+    } else {
+      setActionError(result.message);
     }
   };
 
@@ -114,17 +125,23 @@ export function AccountManager({ accounts, onAdd, onDelete, onUpdate }: AccountM
     setEditingEmoji(getDefaultAccountEmoji());
   };
 
-  const saveEditing = (account: Account) => {
+  const saveEditing = async (account: Account) => {
     const trimmedName = editingName.trim();
     if (!trimmedName) return;
 
     if (trimmedName !== account.name || editingEmoji !== getAccountEmoji(account)) {
-      onUpdate(account.id, {
+      const result = await onUpdate(account.id, {
         name: trimmedName,
         emoji: editingEmoji
       });
+
+      if (!result.ok) {
+        setActionError(result.message);
+        return;
+      }
     }
 
+    setActionError('');
     cancelEditing();
   };
 
@@ -166,6 +183,10 @@ export function AccountManager({ accounts, onAdd, onDelete, onUpdate }: AccountM
           </button>
         </div>
       </form>
+
+      {actionError && (
+        <InlineFeedback message={actionError} />
+      )}
 
       <div className="space-y-2">
         {accounts.slice(0, 3).map(acc => (

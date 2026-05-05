@@ -14,7 +14,6 @@ import { useSettingsContext } from '../contexts/SettingsContext';
 import { usePetsContext } from '../contexts/PetsContext';
 import { useFinance } from '../contexts/FinanceContext';
 import { InlineFeedback } from '../components/ui/InlineFeedback';
-import { getActionErrorMessage } from '../lib/networkStatus';
 
 export function SettingsView() {
   const { coupleSettings, setCoupleSettings } = useSettingsContext();
@@ -44,13 +43,13 @@ export function SettingsView() {
 
     setIsDeletingPet(true);
     setActionError('');
-    const wasDeleted = await deletePet(petToDelete.id);
+    const result = await deletePet(petToDelete.id);
     setIsDeletingPet(false);
 
-    if (wasDeleted) {
+    if (result.ok) {
       setPetToDelete(null);
     } else {
-      setActionError(getActionErrorMessage('No se pudo eliminar la mascota.'));
+      setActionError(result.message);
     }
   };
 
@@ -163,9 +162,9 @@ export function SettingsView() {
                   key={theme.id}
                   onClick={async () => {
                     setActionError('');
-                    const wasSaved = await setCoupleSettings({ ...coupleSettings, theme: theme.id });
-                    if (!wasSaved) {
-                      setActionError(getActionErrorMessage('No se pudo actualizar el tema visual.'));
+                    const result = await setCoupleSettings({ ...coupleSettings, theme: theme.id });
+                    if (!result.ok) {
+                      setActionError(result.message);
                     }
                   }}
                   className={`flex items-center gap-3 p-3 rounded-xl border transition-all ${

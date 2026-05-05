@@ -29,7 +29,9 @@ import { es } from "date-fns/locale";
 import { TaskFormModal } from "../components/tasks/AddTaskForm";
 import { TransactionModal } from "../components/transactions/AddTransactionForm";
 import { Modal } from "../components/ui/Modal";
+import { InlineFeedback } from "../components/ui/InlineFeedback";
 import { cn } from "../lib/utils";
+import { MutationResult, mutationMessage } from "../lib/errors";
 import { ReminderViewRange } from "../hooks/useTasks";
 import { RenderableTaskReminder, Transaction } from "../types";
 import { buildTaskInputFromTask } from "../lib/taskRecurrence";
@@ -80,8 +82,8 @@ function DeleteReminderModal({
     reminder: RenderableTaskReminder | null;
     isOpen: boolean;
     onClose: () => void;
-    onDeleteSingle: () => Promise<boolean>;
-    onDeleteSeries: () => Promise<boolean>;
+    onDeleteSingle: () => Promise<MutationResult>;
+    onDeleteSeries: () => Promise<MutationResult>;
 }) {
     const [isSubmitting, setIsSubmitting] = useState<DeleteMode | null>(null);
 
@@ -89,16 +91,16 @@ function DeleteReminderModal({
 
     const handleSingleDelete = async () => {
         setIsSubmitting("single");
-        const wasDeleted = await onDeleteSingle();
+        const result = await onDeleteSingle();
         setIsSubmitting(null);
-        if (wasDeleted) onClose();
+        if (result.ok) onClose();
     };
 
     const handleSeriesDelete = async () => {
         setIsSubmitting("series");
-        const wasDeleted = await onDeleteSeries();
+        const result = await onDeleteSeries();
         setIsSubmitting(null);
-        if (wasDeleted) onClose();
+        if (result.ok) onClose();
     };
 
     return (
@@ -444,6 +446,7 @@ export function TasksView() {
     );
     const [period, setPeriod] = useState<ReminderPeriod>("month");
     const [periodCursor, setPeriodCursor] = useState(() => new Date());
+    const [actionError, setActionError] = useState("");
 
     const selectedReminder = useMemo(
         () => tasks.find((task) => task.id === selectedReminderId) || null,
@@ -488,23 +491,27 @@ export function TasksView() {
         }
 
         if (reminder.completed) {
-            await reopenReminder(reminder);
+            const result = await reopenReminder(reminder);
+            if (!result.ok) setActionError(result.message);
             return;
         }
 
-        await completeReminder(reminder);
+        const result = await completeReminder(reminder);
+        if (!result.ok) setActionError(result.message);
     };
 
     const handleTransactionForReminder = async (
         transaction: Omit<Transaction, "id" | "household_id" | "created_by">,
     ) => {
-        if (!transactionReminder) return false;
+        if (!transactionReminder) {
+            return mutationMessage("No se encontró el recordatorio asociado.");
+        }
 
         const transactionSaved = await addTransaction(transaction);
-        if (!transactionSaved) return false;
+        if (!transactionSaved.ok) return transactionSaved;
 
         const reminderCompleted = await completeReminder(transactionReminder);
-        if (reminderCompleted) {
+        if (reminderCompleted.ok) {
             setTransactionReminderId(null);
             if (selectedReminderId === transactionReminder.id)
                 setSelectedReminderId(null);
@@ -539,6 +546,8 @@ export function TasksView() {
         >
             <div className="space-y-4">
                 <h2 className="text-2xl font-bold">Recordatorios</h2>
+
+                {actionError && <InlineFeedback message={actionError} />}
 
                 <div className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
                     <div className="flex items-center gap-2">
@@ -701,7 +710,7 @@ export function TasksView() {
                                         return;
                                     }
 
-                                    const wasUpdated =
+                                    const result =
                                         selectedReminder.completed
                                             ? await reopenReminder(
                                                   selectedReminder,
@@ -710,7 +719,11 @@ export function TasksView() {
                                                   selectedReminder,
                                               );
 
-                                    if (wasUpdated) setSelectedReminderId(null);
+                                    if (result.ok) {
+                                        setSelectedReminderId(null);
+                                    } else {
+                                        setActionError(result.message);
+                                    }
                                 }}
                                 className="w-full rounded-2xl bg-primary-600 py-3 text-sm font-bold text-white shadow-lg shadow-primary-100 transition-colors hover:bg-primary-700"
                             >
@@ -775,19 +788,25 @@ export function TasksView() {
                 isOpen={!!deleteCandidate}
                 onClose={closeDeleteModal}
                 onDeleteSingle={async () => {
-                    if (!deleteCandidate) return false;
-                    const wasDeleted = await deleteReminder(deleteCandidate);
-                    if (wasDeleted && selectedReminderId === deleteCandidate.id)
+                    if (!deleteCandidate) {
+                        return mutationMessage("No se encontró el recordatorio.");
+                    }
+                    const result = await deleteReminder(deleteCandidate);
+                    if (result.ok && selectedReminderId === deleteCandidate.id)
                         setSelectedReminderId(null);
-                    return wasDeleted;
+                    if (!result.ok) setActionError(result.message);
+                    return result;
                 }}
                 onDeleteSeries={async () => {
-                    if (!deleteCandidate) return false;
-                    const wasDeleted =
+                    if (!deleteCandidate) {
+                        return mutationMessage("No se encontró el recordatorio.");
+                    }
+                    const result =
                         await deleteSeriesFromReminder(deleteCandidate);
-                    if (wasDeleted && selectedReminderId === deleteCandidate.id)
+                    if (result.ok && selectedReminderId === deleteCandidate.id)
                         setSelectedReminderId(null);
-                    return wasDeleted;
+                    if (!result.ok) setActionError(result.message);
+                    return result;
                 }}
             />
 
@@ -797,15 +816,15 @@ export function TasksView() {
                 onSubmit={async (task) => {
                     if (!editingReminder)
                         return {
-                            success: false,
-                            error: "No se encontró el recordatorio.",
+                            ok: false,
+                            message: "No se encontró el recordatorio.",
                         };
 
                     const result = await updateTask(
                         editingReminder.taskId,
                         task,
                     );
-                    if (result.success) {
+                    if (result.ok) {
                         setEditingReminderId(null);
                         setSelectedReminderId(null);
                     }
@@ -866,16 +885,18 @@ export function TasksView() {
                                 type="button"
                                 onClick={async () => {
                                     if (!archiveConfirmReminder) return;
-                                    const wasArchived = await archiveTaskSeries(
+                                    const result = await archiveTaskSeries(
                                         archiveConfirmReminder.taskId,
                                     );
-                                    if (wasArchived) {
+                                    if (result.ok) {
                                         setArchiveConfirmReminderId(null);
                                         if (
                                             selectedReminderId ===
                                             archiveConfirmReminder.id
                                         )
                                             setSelectedReminderId(null);
+                                    } else {
+                                        setActionError(result.message);
                                     }
                                 }}
                                 className="flex-1 rounded-2xl bg-amber-500 py-3 text-sm font-bold text-white shadow-lg shadow-amber-100 transition-colors hover:bg-amber-600"

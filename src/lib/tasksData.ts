@@ -97,7 +97,7 @@ export async function createTask(householdId: string, task: TaskInput) {
   }
 }
 
-export async function editTask(taskId: string, task: TaskInput) {
+export async function editTask(householdId: string, taskId: string, task: TaskInput) {
   const normalizedTask = normalizeTaskInput(task);
   const response = await supabase
     .from('tasks')
@@ -114,6 +114,7 @@ export async function editTask(taskId: string, task: TaskInput) {
       series_anchor_date: normalizedTask.series_anchor_date,
       archived_at: null
     })
+    .eq('household_id', householdId)
     .eq('id', taskId);
 
   if (response.error) {
@@ -121,11 +122,12 @@ export async function editTask(taskId: string, task: TaskInput) {
   }
 }
 
-export async function completeReminderRecord(reminder: RenderableTaskReminder) {
+export async function completeReminderRecord(householdId: string, reminder: RenderableTaskReminder) {
   if (!reminder.isRecurring) {
     const response = await supabase
       .from('tasks')
       .update({ completed: true })
+      .eq('household_id', householdId)
       .eq('id', reminder.taskId);
 
     if (response.error) {
@@ -134,29 +136,26 @@ export async function completeReminderRecord(reminder: RenderableTaskReminder) {
     return;
   }
 
-  const response = await supabase
-    .from('task_occurrences')
-    .upsert({
-      task_id: reminder.taskId,
-      occurrence_date: reminder.occurrenceDate,
-      occurrence_due_time: toStoredOccurrenceTime(reminder.occurrenceDueTime),
-      status: 'completed',
-      completed_at: new Date().toISOString(),
-      requires_transaction_snapshot: reminder.requiresTransaction
-    }, {
-      onConflict: 'task_id,occurrence_date,occurrence_due_time'
-    });
+  const response = await supabase.rpc('upsert_task_occurrence_status', {
+    p_household_id: householdId,
+    p_task_id: reminder.taskId,
+    p_occurrence_date: reminder.occurrenceDate,
+    p_occurrence_due_time: toStoredOccurrenceTime(reminder.occurrenceDueTime),
+    p_status: 'completed',
+    p_requires_transaction_snapshot: reminder.requiresTransaction
+  });
 
   if (response.error) {
     throw response.error;
   }
 }
 
-export async function reopenReminderRecord(reminder: RenderableTaskReminder) {
+export async function reopenReminderRecord(householdId: string, reminder: RenderableTaskReminder) {
   if (!reminder.isRecurring) {
     const response = await supabase
       .from('tasks')
       .update({ completed: false })
+      .eq('household_id', householdId)
       .eq('id', reminder.taskId);
 
     if (response.error) {
@@ -165,23 +164,26 @@ export async function reopenReminderRecord(reminder: RenderableTaskReminder) {
     return;
   }
 
-  const response = await supabase
-    .from('task_occurrences')
-    .delete()
-    .eq('task_id', reminder.taskId)
-    .eq('occurrence_date', reminder.occurrenceDate)
-    .eq('occurrence_due_time', toStoredOccurrenceTime(reminder.occurrenceDueTime));
+  const response = await supabase.rpc('upsert_task_occurrence_status', {
+    p_household_id: householdId,
+    p_task_id: reminder.taskId,
+    p_occurrence_date: reminder.occurrenceDate,
+    p_occurrence_due_time: toStoredOccurrenceTime(reminder.occurrenceDueTime),
+    p_status: 'pending',
+    p_requires_transaction_snapshot: reminder.requiresTransaction
+  });
 
   if (response.error) {
     throw response.error;
   }
 }
 
-export async function deleteReminderRecord(reminder: RenderableTaskReminder) {
+export async function deleteReminderRecord(householdId: string, reminder: RenderableTaskReminder) {
   if (!reminder.isRecurring) {
     const response = await supabase
       .from('tasks')
       .delete()
+      .eq('household_id', householdId)
       .eq('id', reminder.taskId);
 
     if (response.error) {
@@ -190,28 +192,25 @@ export async function deleteReminderRecord(reminder: RenderableTaskReminder) {
     return;
   }
 
-  const response = await supabase
-    .from('task_occurrences')
-    .upsert({
-      task_id: reminder.taskId,
-      occurrence_date: reminder.occurrenceDate,
-      occurrence_due_time: toStoredOccurrenceTime(reminder.occurrenceDueTime),
-      status: 'deleted',
-      completed_at: null,
-      requires_transaction_snapshot: reminder.requiresTransaction
-    }, {
-      onConflict: 'task_id,occurrence_date,occurrence_due_time'
-    });
+  const response = await supabase.rpc('upsert_task_occurrence_status', {
+    p_household_id: householdId,
+    p_task_id: reminder.taskId,
+    p_occurrence_date: reminder.occurrenceDate,
+    p_occurrence_due_time: toStoredOccurrenceTime(reminder.occurrenceDueTime),
+    p_status: 'deleted',
+    p_requires_transaction_snapshot: reminder.requiresTransaction
+  });
 
   if (response.error) {
     throw response.error;
   }
 }
 
-export async function archiveTaskSeriesRecord(taskId: string) {
+export async function archiveTaskSeriesRecord(householdId: string, taskId: string) {
   const response = await supabase
     .from('tasks')
     .update({ archived_at: new Date().toISOString() })
+    .eq('household_id', householdId)
     .eq('id', taskId);
 
   if (response.error) {
@@ -219,9 +218,9 @@ export async function archiveTaskSeriesRecord(taskId: string) {
   }
 }
 
-export async function deleteSeriesFromReminderRecord(reminder: RenderableTaskReminder) {
+export async function deleteSeriesFromReminderRecord(householdId: string, reminder: RenderableTaskReminder) {
   if (!reminder.isRecurring) {
-    return deleteReminderRecord(reminder);
+    return deleteReminderRecord(householdId, reminder);
   }
 
   const previousOccurrenceDate = getPreviousOccurrenceDate(reminder.task, reminder.occurrenceDate);
@@ -238,6 +237,7 @@ export async function deleteSeriesFromReminderRecord(reminder: RenderableTaskRem
   const response = await supabase
     .from('tasks')
     .update(updatePayload)
+    .eq('household_id', householdId)
     .eq('id', reminder.taskId);
 
   if (response.error) {

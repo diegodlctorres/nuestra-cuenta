@@ -3,9 +3,9 @@ import { UserPlus, ChevronRight } from 'lucide-react';
 import { Pet } from '../../types';
 import { Modal } from '../ui/Modal';
 import { cn, processImageUpload } from '../../lib/utils';
-import { getActionErrorMessage } from '../../lib/networkStatus';
+import { MutationResult } from '../../lib/errors';
 
-export function AddPetForm({ onAdd }: { onAdd: (pet: Omit<Pet, 'id' | 'household_id'>) => Promise<boolean> }) {
+export function AddPetForm({ onAdd }: { onAdd: (pet: Omit<Pet, 'id' | 'household_id'>) => Promise<MutationResult> }) {
   const [isOpen, setIsOpen] = useState(false);
   const [name, setName] = useState('');
   const [species, setSpecies] = useState('Perro');
@@ -45,7 +45,7 @@ export function AddPetForm({ onAdd }: { onAdd: (pet: Omit<Pet, 'id' | 'household
     if (nameError || isSaving) return;
 
     setIsSaving(true);
-    const wasSaved = await onAdd({
+    const result = await onAdd({
       name: name.trim(),
       species,
       breed,
@@ -54,11 +54,11 @@ export function AddPetForm({ onAdd }: { onAdd: (pet: Omit<Pet, 'id' | 'household
     });
     setIsSaving(false);
 
-    if (wasSaved) {
+    if (result.ok) {
       resetForm();
       setIsOpen(false);
     } else {
-      setSaveError(getActionErrorMessage('No se pudo registrar la mascota. Inténtalo nuevamente.'));
+      setSaveError(result.message);
     }
   };
 

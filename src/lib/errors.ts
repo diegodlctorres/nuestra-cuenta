@@ -32,3 +32,28 @@ export function getFriendlyErrorMessage(error: unknown, fallback = FALLBACK_MESS
 
   return match?.[1] || message || fallback;
 }
+
+export type MutationResult<T = void> =
+  | { ok: true; data?: T }
+  | { ok: false; message: string; cause?: unknown };
+
+export function mutationOk(): MutationResult;
+export function mutationOk<T>(data: T): MutationResult<T>;
+export function mutationOk<T>(data?: T): MutationResult<T> {
+  return data === undefined ? { ok: true } : { ok: true, data };
+}
+
+export function mutationError(
+  cause: unknown,
+  fallback = FALLBACK_MESSAGE
+): MutationResult {
+  return {
+    ok: false,
+    message: getFriendlyErrorMessage(cause, fallback),
+    cause
+  };
+}
+
+export function mutationMessage(message: string, cause?: unknown): MutationResult {
+  return { ok: false, message, cause };
+}

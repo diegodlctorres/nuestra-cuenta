@@ -13,7 +13,7 @@
     "moduleResolution": "bundler",
     "isolatedModules": true,
     "moduleDetection": "force",
-    "allowJs": true,
+    "strict": true,
     "jsx": "react-jsx",
     "paths": {
       "@/*": [
@@ -21,6 +21,8 @@
       ]
     },
     "allowImportingTsExtensions": true,
+    "exactOptionalPropertyTypes": true,
+    "noUncheckedIndexedAccess": true,
     "noEmit": true
   },
   "include": [

@@ -2,6 +2,7 @@ import { useEffect, useCallback } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../contexts/AuthContext';
 import { CoupleSettings } from '../types';
+import { MutationResult, mutationError, mutationMessage, mutationOk } from '../lib/errors';
 import { isOffline, OFFLINE_MUTATION_MESSAGE } from '../lib/networkStatus';
 import { loadSettingsSnapshot, persistCoupleSettings } from '../lib/settingsData';
 import { queryKeys } from '../lib/queryKeys';
@@ -87,17 +88,16 @@ export function useSettings() {
     }
   });
 
-  const setCoupleSettings = useCallback(async (nextSettings: CoupleSettings) => {
+  const setCoupleSettings = useCallback(async (nextSettings: CoupleSettings): Promise<MutationResult> => {
     if (isOffline()) {
-      console.warn(OFFLINE_MUTATION_MESSAGE);
-      return false;
+      return mutationMessage(OFFLINE_MUTATION_MESSAGE);
     }
     try {
       await setCoupleSettingsMutation.mutateAsync(nextSettings);
-      return true;
+      return mutationOk();
     } catch (error) {
       console.error('Error saving couple settings:', error);
-      return false;
+      return mutationError(error, 'No se pudo guardar la configuración.');
     }
   }, [setCoupleSettingsMutation]);
 

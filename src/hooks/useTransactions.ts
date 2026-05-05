@@ -14,6 +14,7 @@ import {
   removeCategory,
   removeTransaction
 } from '../lib/financeData';
+import { MutationResult, mutationError, mutationMessage, mutationOk } from '../lib/errors';
 import { isOffline, OFFLINE_MUTATION_MESSAGE } from '../lib/networkStatus';
 import { queryKeys } from '../lib/queryKeys';
 
@@ -66,26 +67,30 @@ export function useTransactions() {
     }
   });
 
-  const addTransaction = useCallback(async (t: Omit<Transaction, 'id' | 'household_id' | 'created_by'>) => {
+  const addTransaction = useCallback(async (t: Omit<Transaction, 'id' | 'household_id' | 'created_by'>): Promise<MutationResult> => {
     if (isOffline()) {
-      console.warn(OFFLINE_MUTATION_MESSAGE);
-      return false;
+      return mutationMessage(OFFLINE_MUTATION_MESSAGE);
     }
     if (!householdId || !memberId) {
-      console.error("No se puede agregar transacción sin householdId o memberId");
-      return false;
+      return mutationMessage('No se puede agregar transacción sin un hogar activo.');
     }
     try {
       await addTransactionMutation.mutateAsync(t);
-      return true;
+      return mutationOk();
     } catch (error) {
       console.error('Error adding transaction:', error);
-      return false;
+      return mutationError(error, 'No se pudo guardar la transacción. Inténtalo nuevamente.');
     }
   }, [addTransactionMutation, householdId, memberId]);
 
   const deleteTransactionMutation = useMutation({
-    mutationFn: removeTransaction,
+    mutationFn: (transactionId: string) => {
+      if (!householdId) {
+        throw new Error('No se puede eliminar transacción sin householdId');
+      }
+
+      return removeTransaction(householdId, transactionId);
+    },
     onMutate: async (transactionId) => {
       await queryClient.cancelQueries({ queryKey: financeQueryKey });
       const previous = queryClient.getQueryData<FinanceSnapshot>(financeQueryKey);
@@ -105,15 +110,17 @@ export function useTransactions() {
     onSettled: () => queryClient.invalidateQueries({ queryKey: financeQueryKey })
   });
 
-  const deleteTransaction = async (id: string) => {
+  const deleteTransaction = async (id: string): Promise<MutationResult> => {
     if (isOffline()) {
-      console.warn(OFFLINE_MUTATION_MESSAGE);
-      return;
+      return mutationMessage(OFFLINE_MUTATION_MESSAGE);
     }
+    if (!householdId) return mutationMessage('No se encontró un hogar activo.');
     try {
       await deleteTransactionMutation.mutateAsync(id);
+      return mutationOk();
     } catch (error) {
       console.error('Error deleting transaction:', error);
+      return mutationError(error, 'No se pudo eliminar la transacción.');
     }
   };
 
@@ -127,21 +134,28 @@ export function useTransactions() {
     }
   });
 
-  const addCategory = async (name: string, kind: 'income' | 'expense') => {
+  const addCategory = async (name: string, kind: 'income' | 'expense'): Promise<MutationResult> => {
     if (isOffline()) {
-      console.warn(OFFLINE_MUTATION_MESSAGE);
-      return;
+      return mutationMessage(OFFLINE_MUTATION_MESSAGE);
     }
-    if (!householdId) return;
+    if (!householdId) return mutationMessage('No se encontró un hogar activo.');
     try {
       await addCategoryMutation.mutateAsync({ name, kind });
+      return mutationOk();
     } catch (error) {
       console.error('Error adding category:', error);
+      return mutationError(error, 'No se pudo crear la categoría.');
     }
   };
 
   const deleteCategoryMutation = useMutation({
-    mutationFn: removeCategory,
+    mutationFn: (categoryId: string) => {
+      if (!householdId) {
+        throw new Error('No se puede eliminar categoría sin householdId');
+      }
+
+      return removeCategory(householdId, categoryId);
+    },
     onMutate: async (categoryId) => {
       await queryClient.cancelQueries({ queryKey: financeQueryKey });
       const previous = queryClient.getQueryData<FinanceSnapshot>(financeQueryKey);
@@ -161,20 +175,22 @@ export function useTransactions() {
     onSettled: () => queryClient.invalidateQueries({ queryKey: financeQueryKey })
   });
 
-  const deleteCategory = async (id: string) => {
+  const deleteCategory = async (id: string): Promise<MutationResult> => {
     if (isOffline()) {
-      console.warn(OFFLINE_MUTATION_MESSAGE);
-      return;
+      return mutationMessage(OFFLINE_MUTATION_MESSAGE);
     }
+    if (!householdId) return mutationMessage('No se encontró un hogar activo.');
     try {
       await deleteCategoryMutation.mutateAsync(id);
+      return mutationOk();
     } catch (error) {
       console.error('Error deleting category:', error);
+      return mutationError(error, 'No se pudo eliminar la categoría.');
     }
   };
 
   const addAccountMutation = useMutation({
-    mutationFn: ({ name, emoji }: { name: string; emoji?: string }) => createAccount(householdId!, name, emoji),
+    mutationFn: ({ name, emoji }: { name: string; emoji?: string | undefined }) => createAccount(householdId!, name, emoji),
     onSuccess: (createdAccount) => {
       updateFinanceSnapshot((snapshot) => ({
         ...snapshot,
@@ -183,21 +199,28 @@ export function useTransactions() {
     }
   });
 
-  const addAccount = async (name: string, emoji?: string) => {
+  const addAccount = async (name: string, emoji?: string): Promise<MutationResult> => {
     if (isOffline()) {
-      console.warn(OFFLINE_MUTATION_MESSAGE);
-      return;
+      return mutationMessage(OFFLINE_MUTATION_MESSAGE);
     }
-    if (!householdId) return;
+    if (!householdId) return mutationMessage('No se encontró un hogar activo.');
     try {
       await addAccountMutation.mutateAsync({ name, emoji });
+      return mutationOk();
     } catch (error) {
       console.error('Error adding account:', error);
+      return mutationError(error, 'No se pudo crear la cuenta.');
     }
   };
 
   const updateAccountMutation = useMutation({
-    mutationFn: ({ id, updates }: { id: string; updates: Partial<Account> }) => editAccount(id, updates),
+    mutationFn: ({ id, updates }: { id: string; updates: Partial<Account> }) => {
+      if (!householdId) {
+        throw new Error('No se puede actualizar cuenta sin householdId');
+      }
+
+      return editAccount(householdId, id, updates);
+    },
     onSuccess: (updatedAccount) => {
       updateFinanceSnapshot((snapshot) => ({
         ...snapshot,
@@ -208,20 +231,28 @@ export function useTransactions() {
     }
   });
 
-  const updateAccount = async (id: string, updates: Partial<Account>) => {
+  const updateAccount = async (id: string, updates: Partial<Account>): Promise<MutationResult> => {
     if (isOffline()) {
-      console.warn(OFFLINE_MUTATION_MESSAGE);
-      return;
+      return mutationMessage(OFFLINE_MUTATION_MESSAGE);
     }
+    if (!householdId) return mutationMessage('No se encontró un hogar activo.');
     try {
       await updateAccountMutation.mutateAsync({ id, updates });
+      return mutationOk();
     } catch (error) {
       console.error('Error updating account:', error);
+      return mutationError(error, 'No se pudo actualizar la cuenta.');
     }
   };
 
   const deleteAccountMutation = useMutation({
-    mutationFn: removeAccount,
+    mutationFn: (accountId: string) => {
+      if (!householdId) {
+        throw new Error('No se puede eliminar cuenta sin householdId');
+      }
+
+      return removeAccount(householdId, accountId);
+    },
     onMutate: async (accountId) => {
       await queryClient.cancelQueries({ queryKey: financeQueryKey });
       const previous = queryClient.getQueryData<FinanceSnapshot>(financeQueryKey);
@@ -242,17 +273,17 @@ export function useTransactions() {
     onSettled: () => queryClient.invalidateQueries({ queryKey: financeQueryKey })
   });
 
-  const deleteAccount = async (id: string) => {
+  const deleteAccount = async (id: string): Promise<MutationResult> => {
     if (isOffline()) {
-      console.warn(OFFLINE_MUTATION_MESSAGE);
-      return false;
+      return mutationMessage(OFFLINE_MUTATION_MESSAGE);
     }
+    if (!householdId) return mutationMessage('No se encontró un hogar activo.');
     try {
       await deleteAccountMutation.mutateAsync(id);
-      return true;
+      return mutationOk();
     } catch (error) {
       console.error('Error deleting account:', error);
-      return false;
+      return mutationError(error, 'No se pudo eliminar la cuenta.');
     }
   };
 

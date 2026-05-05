@@ -15,13 +15,11 @@ import {
   loadTaskReminders,
   reopenReminderRecord
 } from '../lib/tasksData';
+import { MutationResult, mutationError, mutationMessage, mutationOk } from '../lib/errors';
 import { isOffline, OFFLINE_MUTATION_MESSAGE } from '../lib/networkStatus';
 import { queryKeys } from '../lib/queryKeys';
 
-export interface TaskMutationResult {
-  success: boolean;
-  error?: string;
-}
+export type TaskMutationResult = MutationResult;
 
 export interface ReminderViewRange {
   start: string;
@@ -74,45 +72,52 @@ export function useTasks() {
 
   const addTask = async (task: TaskInput): Promise<TaskMutationResult> => {
     if (isOffline()) {
-      return { success: false, error: OFFLINE_MUTATION_MESSAGE };
+      return mutationMessage(OFFLINE_MUTATION_MESSAGE);
     }
-    if (!householdId) return { success: false, error: 'No se encontró un hogar activo.' };
+    if (!householdId) return mutationMessage('No se encontró un hogar activo.');
 
     try {
       await addTaskMutation.mutateAsync(task);
-      return { success: true };
+      return mutationOk();
     } catch (error) {
       console.error('Error adding task:', error);
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : 'No se pudo guardar el recordatorio.'
-      };
+      return mutationError(error, 'No se pudo guardar el recordatorio.');
     }
   };
 
   const updateTaskMutation = useMutation({
-    mutationFn: ({ taskId, task }: { taskId: string; task: TaskInput }) => editTask(taskId, task),
+    mutationFn: ({ taskId, task }: { taskId: string; task: TaskInput }) => {
+      if (!householdId) {
+        throw new Error('No se puede actualizar recordatorio sin householdId');
+      }
+
+      return editTask(householdId, taskId, task);
+    },
     onSuccess: invalidateTasks
   });
 
   const updateTask = async (taskId: string, task: TaskInput): Promise<TaskMutationResult> => {
     if (isOffline()) {
-      return { success: false, error: OFFLINE_MUTATION_MESSAGE };
+      return mutationMessage(OFFLINE_MUTATION_MESSAGE);
     }
+    if (!householdId) return mutationMessage('No se encontró un hogar activo.');
     try {
       await updateTaskMutation.mutateAsync({ taskId, task });
-      return { success: true };
+      return mutationOk();
     } catch (error) {
       console.error('Error updating task:', error);
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : 'No se pudo actualizar el recordatorio.'
-      };
+      return mutationError(error, 'No se pudo actualizar el recordatorio.');
     }
   };
 
   const completeReminderMutation = useMutation({
-    mutationFn: completeReminderRecord,
+    mutationFn: (reminder: RenderableTaskReminder) => {
+      if (!householdId) {
+        throw new Error('No se puede completar recordatorio sin householdId');
+      }
+
+      return completeReminderRecord(householdId, reminder);
+    },
     onMutate: async (reminder) => {
       await queryClient.cancelQueries({ queryKey: taskQueryPrefix });
       const previous = snapshotTaskQueries();
@@ -138,22 +143,28 @@ export function useTasks() {
     onSettled: invalidateTasks
   });
 
-  const completeReminder = async (reminder: RenderableTaskReminder) => {
+  const completeReminder = async (reminder: RenderableTaskReminder): Promise<MutationResult> => {
     if (isOffline()) {
-      console.warn(OFFLINE_MUTATION_MESSAGE);
-      return false;
+      return mutationMessage(OFFLINE_MUTATION_MESSAGE);
     }
+    if (!householdId) return mutationMessage('No se encontró un hogar activo.');
     try {
       await completeReminderMutation.mutateAsync(reminder);
-      return true;
+      return mutationOk();
     } catch (error) {
       console.error('Error completing reminder:', error);
-      return false;
+      return mutationError(error, 'No se pudo completar el recordatorio.');
     }
   };
 
   const reopenReminderMutation = useMutation({
-    mutationFn: reopenReminderRecord,
+    mutationFn: (reminder: RenderableTaskReminder) => {
+      if (!householdId) {
+        throw new Error('No se puede reabrir recordatorio sin householdId');
+      }
+
+      return reopenReminderRecord(householdId, reminder);
+    },
     onMutate: async (reminder) => {
       await queryClient.cancelQueries({ queryKey: taskQueryPrefix });
       const previous = snapshotTaskQueries();
@@ -179,22 +190,28 @@ export function useTasks() {
     onSettled: invalidateTasks
   });
 
-  const reopenReminder = async (reminder: RenderableTaskReminder) => {
+  const reopenReminder = async (reminder: RenderableTaskReminder): Promise<MutationResult> => {
     if (isOffline()) {
-      console.warn(OFFLINE_MUTATION_MESSAGE);
-      return false;
+      return mutationMessage(OFFLINE_MUTATION_MESSAGE);
     }
+    if (!householdId) return mutationMessage('No se encontró un hogar activo.');
     try {
       await reopenReminderMutation.mutateAsync(reminder);
-      return true;
+      return mutationOk();
     } catch (error) {
       console.error('Error reopening reminder:', error);
-      return false;
+      return mutationError(error, 'No se pudo reabrir el recordatorio.');
     }
   };
 
   const deleteReminderMutation = useMutation({
-    mutationFn: deleteReminderRecord,
+    mutationFn: (reminder: RenderableTaskReminder) => {
+      if (!householdId) {
+        throw new Error('No se puede eliminar recordatorio sin householdId');
+      }
+
+      return deleteReminderRecord(householdId, reminder);
+    },
     onMutate: async (reminder) => {
       await queryClient.cancelQueries({ queryKey: taskQueryPrefix });
       const previous = snapshotTaskQueries();
@@ -211,22 +228,28 @@ export function useTasks() {
     onSettled: invalidateTasks
   });
 
-  const deleteReminder = async (reminder: RenderableTaskReminder) => {
+  const deleteReminder = async (reminder: RenderableTaskReminder): Promise<MutationResult> => {
     if (isOffline()) {
-      console.warn(OFFLINE_MUTATION_MESSAGE);
-      return false;
+      return mutationMessage(OFFLINE_MUTATION_MESSAGE);
     }
+    if (!householdId) return mutationMessage('No se encontró un hogar activo.');
     try {
       await deleteReminderMutation.mutateAsync(reminder);
-      return true;
+      return mutationOk();
     } catch (error) {
       console.error('Error deleting reminder:', error);
-      return false;
+      return mutationError(error, 'No se pudo eliminar el recordatorio.');
     }
   };
 
   const archiveTaskSeriesMutation = useMutation({
-    mutationFn: archiveTaskSeriesRecord,
+    mutationFn: (taskId: string) => {
+      if (!householdId) {
+        throw new Error('No se puede archivar serie sin householdId');
+      }
+
+      return archiveTaskSeriesRecord(householdId, taskId);
+    },
     onMutate: async (taskId) => {
       await queryClient.cancelQueries({ queryKey: taskQueryPrefix });
       const previous = snapshotTaskQueries();
@@ -243,22 +266,28 @@ export function useTasks() {
     onSettled: invalidateTasks
   });
 
-  const archiveTaskSeries = async (taskId: string) => {
+  const archiveTaskSeries = async (taskId: string): Promise<MutationResult> => {
     if (isOffline()) {
-      console.warn(OFFLINE_MUTATION_MESSAGE);
-      return false;
+      return mutationMessage(OFFLINE_MUTATION_MESSAGE);
     }
+    if (!householdId) return mutationMessage('No se encontró un hogar activo.');
     try {
       await archiveTaskSeriesMutation.mutateAsync(taskId);
-      return true;
+      return mutationOk();
     } catch (error) {
       console.error('Error archiving task series:', error);
-      return false;
+      return mutationError(error, 'No se pudo archivar la serie.');
     }
   };
 
   const deleteSeriesFromReminderMutation = useMutation({
-    mutationFn: deleteSeriesFromReminderRecord,
+    mutationFn: (reminder: RenderableTaskReminder) => {
+      if (!householdId) {
+        throw new Error('No se puede eliminar serie sin householdId');
+      }
+
+      return deleteSeriesFromReminderRecord(householdId, reminder);
+    },
     onMutate: async (reminder) => {
       await queryClient.cancelQueries({ queryKey: taskQueryPrefix });
       const previous = snapshotTaskQueries();
@@ -275,17 +304,17 @@ export function useTasks() {
     onSettled: invalidateTasks
   });
 
-  const deleteSeriesFromReminder = async (reminder: RenderableTaskReminder) => {
+  const deleteSeriesFromReminder = async (reminder: RenderableTaskReminder): Promise<MutationResult> => {
     if (isOffline()) {
-      console.warn(OFFLINE_MUTATION_MESSAGE);
-      return false;
+      return mutationMessage(OFFLINE_MUTATION_MESSAGE);
     }
+    if (!householdId) return mutationMessage('No se encontró un hogar activo.');
     try {
       await deleteSeriesFromReminderMutation.mutateAsync(reminder);
-      return true;
+      return mutationOk();
     } catch (error) {
       console.error('Error deleting task series from occurrence:', error);
-      return false;
+      return mutationError(error, 'No se pudo eliminar la serie.');
     }
   };
 

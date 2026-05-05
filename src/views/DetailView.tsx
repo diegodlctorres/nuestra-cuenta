@@ -17,8 +17,9 @@ export function DetailView() {
   
   // Si no hay cuenta seleccionada, seleccionamos la primera disponible
   useEffect(() => {
-    if (!selectedAccountId && accounts.length > 0) {
-      setSelectedAccountId(accounts[0].id);
+    const firstAccount = accounts[0];
+    if (!selectedAccountId && firstAccount) {
+      setSelectedAccountId(firstAccount.id);
     }
   }, [accounts, selectedAccountId, setSelectedAccountId]);
 

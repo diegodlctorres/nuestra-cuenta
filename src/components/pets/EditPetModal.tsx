@@ -2,15 +2,18 @@ import React, { useState } from 'react';
 import { Pencil } from 'lucide-react';
 import { Pet } from '../../types';
 import { Modal } from '../ui/Modal';
+import { InlineFeedback } from '../ui/InlineFeedback';
+import { MutationResult } from '../../lib/errors';
 import { processImageUpload } from '../../lib/utils';
 
-export function EditPetModal({ pet, onUpdate }: { pet: Pet, onUpdate: (pet: Pet) => void }) {
+export function EditPetModal({ pet, onUpdate }: { pet: Pet, onUpdate: (pet: Pet) => Promise<MutationResult> }) {
   const [isOpen, setIsOpen] = useState(false);
   const [name, setName] = useState(pet.name);
   const [species, setSpecies] = useState(pet.species);
   const [breed, setBreed] = useState(pet.breed || '');
   const [birthDate, setBirthDate] = useState(pet.birth_date || '');
   const [photoUrl, setPhotoUrl] = useState(pet.photo_url || '');
+  const [saveError, setSaveError] = useState('');
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -24,10 +27,11 @@ export function EditPetModal({ pet, onUpdate }: { pet: Pet, onUpdate: (pet: Pet)
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name) return;
-    onUpdate({ 
+    setSaveError('');
+    const result = await onUpdate({ 
       ...pet, 
       name, 
       species, 
@@ -35,7 +39,11 @@ export function EditPetModal({ pet, onUpdate }: { pet: Pet, onUpdate: (pet: Pet)
       birth_date: birthDate || undefined,
       photo_url: photoUrl || undefined 
     });
-    setIsOpen(false);
+    if (result.ok) {
+      setIsOpen(false);
+    } else {
+      setSaveError(result.message);
+    }
   };
 
   return (
@@ -76,6 +84,7 @@ export function EditPetModal({ pet, onUpdate }: { pet: Pet, onUpdate: (pet: Pet)
               {photoUrl && <img src={photoUrl} alt="Vista previa" className="w-12 h-12 object-cover rounded-full shadow-sm flex-shrink-0" />}
             </div>
           </div>
+          {saveError && <InlineFeedback message={saveError} />}
           <button type="submit" className="w-full py-4 bg-primary-600 text-white rounded-2xl font-bold text-sm shadow-lg shadow-primary-100 mt-4">Guardar Cambios</button>
         </form>
       </Modal>

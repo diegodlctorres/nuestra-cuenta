@@ -13,6 +13,7 @@ import {
   removePetTask,
   reopenPetTaskRecord
 } from '../lib/petsData';
+import { MutationResult, mutationError, mutationMessage, mutationOk } from '../lib/errors';
 import { isOffline, OFFLINE_MUTATION_MESSAGE } from '../lib/networkStatus';
 import { queryKeys } from '../lib/queryKeys';
 
@@ -56,18 +57,17 @@ export function usePets() {
     }
   });
 
-  const addPet = async (pet: Omit<Pet, 'id' | 'household_id'>) => {
+  const addPet = async (pet: Omit<Pet, 'id' | 'household_id'>): Promise<MutationResult> => {
     if (isOffline()) {
-      console.warn(OFFLINE_MUTATION_MESSAGE);
-      return false;
+      return mutationMessage(OFFLINE_MUTATION_MESSAGE);
     }
-    if (!householdId) return false;
+    if (!householdId) return mutationMessage('No se encontró un hogar activo.');
     try {
       await addPetMutation.mutateAsync(pet);
-      return true;
+      return mutationOk();
     } catch (error) {
       console.error('Error adding pet:', error);
-      return false;
+      return mutationError(error, 'No se pudo registrar la mascota.');
     }
   };
 
@@ -83,16 +83,17 @@ export function usePets() {
     }
   });
 
-  const updatePet = async (updatedPet: Pet) => {
+  const updatePet = async (updatedPet: Pet): Promise<MutationResult> => {
     if (isOffline()) {
-      console.warn(OFFLINE_MUTATION_MESSAGE);
-      return;
+      return mutationMessage(OFFLINE_MUTATION_MESSAGE);
     }
-    if (!householdId) return;
+    if (!householdId) return mutationMessage('No se encontró un hogar activo.');
     try {
       await updatePetMutation.mutateAsync(updatedPet);
+      return mutationOk();
     } catch (error) {
       console.error('Error updating pet:', error);
+      return mutationError(error, 'No se pudo actualizar la mascota.');
     }
   };
 
@@ -116,19 +117,18 @@ export function usePets() {
     }
   });
 
-  const deletePet = async (id: string) => {
+  const deletePet = async (id: string): Promise<MutationResult> => {
     if (isOffline()) {
-      console.warn(OFFLINE_MUTATION_MESSAGE);
-      return false;
+      return mutationMessage(OFFLINE_MUTATION_MESSAGE);
     }
-    if (!householdId) return false;
+    if (!householdId) return mutationMessage('No se encontró un hogar activo.');
     
     try {
       await deletePetMutation.mutateAsync(id);
-      return true;
+      return mutationOk();
     } catch (error) {
       console.error('Error deleting pet:', error);
-      return false;
+      return mutationError(error, 'No se pudo eliminar la mascota.');
     }
   };
 
@@ -146,18 +146,18 @@ export function usePets() {
     }
   });
 
-  const addPetTask = async (task: PetTaskInput) => {
+  const addPetTask = async (task: PetTaskInput): Promise<MutationResult> => {
     if (isOffline()) {
-      console.warn(OFFLINE_MUTATION_MESSAGE);
-      return false;
+      return mutationMessage(OFFLINE_MUTATION_MESSAGE);
     }
+    if (!householdId) return mutationMessage('No se encontró un hogar activo.');
     try {
       const tasks = await addPetTaskMutation.mutateAsync(task);
-      if (tasks.length === 0) return false;
-      return true;
+      if (tasks.length === 0) return mutationMessage('Selecciona al menos una mascota válida.');
+      return mutationOk();
     } catch (error) {
       console.error('Error adding pet tasks:', error);
-      return false;
+      return mutationError(error, 'No se pudo crear la tarea de mascota.');
     }
   };
 
@@ -203,23 +203,28 @@ export function usePets() {
     }
   });
 
-  const completePetTask = async (id: string) => {
+  const completePetTask = async (id: string): Promise<MutationResult> => {
     if (isOffline()) {
-      console.warn(OFFLINE_MUTATION_MESSAGE);
-      return false;
+      return mutationMessage(OFFLINE_MUTATION_MESSAGE);
     }
-    if (!memberId || !householdId) return false;
+    if (!memberId || !householdId) return mutationMessage('No se encontró un miembro activo del hogar.');
     try {
       await completePetTaskMutation.mutateAsync({ id, memberId, householdId });
-      return true;
+      return mutationOk();
     } catch (error) {
       console.error('Error completing pet task:', error);
-      return false;
+      return mutationError(error, 'No se pudo completar la tarea de mascota.');
     }
   };
 
   const reopenPetTaskMutation = useMutation({
-    mutationFn: reopenPetTaskRecord,
+    mutationFn: (taskId: string) => {
+      if (!householdId) {
+        throw new Error('No se puede reabrir tarea de mascota sin householdId');
+      }
+
+      return reopenPetTaskRecord(taskId, householdId);
+    },
     onMutate: async (taskId) => {
       await queryClient.cancelQueries({ queryKey: petsQueryKey });
       const previous = queryClient.getQueryData<PetsSnapshot>(petsQueryKey);
@@ -246,22 +251,28 @@ export function usePets() {
     }
   });
 
-  const reopenPetTask = async (id: string) => {
+  const reopenPetTask = async (id: string): Promise<MutationResult> => {
     if (isOffline()) {
-      console.warn(OFFLINE_MUTATION_MESSAGE);
-      return false;
+      return mutationMessage(OFFLINE_MUTATION_MESSAGE);
     }
+    if (!householdId) return mutationMessage('No se encontró un hogar activo.');
     try {
       await reopenPetTaskMutation.mutateAsync(id);
-      return true;
+      return mutationOk();
     } catch (error) {
       console.error('Error reopening pet task:', error);
-      return false;
+      return mutationError(error, 'No se pudo reabrir la tarea de mascota.');
     }
   };
 
   const deletePetTaskMutation = useMutation({
-    mutationFn: removePetTask,
+    mutationFn: (taskId: string) => {
+      if (!householdId) {
+        throw new Error('No se puede eliminar tarea de mascota sin householdId');
+      }
+
+      return removePetTask(taskId, householdId);
+    },
     onMutate: async (taskId) => {
       await queryClient.cancelQueries({ queryKey: petsQueryKey });
       const previous = queryClient.getQueryData<PetsSnapshot>(petsQueryKey);
@@ -280,17 +291,17 @@ export function usePets() {
     }
   });
 
-  const deletePetTask = async (id: string) => {
+  const deletePetTask = async (id: string): Promise<MutationResult> => {
     if (isOffline()) {
-      console.warn(OFFLINE_MUTATION_MESSAGE);
-      return false;
+      return mutationMessage(OFFLINE_MUTATION_MESSAGE);
     }
+    if (!householdId) return mutationMessage('No se encontró un hogar activo.');
     try {
       await deletePetTaskMutation.mutateAsync(id);
-      return true;
+      return mutationOk();
     } catch (error) {
       console.error('Error deleting pet task:', error);
-      return false;
+      return mutationError(error, 'No se pudo eliminar la tarea de mascota.');
     }
   };
 

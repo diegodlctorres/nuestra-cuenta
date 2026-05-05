@@ -136,18 +136,20 @@ export async function createPetTasks(task: PetTaskInput, pets: Pet[]) {
 }
 
 export async function completePetTaskRecord(id: string, memberId: string, householdId: string) {
-  const completedDate = new Date().toISOString();
-  const response = await supabase
-    .from('pet_tasks')
-    .update({ completed: true, completed_date: completedDate, completed_by: memberId })
-    .eq('id', id);
+  const response = await supabase.rpc('complete_pet_task', {
+    p_household_id: householdId,
+    p_pet_task_id: id
+  });
 
   if (response.error) {
     throw response.error;
   }
 
+  const completedTask = Array.isArray(response.data) ? response.data[0] : null;
+  const completedDate = completedTask?.completed_date || new Date().toISOString();
+  const completedBy = completedTask?.completed_by || memberId;
   const memberProfiles = await fetchHouseholdMemberProfiles();
-  const completedByMember = memberProfiles.find(profile => profile.member_id === memberId);
+  const completedByMember = memberProfiles.find(profile => profile.member_id === completedBy);
 
   return {
     completedDate,
@@ -155,22 +157,22 @@ export async function completePetTaskRecord(id: string, memberId: string, househ
   };
 }
 
-export async function reopenPetTaskRecord(id: string) {
-  const response = await supabase
-    .from('pet_tasks')
-    .update({ completed: false, completed_date: null, completed_by: null })
-    .eq('id', id);
+export async function reopenPetTaskRecord(id: string, householdId: string) {
+  const response = await supabase.rpc('reopen_pet_task', {
+    p_household_id: householdId,
+    p_pet_task_id: id
+  });
 
   if (response.error) {
     throw response.error;
   }
 }
 
-export async function removePetTask(id: string) {
-  const response = await supabase
-    .from('pet_tasks')
-    .delete()
-    .eq('id', id);
+export async function removePetTask(id: string, householdId: string) {
+  const response = await supabase.rpc('delete_pet_task', {
+    p_household_id: householdId,
+    p_pet_task_id: id
+  });
 
   if (response.error) {
     throw response.error;

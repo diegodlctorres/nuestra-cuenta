@@ -46,7 +46,7 @@ interface TaskFormModalProps {
   onSubmit: (task: TaskInput) => Promise<TaskMutationResult>;
   title: string;
   submitLabel: string;
-  initialTask?: TaskInput;
+  initialTask?: TaskInput | undefined;
 }
 
 export function TaskFormModal({
@@ -173,10 +173,10 @@ export function TaskFormModal({
     });
     setIsSaving(false);
 
-    if (result.success) {
+    if (result.ok) {
       onClose();
     } else {
-      setSaveError(result.error || 'No se pudo guardar. Inténtalo nuevamente.');
+      setSaveError(result.message);
     }
   };
 

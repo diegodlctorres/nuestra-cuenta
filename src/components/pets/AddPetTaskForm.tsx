@@ -3,7 +3,7 @@ import { Plus } from 'lucide-react';
 import { Pet, PetTaskInput } from '../../types';
 import { Modal } from '../ui/Modal';
 import { cn } from '../../lib/utils';
-import { getActionErrorMessage } from '../../lib/networkStatus';
+import { MutationResult } from '../../lib/errors';
 
 const getTodayDateString = () => {
   const now = new Date();
@@ -17,7 +17,7 @@ const getCurrentTimeString = () => new Date().toTimeString().slice(0, 5);
 
 interface AddPetTaskFormProps {
   pets: Pet[];
-  onAdd: (t: PetTaskInput) => Promise<boolean>;
+  onAdd: (t: PetTaskInput) => Promise<MutationResult>;
   isOpen?: boolean;
   onOpenChange?: (isOpen: boolean) => void;
   hideTrigger?: boolean;
@@ -105,7 +105,7 @@ export function AddPetTaskForm({
     if (petError || titleError || submitDateError || submitTimeError || isSaving) return;
 
     setIsSaving(true);
-    const wasSaved = await onAdd({
+    const result = await onAdd({
       petIds: selectedPetIds,
       title: title.trim(),
       scheduled_date: date,
@@ -114,11 +114,11 @@ export function AddPetTaskForm({
     });
     setIsSaving(false);
 
-    if (wasSaved) {
+    if (result.ok) {
       resetForm();
       setIsOpen(false);
     } else {
-      setSaveError(getActionErrorMessage('No se pudo programar la tarea. Inténtalo nuevamente.'));
+      setSaveError(result.message);
     }
   };
 

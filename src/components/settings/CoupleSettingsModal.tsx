@@ -4,14 +4,14 @@ import { CoupleSettings } from '../../types';
 import { PartnerForm } from './PartnerForm';
 import { Modal } from '../ui/Modal';
 import { InlineFeedback } from '../ui/InlineFeedback';
-import { getActionErrorMessage } from '../../lib/networkStatus';
+import { MutationResult } from '../../lib/errors';
 
 export function CoupleSettingsModal({
   coupleSettings,
   setCoupleSettings
 }: {
   coupleSettings: CoupleSettings,
-  setCoupleSettings: (s: CoupleSettings) => Promise<boolean>
+  setCoupleSettings: (s: CoupleSettings) => Promise<MutationResult>
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const [draftSettings, setDraftSettings] = useState<CoupleSettings>(coupleSettings);
@@ -28,11 +28,11 @@ export function CoupleSettingsModal({
     setIsSaving(true);
     try {
       setSaveError('');
-      const wasSaved = await setCoupleSettings(draftSettings);
-      if (wasSaved) {
+      const result = await setCoupleSettings(draftSettings);
+      if (result.ok) {
         setIsOpen(false);
       } else {
-        setSaveError(getActionErrorMessage('No se pudieron guardar los cambios de la pareja.'));
+        setSaveError(result.message);
       }
     } finally {
       setIsSaving(false);

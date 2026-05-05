@@ -21,26 +21,26 @@ export interface Household {
 export interface Profile {
   id: string; // references Supabase auth.users
   name: string;
-  nickname?: string;
-  gender?: string;
-  birth_date?: string;
-  avatar_url?: string;
+  nickname?: string | undefined;
+  gender?: string | undefined;
+  birth_date?: string | undefined;
+  avatar_url?: string | undefined;
 }
 
 export interface Partner {
-  id?: string;
+  id?: string | undefined;
   name: string;
-  nickname?: string;
-  gender?: string;
-  birthDate?: string;
-  photoUrl?: string;
-  isCurrentUser?: boolean;
+  nickname?: string | undefined;
+  gender?: string | undefined;
+  birthDate?: string | undefined;
+  photoUrl?: string | undefined;
+  isCurrentUser?: boolean | undefined;
 }
 
 export interface CoupleSettings {
   partner1: Partner;
   partner2: Partner;
-  theme?: ThemeType;
+  theme?: ThemeType | undefined;
 }
 
 export interface HouseholdMember {
@@ -52,7 +52,7 @@ export interface HouseholdMember {
   joined_at: string;
   
   // Relations mapped by Supabase (select "profiles(name,...)" )
-  profile?: Profile;
+  profile?: Profile | undefined;
 }
 
 export interface HouseholdInvitation {
@@ -69,7 +69,7 @@ export interface Account {
   id: string;
   household_id: string;
   name: string; // e.g. "Fondo Común", "Bolsillo Mascotas"
-  emoji?: string;
+  emoji?: string | undefined;
   is_active: boolean;
 }
 
@@ -86,7 +86,7 @@ export interface Transaction {
   created_at: string;
   created_by: string; // household_member_id
   account_id: string; // fk to Account
-  category_id?: string; // fk to Category (optional for some incomes)
+  category_id?: string | undefined; // fk to Category (optional for some incomes)
   amount: number;
   description: string;
   date: string;
@@ -94,9 +94,9 @@ export interface Transaction {
   is_pet_related: boolean;
   
   // Potential joined relations
-  account?: Account;
-  category?: Category;
-  creator?: Profile;
+  account?: Account | undefined;
+  category?: Category | undefined;
+  creator?: Profile | undefined;
 }
 
 export interface Pet {
@@ -104,9 +104,9 @@ export interface Pet {
   household_id: string;
   name: string;
   species: string;
-  breed?: string;
-  birth_date?: string;
-  photo_url?: string;
+  breed?: string | undefined;
+  birth_date?: string | undefined;
+  photo_url?: string | undefined;
 }
 
 export interface PetTask {
@@ -114,20 +114,20 @@ export interface PetTask {
   pet_id: string;
   title: string;
   scheduled_date: string;
-  scheduled_time?: string;
-  completed_date?: string;
-  completed_by?: string;
+  scheduled_time?: string | undefined;
+  completed_date?: string | undefined;
+  completed_by?: string | undefined;
   completed: boolean;
-  notes?: string;
-  completedByMember?: HouseholdMember;
+  notes?: string | undefined;
+  completedByMember?: HouseholdMember | undefined;
 }
 
 export interface PetTaskInput {
   petIds: string[];
   title: string;
   scheduled_date: string;
-  scheduled_time?: string;
-  notes?: string;
+  scheduled_time?: string | undefined;
+  notes?: string | undefined;
 }
 
 export interface Task {
@@ -135,40 +135,40 @@ export interface Task {
   household_id: string;
   title: string;
   deadline: string;
-  due_time?: string;
+  due_time?: string | undefined;
   completed: boolean;
-  requires_transaction?: boolean;
+  requires_transaction?: boolean | undefined;
   is_recurring: boolean;
-  recurrence_unit?: RecurrenceUnit | null;
-  recurrence_interval?: number | null;
-  recurrence_end_type?: RecurrenceEndType | null;
-  recurrence_until?: string | null;
-  series_anchor_date?: string | null;
-  archived_at?: string | null;
+  recurrence_unit?: RecurrenceUnit | null | undefined;
+  recurrence_interval?: number | null | undefined;
+  recurrence_end_type?: RecurrenceEndType | null | undefined;
+  recurrence_until?: string | null | undefined;
+  series_anchor_date?: string | null | undefined;
+  archived_at?: string | null | undefined;
 }
 
 export interface TaskInput {
   title: string;
   deadline: string;
-  due_time?: string;
-  requires_transaction?: boolean;
+  due_time?: string | undefined;
+  requires_transaction?: boolean | undefined;
   is_recurring: boolean;
-  recurrence_unit?: RecurrenceUnit | null;
-  recurrence_interval?: number | null;
-  recurrence_end_type?: RecurrenceEndType | null;
-  recurrence_until?: string | null;
-  series_anchor_date?: string | null;
+  recurrence_unit?: RecurrenceUnit | null | undefined;
+  recurrence_interval?: number | null | undefined;
+  recurrence_end_type?: RecurrenceEndType | null | undefined;
+  recurrence_until?: string | null | undefined;
+  series_anchor_date?: string | null | undefined;
 }
 
 export interface TaskOccurrence {
   id: string;
   task_id: string;
   occurrence_date: string;
-  occurrence_due_time?: string | null;
+  occurrence_due_time?: string | null | undefined;
   status: TaskOccurrenceStatus;
-  completed_at?: string | null;
-  requires_transaction_snapshot?: boolean | null;
-  created_at?: string;
+  completed_at?: string | null | undefined;
+  requires_transaction_snapshot?: boolean | null | undefined;
+  created_at?: string | undefined;
 }
 
 export interface RenderableTaskReminder {
@@ -176,13 +176,13 @@ export interface RenderableTaskReminder {
   taskId: string;
   title: string;
   occurrenceDate: string;
-  occurrenceDueTime?: string;
+  occurrenceDueTime?: string | undefined;
   completed: boolean;
   requiresTransaction: boolean;
   isRecurring: boolean;
   sourceStatus: TaskOccurrenceStatus;
-  completedAt?: string | null;
-  recurrenceLabel?: string;
-  recurrenceDescription?: string;
+  completedAt?: string | null | undefined;
+  recurrenceLabel?: string | undefined;
+  recurrenceDescription?: string | undefined;
   task: Task;
 }

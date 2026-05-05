@@ -18,7 +18,7 @@ import { Pet, PetTask } from "../types";
 import { cn } from "../lib/utils";
 import { usePetsContext } from "../contexts/PetsContext";
 import { InlineFeedback } from "../components/ui/InlineFeedback";
-import { getActionErrorMessage } from "../lib/networkStatus";
+import { MutationResult } from "../lib/errors";
 
 function formatPetAge(birthDate: string) {
     const totalMonths = Math.max(
@@ -49,7 +49,7 @@ function PendingPetTaskItem({
     task: PetTask;
     onOpen: () => void;
     onComplete: () => void;
-    onDelete: () => Promise<boolean>;
+    onDelete: () => Promise<MutationResult>;
 }) {
     const [offsetX, setOffsetX] = useState(0);
     const [isSwipeOpen, setIsSwipeOpen] = useState(false);
@@ -123,8 +123,8 @@ function PendingPetTaskItem({
     };
 
     const handleDelete = async () => {
-        const wasDeleted = await onDelete();
-        if (wasDeleted) {
+        const result = await onDelete();
+        if (result.ok) {
             closeSwipe();
             setIsDeleteConfirmOpen(false);
         }
@@ -356,32 +356,24 @@ export function PetsView() {
                                                 }
                                                 onComplete={async () => {
                                                     setActionError("");
-                                                    const wasCompleted =
+                                                    const result =
                                                         await completePetTask(
                                                             task.id,
                                                         );
-                                                    if (!wasCompleted) {
-                                                        setActionError(
-                                                            getActionErrorMessage(
-                                                                "No se pudo completar la tarea de mascota.",
-                                                            ),
-                                                        );
+                                                    if (!result.ok) {
+                                                        setActionError(result.message);
                                                     }
                                                 }}
                                                 onDelete={async () => {
                                                     setActionError("");
-                                                    const wasDeleted =
+                                                    const result =
                                                         await deletePetTask(
                                                             task.id,
                                                         );
-                                                    if (!wasDeleted) {
-                                                        setActionError(
-                                                            getActionErrorMessage(
-                                                                "No se pudo eliminar la tarea de mascota.",
-                                                            ),
-                                                        );
+                                                    if (!result.ok) {
+                                                        setActionError(result.message);
                                                     }
-                                                    return wasDeleted;
+                                                    return result;
                                                 }}
                                             />
                                         ))}
@@ -477,15 +469,11 @@ export function PetsView() {
                                         setActionError("");
                                         deletePetTask(
                                             activeSelectedTask.id,
-                                        ).then((wasDeleted) => {
-                                            if (wasDeleted)
+                                        ).then((result) => {
+                                            if (result.ok)
                                                 setSelectedTask(null);
-                                            if (!wasDeleted) {
-                                                setActionError(
-                                                    getActionErrorMessage(
-                                                        "No se pudo eliminar la tarea de mascota.",
-                                                    ),
-                                                );
+                                            if (!result.ok) {
+                                                setActionError(result.message);
                                             }
                                         });
                                     }}
@@ -573,17 +561,13 @@ export function PetsView() {
                                 <button
                                     onClick={async () => {
                                         setActionError("");
-                                        const wasReopened = await reopenPetTask(
+                                        const result = await reopenPetTask(
                                             activeSelectedTask.id,
                                         );
-                                        if (wasReopened) {
+                                        if (result.ok) {
                                             setSelectedTask(null);
                                         } else {
-                                            setActionError(
-                                                getActionErrorMessage(
-                                                    "No se pudo reabrir la tarea de mascota.",
-                                                ),
-                                            );
+                                            setActionError(result.message);
                                         }
                                     }}
                                     className="w-full py-3 bg-secondary-50 text-secondary-700 rounded-xl font-bold text-sm mb-3 flex items-center justify-center gap-2"
