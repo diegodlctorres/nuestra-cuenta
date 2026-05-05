@@ -6,13 +6,28 @@
   },
   {
     "schema_name": "public",
+    "function_name": "assert_active_household_member",
+    "definition": "CREATE OR REPLACE FUNCTION public.assert_active_household_member(p_household_id uuid)\n RETURNS uuid\n LANGUAGE sql\n SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$\r\n  SELECT hm.id\r\n  FROM public.household_members hm\r\n  WHERE hm.household_id = p_household_id\r\n    AND hm.profile_id = auth.uid()\r\n    AND hm.status = 'active'\r\n  ORDER BY hm.joined_at ASC\r\n  LIMIT 1;\r\n$function$\n"
+  },
+  {
+    "schema_name": "public",
     "function_name": "bootstrap_household",
     "definition": "CREATE OR REPLACE FUNCTION public.bootstrap_household(h_id uuid)\n RETURNS void\n LANGUAGE plpgsql\n SECURITY DEFINER\nAS $function$\r\nBEGIN\r\n  IF NOT EXISTS (SELECT 1 FROM public.accounts WHERE household_id = h_id) THEN\r\n    INSERT INTO public.accounts (household_id, name, emoji)\r\n    VALUES\r\n      (h_id, 'Gasto Común', '💳'),\r\n      (h_id, 'Ahorros Compartidos', '🐷');\r\n  END IF;\r\n\r\n  IF NOT EXISTS (SELECT 1 FROM public.categories WHERE household_id = h_id) THEN\r\n    INSERT INTO public.categories (household_id, name, kind)\r\n    VALUES\r\n      (h_id, 'General', 'expense'),\r\n      (h_id, 'Comida', 'expense'),\r\n      (h_id, 'Transporte', 'expense'),\r\n      (h_id, 'Hogar', 'expense'),\r\n      (h_id, 'Salud', 'expense'),\r\n      (h_id, 'Entretenimiento', 'expense'),\r\n      (h_id, 'Compras', 'expense'),\r\n      (h_id, 'Mascotas', 'expense'),\r\n      (h_id, 'Sueldo', 'income'),\r\n      (h_id, 'Inversión', 'income'),\r\n      (h_id, 'Freelance', 'income'),\r\n      (h_id, 'Regalo', 'income');\r\n  END IF;\r\nEND;\r\n$function$\n"
   },
   {
     "schema_name": "public",
+    "function_name": "complete_pet_task",
+    "definition": "CREATE OR REPLACE FUNCTION public.complete_pet_task(p_household_id uuid, p_pet_task_id uuid)\n RETURNS TABLE(completed_date timestamp with time zone, completed_by uuid)\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$\r\nDECLARE\r\n  v_member_id uuid;\r\n  v_completed_date timestamptz;\r\n  v_completed_by uuid;\r\nBEGIN\r\n  v_member_id := public.assert_active_household_member(p_household_id);\r\n\r\n  IF v_member_id IS NULL THEN\r\n    RAISE EXCEPTION 'No active household member found.';\r\n  END IF;\r\n\r\n  UPDATE public.pet_tasks pt\r\n  SET completed = true,\r\n      completed_date = now(),\r\n      completed_by = v_member_id\r\n  FROM public.pets p\r\n  WHERE pt.id = p_pet_task_id\r\n    AND pt.pet_id = p.id\r\n    AND p.household_id = p_household_id\r\n  RETURNING pt.completed_date, pt.completed_by\r\n  INTO v_completed_date, v_completed_by;\r\n\r\n  IF v_completed_date IS NULL THEN\r\n    RAISE EXCEPTION 'Pet task was not found for this household.';\r\n  END IF;\r\n\r\n  completed_date := v_completed_date;\r\n  completed_by := v_completed_by;\r\n  RETURN NEXT;\r\nEND;\r\n$function$\n"
+  },
+  {
+    "schema_name": "public",
     "function_name": "create_household_and_insert_admin",
     "definition": "CREATE OR REPLACE FUNCTION public.create_household_and_insert_admin(p_theme theme_type DEFAULT 'default'::theme_type)\n RETURNS uuid\n LANGUAGE plpgsql\n SECURITY DEFINER\nAS $function$\r\nDECLARE\r\n  v_household_id UUID;\r\nBEGIN\r\n  -- 1. Insert the new household\r\n  INSERT INTO households (theme)\r\n  VALUES (p_theme)\r\n  RETURNING id INTO v_household_id;\r\n\r\n  -- 2. Insert the calling user as the explicit admin of this new household\r\n  INSERT INTO household_members (profile_id, household_id, role, status)\r\n  VALUES (auth.uid(), v_household_id, 'admin', 'active');\r\n\r\n  RETURN v_household_id;\r\nEND;\r\n$function$\n"
+  },
+  {
+    "schema_name": "public",
+    "function_name": "delete_pet_task",
+    "definition": "CREATE OR REPLACE FUNCTION public.delete_pet_task(p_household_id uuid, p_pet_task_id uuid)\n RETURNS void\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$\r\nDECLARE\r\n  v_member_id uuid;\r\n  v_deleted_count integer;\r\nBEGIN\r\n  v_member_id := public.assert_active_household_member(p_household_id);\r\n\r\n  IF v_member_id IS NULL THEN\r\n    RAISE EXCEPTION 'No active household member found.';\r\n  END IF;\r\n\r\n  DELETE FROM public.pet_tasks pt\r\n  USING public.pets p\r\n  WHERE pt.id = p_pet_task_id\r\n    AND pt.pet_id = p.id\r\n    AND p.household_id = p_household_id;\r\n\r\n  GET DIAGNOSTICS v_deleted_count = ROW_COUNT;\r\n\r\n  IF v_deleted_count = 0 THEN\r\n    RAISE EXCEPTION 'Pet task was not found for this household.';\r\n  END IF;\r\nEND;\r\n$function$\n"
   },
   {
     "schema_name": "public",
@@ -28,5 +43,15 @@
     "schema_name": "public",
     "function_name": "handle_new_user",
     "definition": "CREATE OR REPLACE FUNCTION public.handle_new_user()\n RETURNS trigger\n LANGUAGE plpgsql\n SECURITY DEFINER\nAS $function$\r\nBEGIN\r\n  INSERT INTO public.profiles (id, name, avatar_url)\r\n  VALUES (\r\n    new.id,\r\n    COALESCE(new.raw_user_meta_data->>'full_name', new.email),\r\n    new.raw_user_meta_data->>'avatar_url'\r\n  );\r\n  RETURN new;\r\nEND;\r\n$function$\n"
+  },
+  {
+    "schema_name": "public",
+    "function_name": "reopen_pet_task",
+    "definition": "CREATE OR REPLACE FUNCTION public.reopen_pet_task(p_household_id uuid, p_pet_task_id uuid)\n RETURNS void\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$\r\nDECLARE\r\n  v_member_id uuid;\r\n  v_updated_count integer;\r\nBEGIN\r\n  v_member_id := public.assert_active_household_member(p_household_id);\r\n\r\n  IF v_member_id IS NULL THEN\r\n    RAISE EXCEPTION 'No active household member found.';\r\n  END IF;\r\n\r\n  UPDATE public.pet_tasks pt\r\n  SET completed = false,\r\n      completed_date = null,\r\n      completed_by = null\r\n  FROM public.pets p\r\n  WHERE pt.id = p_pet_task_id\r\n    AND pt.pet_id = p.id\r\n    AND p.household_id = p_household_id;\r\n\r\n  GET DIAGNOSTICS v_updated_count = ROW_COUNT;\r\n\r\n  IF v_updated_count = 0 THEN\r\n    RAISE EXCEPTION 'Pet task was not found for this household.';\r\n  END IF;\r\nEND;\r\n$function$\n"
+  },
+  {
+    "schema_name": "public",
+    "function_name": "upsert_task_occurrence_status",
+    "definition": "CREATE OR REPLACE FUNCTION public.upsert_task_occurrence_status(p_household_id uuid, p_task_id uuid, p_occurrence_date date, p_occurrence_due_time time without time zone, p_status text, p_requires_transaction_snapshot boolean)\n RETURNS void\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$\r\nDECLARE\r\n  v_member_id uuid;\r\nBEGIN\r\n  v_member_id := public.assert_active_household_member(p_household_id);\r\n\r\n  IF v_member_id IS NULL THEN\r\n    RAISE EXCEPTION 'No active household member found.';\r\n  END IF;\r\n\r\n  IF p_status NOT IN ('pending', 'completed', 'skipped', 'deleted') THEN\r\n    RAISE EXCEPTION 'Invalid task occurrence status: %', p_status;\r\n  END IF;\r\n\r\n  IF NOT EXISTS (\r\n    SELECT 1\r\n    FROM public.tasks t\r\n    WHERE t.id = p_task_id\r\n      AND t.household_id = p_household_id\r\n  ) THEN\r\n    RAISE EXCEPTION 'Task was not found for this household.';\r\n  END IF;\r\n\r\n  INSERT INTO public.task_occurrences (\r\n    task_id,\r\n    occurrence_date,\r\n    occurrence_due_time,\r\n    status,\r\n    completed_at,\r\n    requires_transaction_snapshot\r\n  )\r\n  VALUES (\r\n    p_task_id,\r\n    p_occurrence_date,\r\n    p_occurrence_due_time,\r\n    p_status,\r\n    CASE WHEN p_status = 'completed' THEN now() ELSE null END,\r\n    p_requires_transaction_snapshot\r\n  )\r\n  ON CONFLICT (task_id, occurrence_date, occurrence_due_time)\r\n  DO UPDATE SET\r\n    status = excluded.status,\r\n    completed_at = excluded.completed_at,\r\n    requires_transaction_snapshot = excluded.requires_transaction_snapshot;\r\nEND;\r\n$function$\n"
   }
 ]

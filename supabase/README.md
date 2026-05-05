@@ -24,6 +24,27 @@ Interpretación:
 
 ## Histórico
 
+### `archive/applied/`
+
+Contiene scripts SQL que ya fueron ejecutados contra la base real y luego
+reflejados en `live/`.
+
+Scripts relevantes:
+
+- `transactional_mutation_rpcs.sql`
+- `transactional_mutation_rpcs_v2.sql`
+
+Estos scripts introdujeron RPCs transaccionales para mutaciones sensibles:
+
+- `complete_pet_task`
+- `reopen_pet_task`
+- `delete_pet_task`
+- `upsert_task_occurrence_status`
+
+El frontend usa estas RPCs para completar, reabrir o eliminar tareas de mascota
+y para registrar estados de ocurrencias recurrentes. No deben reaplicarse a
+ciegas; si hay dudas, compara primero contra `live/functions_live.json`.
+
 ### `archive/legacy_repo/`
 
 Contiene la antigua “fuente de verdad” del repo, hoy considerada desactualizada:
