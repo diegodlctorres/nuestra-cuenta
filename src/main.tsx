@@ -8,11 +8,29 @@ import { queryClient } from './lib/queryClient';
 import './index.css';
 
 if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/sw.js').catch((error) => {
-      console.error('No se pudo registrar el service worker:', error);
+  if (import.meta.env.PROD) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('/sw.js').catch((error) => {
+        console.error('No se pudo registrar el service worker:', error);
+      });
     });
-  });
+  } else {
+    void navigator.serviceWorker.getRegistrations().then((registrations) => {
+      registrations.forEach((registration) => {
+        void registration.unregister();
+      });
+    });
+
+    if ('caches' in window) {
+      void caches.keys().then((cacheNames) => {
+        cacheNames.forEach((cacheName) => {
+          if (cacheName.startsWith('nuestra-cuenta-shell')) {
+            void caches.delete(cacheName);
+          }
+        });
+      });
+    }
+  }
 }
 
 const isStandalone =
